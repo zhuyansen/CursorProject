@@ -8,6 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -17,10 +18,62 @@
         h1 {
             font-size: 3rem;
             color: #333;
+            margin-bottom: 2rem;
+        }
+        .clocks {
+            display: flex;
+            gap: 2rem;
+        }
+        .clock {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 200px;
+        }
+        .city {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .time {
+            font-size: 1.5rem;
         }
     </style>
 </head>
 <body>
     <h1>hello cursor</h1>
+    
+    <div class="clocks">
+        <div class="clock">
+            <div class="city">纽约</div>
+            <div class="time" id="new-york-time"></div>
+        </div>
+        <div class="clock">
+            <div class="city">北京</div>
+            <div class="time" id="beijing-time"></div>
+        </div>
+    </div>
+
+    <script>
+        function updateClocks() {
+            const now = new Date();
+            
+            // 纽约时间 (UTC-4)
+            const newYorkOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('new-york-time').textContent = new Date().toLocaleTimeString('zh-CN', newYorkOptions);
+            
+            // 北京时间 (UTC+8)
+            const beijingOptions = { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('beijing-time').textContent = new Date().toLocaleTimeString('zh-CN', beijingOptions);
+        }
+
+        // 初始更新
+        updateClocks();
+        
+        // 每秒更新时钟
+        setInterval(updateClocks, 1000);
+    </script>
 </body>
 </html> 
