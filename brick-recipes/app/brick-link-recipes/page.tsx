@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,6 +11,27 @@ import { Search, ChevronDown, Clock, Flame, PlayCircle, ChefHat, X, Filter } fro
 import { Badge } from "@/components/ui/badge"
 import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
+
+// 定义全局样式
+const globalStyles = {
+  recipeCard: "bg-white dark:bg-gray-800 rounded-lg overflow-hidden border dark:border-gray-700 hover:shadow-md transition-shadow h-[500px] flex flex-col",
+  recipeTitle: "font-semibold text-lg mb-3 group-hover:text-[#b94a2c] dark:group-hover:text-[#ff6b47] transition-colors dark:text-white line-clamp-3 min-h-[4.5rem] break-words",
+  recipeTagContainer: "flex flex-wrap gap-1 mb-3 h-16 overflow-hidden",
+  recipeContent: "p-4 flex flex-col h-[260px] justify-between",
+}
+
+// 定义 Recipe 接口
+interface Recipe {
+  id: string | number;
+  title: string;
+  image: string;
+  time: string;
+  calories: string;
+  difficulty: string;
+  tags: string[];
+  videoUrl: string;
+  ingredients: string[];
+}
 
 // Mock data for ingredients
 const ingredients = {
@@ -27,8 +49,7 @@ const ingredients = {
     { id: "broccoli", name: "Broccoli", zhName: "西兰花", emoji: "🥦" },
     { id: "mushroom", name: "Mushroom", zhName: "蘑菇", emoji: "🍄" },
     { id: "eggplant", name: "Eggplant", zhName: "茄子", emoji: "🍆" },
-    { id: "tofu", name: "Tofu", zhName: "豆腐", emoji: "🧊" },
-    { id: "chinese-cabbage", name: "Chinese Cabbage", zhName: "白菜", emoji: "🥢" },
+    { id: "tofu", name: "Tofu", zhName: "豆腐", emoji: "🧊" }
   ],
   meat: [
     { id: "beef", name: "Beef", zhName: "牛肉", emoji: "🥩" },
@@ -53,80 +74,10 @@ const ingredients = {
     { id: "steam", name: "Steam", zhName: "蒸", emoji: "🍚" },
   ],
   cuisineStyles: [
-    { id: "eastern", name: "Eastern Food", zhName: "东方菜系", description: "Discover traditional Asian recipes", zhDescription: "探索传统亚洲美食" },
     { id: "western", name: "Western Food", zhName: "西方菜系", description: "Explore European and American cuisine", zhDescription: "体验欧美烹饪风格" },
+    { id: "eastern", name: "Eastern Food", zhName: "东方菜系", description: "Discover traditional Asian recipes", zhDescription: "探索传统亚洲美食" },
   ],
 }
-
-// Mock data for recipe results
-const mockRecipes = [
-  {
-    id: 1,
-    title: "Brick Oven Pizza",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "30 min",
-    calories: "320 kcal",
-    difficulty: "Easy",
-    tags: ["Italian", "Dinner"],
-    videoUrl: "https://example.com/video1",
-    ingredients: ["Flour", "Tomato", "Cheese", "Olive Oil"],
-  },
-  {
-    id: 2,
-    title: "Brick House Burger",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "25 min",
-    calories: "450 kcal",
-    difficulty: "Medium",
-    tags: ["American", "Lunch"],
-    videoUrl: "https://example.com/video2",
-    ingredients: ["Beef", "Onion", "Lettuce", "Tomato"],
-  },
-  {
-    id: 3,
-    title: "Brick Layer Lasagna",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "60 min",
-    calories: "520 kcal",
-    difficulty: "Medium",
-    tags: ["Italian", "Dinner"],
-    videoUrl: "https://example.com/video3",
-    ingredients: ["Pasta", "Tomato", "Beef", "Cheese"],
-  },
-  {
-    id: 4,
-    title: "Brick Road Tacos",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "20 min",
-    calories: "280 kcal",
-    difficulty: "Easy",
-    tags: ["Mexican", "Lunch"],
-    videoUrl: "https://example.com/video4",
-    ingredients: ["Tortilla", "Chicken", "Onion", "Cilantro"],
-  },
-  {
-    id: 5,
-    title: "Brick Foundation Salad",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "15 min",
-    calories: "180 kcal",
-    difficulty: "Easy",
-    tags: ["Healthy", "Lunch"],
-    videoUrl: "https://example.com/video5",
-    ingredients: ["Lettuce", "Tomato", "Cucumber", "Olive Oil"],
-  },
-  {
-    id: 6,
-    title: "Brick Wall Steak",
-    image: "/placeholder.svg?height=200&width=300",
-    time: "40 min",
-    calories: "520 kcal",
-    difficulty: "Hard",
-    tags: ["American", "Dinner"],
-    videoUrl: "https://example.com/video6",
-    ingredients: ["Beef", "Butter", "Garlic", "Rosemary"],
-  },
-]
 
 // Mock video summaries
 const videoSummaries = {
@@ -140,74 +91,268 @@ const videoSummaries = {
 
 export default function BrickLinkRecipes() {
   const { t, language } = useLanguage()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  // 静态化初始状态
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeFilter, setActiveFilter] = useState("all")
-  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([])
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>(["Potato", "Beef"]) // 静态默认值
   const [selectedMethods, setSelectedMethods] = useState<string[]>([])
-  const [selectedCuisine, setSelectedCuisine] = useState<string>("")
+  const [selectedCuisine, setSelectedCuisine] = useState<string>("western") // 静态默认值
+  const [apiRecipes, setApiRecipes] = useState<Recipe[]>([])
+  const [pageSize, setPageSize] = useState(20) // 静态默认值
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 20, // 与pageSize状态匹配
+    totalRecipes: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
+
   const [showIngredientPanel, setShowIngredientPanel] = useState(true)
-  const [previewRecipe, setPreviewRecipe] = useState<number | null>(null)
+  const [previewRecipe, setPreviewRecipe] = useState<number | string | null>(null)
   const previewRef = useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Filter recipes based on search query, active filter, and selected ingredients/methods
-  const filteredRecipes = mockRecipes.filter((recipe) => {
-    const matchesSearch = recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesFilter = activeFilter === "all" || recipe.tags.includes(activeFilter)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-    // If no ingredients are selected, don't filter by ingredients
-    const matchesIngredients =
-      selectedIngredients.length === 0 ||
-      selectedIngredients.some((ing) => {
-        // 获取所有可能的食材名称（英文和中文）
-        const allIngredientNames = [
-          ...ingredients.vegetables.map(v => language === "zh" ? v.zhName : v.name),
-          ...ingredients.meat.map(m => language === "zh" ? m.zhName : m.name)
-        ];
-        
-        return recipe.ingredients.some((i) => 
-          i.toLowerCase().includes(ing.toLowerCase()) || 
-          allIngredientNames.some(name => name.toLowerCase().includes(ing.toLowerCase()))
-        )
-      })
+  // 当筛选条件更新时，同步到URL
+  const updateUrlParams = (newParams: Record<string, string | string[] | number | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
 
-    // Check if recipe matches selected cooking methods
-    const matchesMethods = 
-      selectedMethods.length === 0 || 
-      selectedMethods.some(method => {
-        const methodObj = ingredients.cookingMethods.find(m => m.id === method);
-        return methodObj && recipe.tags.some(tag => 
-          tag.toLowerCase().includes(methodObj.name.toLowerCase()) ||
-          (methodObj.zhName && tag.toLowerCase().includes(methodObj.zhName.toLowerCase()))
-        );
-      })
-    
-    // Check if recipe matches selected cuisine style
-    const matchesCuisine = 
-      !selectedCuisine || 
-      ingredients.cuisineStyles.some(style => 
-        style.id === selectedCuisine && 
-        recipe.tags.some(tag => 
-          tag.toLowerCase().includes(style.name.toLowerCase()) ||
-          (style.zhName && tag.toLowerCase().includes(style.zhName.toLowerCase()))
-        )
-      )
+    // 更新或删除URL参数
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === "" || (Array.isArray(value) && value.length === 0)) {
+        params.delete(key);
+      } else if (Array.isArray(value)) {
+        params.set(key, value.join(','));
+      } else {
+        params.set(key, String(value));
+      }
+    });
 
-    return matchesSearch && matchesFilter && matchesIngredients && matchesMethods && matchesCuisine
-  })
+    // 使用replace而不是push，避免创建新的历史记录
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handleSearch = async (pageNumber = 1) => {
+    console.log('[Page] handleSearch triggered');
+    setIsLoading(true);
+    const params = new URLSearchParams();
+
+    if (selectedIngredients.length > 0) {
+      params.append('ingredients', selectedIngredients.join(','));
+    }
+    if (selectedMethods.length > 0) {
+      console.log('[Page] Selected methods:', selectedMethods);
+      params.append('methods', selectedMethods.join(','));
+    }
+    if (searchQuery) {
+      params.append('search', searchQuery.toLowerCase()); // send search query in lowercase
+    }
+
+    params.append('page', pageNumber.toString());
+    params.append('pageSize', pageSize.toString());
+
+    // 简化cuisine处理，仅基于selectedCuisine
+    let finalCuisineValue = "";
+    if (selectedCuisine) {
+      if (selectedCuisine === "eastern") {
+        finalCuisineValue = "Eastern";
+      } else if (selectedCuisine === "western") {
+        finalCuisineValue = "Western";
+      }
+    }
+
+    // 只有在有cuisine值时才添加参数
+    if (finalCuisineValue) {
+      params.append('cuisine', finalCuisineValue);
+    }
+
+    // 更新URL参数
+    updateUrlParams({
+      ingredients: selectedIngredients.length > 0 ? selectedIngredients : null,
+      methods: selectedMethods.length > 0 ? selectedMethods : null,
+      search: searchQuery || null,
+      page: pageNumber,
+      pageSize,
+      cuisine: selectedCuisine || null
+    });
+
+    console.log('[Page] Applying filters with params:', params.toString());
+
+    try {
+      const response = await fetch(`/api/recipes?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('[Page] Recipes fetched:', data);
+
+      if (data.recipes && Array.isArray(data.recipes)) {
+        setApiRecipes(data.recipes);
+
+        // 保存数据到sessionStorage
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('brick-recipes-data', JSON.stringify(data.recipes));
+        }
+
+        if (data.pagination) {
+          setPagination(data.pagination);
+          // 保存分页数据到sessionStorage
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('brick-recipes-pagination', JSON.stringify(data.pagination));
+          }
+          console.log("[Page] Pagination info:", data.pagination);
+        }
+      } else {
+        const recipes = Array.isArray(data) ? data : [];
+        setApiRecipes(recipes);
+
+        // 保存数据到sessionStorage
+        if (typeof window !== 'undefined' && recipes.length > 0) {
+          sessionStorage.setItem('brick-recipes-data', JSON.stringify(recipes));
+        }
+      }
+    } catch (error) {
+      console.error("[Page] Failed to fetch recipes:", error);
+      setApiRecipes([]); // 设置为空数组，不再使用mockRecipes
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 主 useEffect 用于处理客户端状态同步和初始数据加载
+  useEffect(() => {
+    if (!isMounted) {
+      return; // 等待客户端挂载
+    }
+
+    // 1. 从 searchParams 更新状态
+    const queryFromUrl = searchParams.get("search") || "";
+    const ingredientsFromUrl = searchParams.get("ingredients") 
+      ? searchParams.get("ingredients")!.split(",") 
+      : ["Potato", "Beef"]; // 使用初始静态默认值
+    const methodsFromUrl = searchParams.get("methods") 
+      ? searchParams.get("methods")!.split(",") 
+      : []; // 使用初始静态默认值
+    const cuisineFromUrl = searchParams.get("cuisine")?.toLowerCase() || "western"; // 使用初始静态默认值
+    const pageFromUrl = parseInt(searchParams.get("page") || "1");
+    const pageSizeFromUrl = parseInt(searchParams.get("pageSize") || "20");
+
+    setSearchQuery(queryFromUrl);
+    setSelectedIngredients(ingredientsFromUrl);
+    setSelectedMethods(methodsFromUrl);
+    setSelectedCuisine(cuisineFromUrl);
+    setPageSize(pageSizeFromUrl);
+
+    // 2. 尝试从 sessionStorage 加载
+    const savedRecipesJson = sessionStorage.getItem('brick-recipes-data');
+    const savedPaginationJson = sessionStorage.getItem('brick-recipes-pagination');
+    let recipesLoadedFromSession = false;
+
+    if (savedRecipesJson) {
+      try {
+        setApiRecipes(JSON.parse(savedRecipesJson));
+        recipesLoadedFromSession = true;
+      } catch (e) { 
+        console.error('[Page] Failed to parse saved recipes:', e); 
+        sessionStorage.removeItem('brick-recipes-data'); 
+      }
+    }
+
+    if (savedPaginationJson) {
+      try {
+        setPagination(JSON.parse(savedPaginationJson));
+      } catch (e) { 
+        console.error('[Page] Failed to parse saved pagination:', e); 
+        sessionStorage.removeItem('brick-recipes-pagination'); 
+      }
+    } else {
+      // 如果 session 中没有分页信息，则根据 URL/默认值更新分页状态
+      setPagination({
+        page: pageFromUrl,
+        pageSize: pageSizeFromUrl,
+        totalRecipes: 0, // 这些会在API响应后更新
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false
+      });
+    }
+
+    // 3. 如果未从 session 加载食谱，则决定是否需要API调用
+    if (!recipesLoadedFromSession) {
+      const hasRelevantParamsInUrl = 
+        searchParams.has('ingredients') ||
+        searchParams.has('methods') ||
+        searchParams.has('search') ||
+        searchParams.has('cuisine');
+
+      if (hasRelevantParamsInUrl) {
+        console.log('[Page] Client sync: URL有参数，session无食谱。正在使用URL参数搜索。');
+        handleSearch(pageFromUrl); 
+      } else {
+        // 无相关URL参数，但由于 selectedIngredients/selectedCuisine 有静态默认值，我们仍执行默认搜索
+        console.log('[Page] Client sync: URL无相关参数，session无食谱。执行默认搜索。');
+        handleSearch(1); // 使用已设置的默认筛选条件（如 Potato, Beef, Western）搜索第一页
+      }
+    }
+  }, [isMounted, searchParams]); // 当 isMounted 或 searchParams 变化时运行
+
+  // 分离 beforeunload 事件监听器
+  useEffect(() => {
+    if (!isMounted) return;
+    const handleBeforeUnload = () => {
+      if (typeof window !== 'undefined') {
+        const currentUrl = window.location.href;
+        sessionStorage.setItem('brick-recipes-last-url', currentUrl);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isMounted]);
 
   const toggleIngredient = (id: string) => {
-    setSelectedIngredients((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]))
-  }
+    // 在这里，id参数实际上是食材的名称（根据renderIngredientButton函数的调用参数）
+    console.log('[Page] Toggling ingredient:', id);
+    const newIngredients = selectedIngredients.includes(id)
+      ? selectedIngredients.filter((i) => i !== id)
+      : [...selectedIngredients, id];
+
+    setSelectedIngredients(newIngredients);
+    updateUrlParams({
+      ingredients: newIngredients.length > 0 ? newIngredients : null
+    });
+  };
 
   const toggleMethod = (id: string) => {
-    setSelectedMethods((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]))
-  }
+    // 使用方法的名称而不是ID，因为后端API期望的是方法名称
+    const methodObj = ingredients.cookingMethods.find(m => m.id === id);
+    if (!methodObj) return;
 
-  const handleSearch = () => {
-    // 保持筛选面板打开状态
-  }
+    // 获取方法名称并转换为首字母大写格式（如：bake -> Bake）
+    const methodName = methodObj.name.charAt(0).toUpperCase() + methodObj.name.slice(1);
+    console.log('[Page] Toggling method:', methodName);
 
-  const handleRecipePreview = (id: number | null) => {
+    const methodExists = selectedMethods.includes(methodName);
+    const newMethods = methodExists
+      ? selectedMethods.filter(m => m !== methodName)
+      : [...selectedMethods, methodName];
+
+    setSelectedMethods(newMethods);
+    updateUrlParams({
+      methods: newMethods.length > 0 ? newMethods : null
+    });
+  };
+
+  const handleRecipePreview = (id: number | string | null) => {
     setPreviewRecipe(id)
   }
 
@@ -227,187 +372,342 @@ export default function BrickLinkRecipes() {
 
   // Map for rendering ingredient buttons
   const renderIngredientButton = (item: { id: string; emoji: string; name: string; zhName: string }, type: string) => {
+    const displayName = language === "zh" ? item.zhName : item.name;
+    const ingredientName = item.name;
+
     return (
       <button
         key={item.id}
-        onClick={() => toggleIngredient(language === "zh" ? item.zhName : item.name)}
+        onClick={() => toggleIngredient(ingredientName)}
         className={cn(
-          "flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium dark:border-gray-800 dark:bg-gray-950",
-          selectedIngredients.includes(language === "zh" ? item.zhName : item.name) && "bg-black text-white dark:bg-white dark:text-black"
+          "flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium dark:border-gray-800 dark:bg-gray-950",
+          "hover:shadow-lg hover:scale-105 transform transition-transform duration-150 ease-in-out",
+          selectedIngredients.includes(ingredientName) && "bg-black text-white dark:bg-white dark:text-black"
         )}
       >
         <span>{item.emoji}</span>
-        <span>{language === "zh" ? item.zhName : item.name}</span>
+        <span>{displayName}</span>
       </button>
     )
   }
 
   // Map for rendering cooking method buttons
   const renderMethodButton = (method: { id: string; emoji: string; name: string; zhName: string }) => {
+    const displayName = language === "zh" ? method.zhName : method.name;
+    const methodName = method.name.charAt(0).toUpperCase() + method.name.slice(1);
+
     return (
       <button
         key={method.id}
         onClick={() => toggleMethod(method.id)}
         className={cn(
-          "flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium dark:border-gray-800 dark:bg-gray-950",
-          selectedMethods.includes(method.id) && "bg-black text-white dark:bg-white dark:text-black"
+          "flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium dark:border-gray-800 dark:bg-gray-950",
+          "hover:shadow-lg hover:scale-105 transform transition-transform duration-150 ease-in-out",
+          selectedMethods.includes(methodName) && "bg-black text-white dark:bg-white dark:text-black"
         )}
       >
         <span>{method.emoji}</span>
-        <span>{language === "zh" ? method.zhName : method.name}</span>
+        <span>{displayName}</span>
       </button>
     )
   }
 
+  // 在组件内部添加图片处理函数，放在 handleSearch 函数下方
+  const getValidImageUrl = (url: string) => {
+    // 检查URL是否有效
+    if (!url || url.includes("placeholder.svg")) {
+      return "/placeholder.svg";
+    }
+
+    try {
+      // 尝试创建一个URL对象来验证URL格式
+      new URL(url);
+      return url;
+    } catch (e) {
+      // URL格式无效
+      return "/placeholder.svg";
+    }
+  };
+
+  // 创建图片内存缓存
+  const imageCache = useRef<Map<string, string>>(new Map());
+
+  // 优化图片处理函数，加入缓存逻辑
+  const getOptimizedImageUrl = (url: string, width = 300, height = 200) => {
+    // 如果URL无效，返回占位图
+    if (!url || url.includes("placeholder.svg")) {
+      return "/placeholder.svg";
+    }
+
+    // 创建缓存键
+    const cacheKey = `${url}_${width}_${height}`;
+
+    // 检查缓存中是否已存在
+    if (imageCache.current.has(cacheKey)) {
+      return imageCache.current.get(cacheKey);
+    }
+
+    try {
+      // 验证URL格式
+      const parsedUrl = new URL(url);
+
+      // 检查是否为S3 URL
+      if (parsedUrl.hostname === 's3.us-east-1.amazonaws.com') {
+        console.log('[Page] Processing S3 image URL:', url);
+
+        // 检查URL路径长度，S3有时候会生成特别长的URL，可能导致优化服务处理超时
+        if (url.length > 500) {
+          console.log('[Page] URL too long, using direct S3 URL');
+          imageCache.current.set(cacheKey, url);
+          return url;
+        }
+
+        // 确保我们使用https协议
+        const secureUrl = url.replace(/^http:/, 'https:');
+        imageCache.current.set(cacheKey, secureUrl);
+        return secureUrl;
+      }
+
+      // 对于外部URL，可以使用Next.js的Image优化功能
+      // 但需要在next.config.js中配置domains或remotePatterns
+      // 这里我们先缓存原始URL
+      imageCache.current.set(cacheKey, url);
+      return url;
+    } catch (e) {
+      // URL格式无效，缓存占位图URL
+      console.error('[Page] Invalid image URL:', url, e);
+      imageCache.current.set(cacheKey, "/placeholder.svg");
+      return "/placeholder.svg";
+    }
+  };
+
+  // 清除所有按钮点击时，也清除sessionStorage中的数据
+  const clearAllFilters = () => {
+    setSelectedIngredients([]);
+    setSelectedMethods([]);
+    setSelectedCuisine("");
+    setSearchQuery("");
+
+    // 清除URL参数
+    updateUrlParams({
+      ingredients: null,
+      methods: null,
+      cuisine: null,
+      search: null
+    });
+
+    // 清除sessionStorage中的数据
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('brick-recipes-data');
+      sessionStorage.removeItem('brick-recipes-pagination');
+    }
+  };
+
+  // 组件首次加载时，恢复滚动位置
+  useEffect(() => {
+    if (!isMounted || !apiRecipes || apiRecipes.length === 0) return; // 确保已挂载且有食谱数据
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const savedPosition = sessionStorage.getItem('brick-recipes-scroll-position');
+        if (savedPosition) {
+          window.scrollTo(0, parseInt(savedPosition, 10));
+          sessionStorage.removeItem('brick-recipes-scroll-position');
+        }
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isMounted, apiRecipes]);
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-        <div className="container mx-auto px-6 md:px-10 lg:px-16 py-8">
-          <h1 className="text-3xl font-bold mb-2 text-center dark:text-white">{t("recipe.findYourPerfect")}</h1>
-          <p className="text-center text-gray-600 dark:text-gray-300 mb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
+      {/* 顶部主题图和引导文本 */}
+      <div className="relative overflow-hidden bg-[#fdf7ef] dark:bg-[#1e2631] mb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="order-2 md:order-1">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+                {language === "zh" ? "找到您的完美食谱" : "Find Your Perfect Recipe"}
+              </h1>
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-6">
             {language === "zh" 
-              ? "选好食材，东西美食一网打尽！视频解析，轻松获取食谱全攻略——配料、步骤、营养，样样齐全！" 
+                  ? "选择您的食材并探索东方和西方美食！我们的视频分析为您提供包含食材、步骤和营养信息的完整食谱——一站式获取所有信息！"
               : "Pick your ingredients and explore Eastern & Western cuisines! Our video analysis brings you complete recipes with ingredients, steps, and nutrition info—all in one place!"}
           </p>
+            </div>
+            <div className="order-1 md:order-2 relative">
+              <div className="relative z-10 rounded-lg overflow-hidden shadow-md">
+                <div className="grid grid-cols-2 gap-2 bg-white dark:bg-gray-800 p-4 rounded-lg">
+                  <div className="grid gap-2">
+                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                      <div className="flex items-center">
+                        <span className="text-2xl">🥔</span>
+                        <span className="ml-2 text-sm font-medium text-gray-900 dark:text-white">Potato</span>
+                      </div>
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                      <div className="flex items-center">
+                        <span className="text-2xl">🥩</span>
+                        <span className="ml-2 text-sm font-medium text-gray-900 dark:text-white">Beef</span>
+                      </div>
+                    </div>
+                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                      <div className="flex items-center">
+                        <span className="text-2xl">🧅</span>
+                        <span className="ml-2 text-sm font-medium text-gray-900 dark:text-white">Onion</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative h-full">
+                    <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+                      <div className="text-4xl text-gray-400 dark:text-gray-500">➡️</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <span className="text-3xl block">🍜</span>
+                      <span className="mt-1 text-sm font-medium block text-gray-900 dark:text-white">{language === "zh" ? "红烧牛肉" : "Braised Beef"}</span>
+                    </div>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <span className="text-3xl block">🥘</span>
+                      <span className="mt-1 text-sm font-medium block text-gray-900 dark:text-white">{language === "zh" ? "牛肉土豆汤" : "Beef Potato Soup"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 md:px-10 lg:px-16 py-8">
-        {/* 筛选组件 */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8 border dark:border-gray-700">
-          <div className="max-w-6xl mx-auto">
+      {/* 筛选面板 */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        {/* 使用flex布局实现上下结构 */}
+        <div className="flex flex-col gap-8">
+          {/* 筛选组件 - 上方 */}
+          <div className="w-full">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border dark:border-gray-700">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold dark:text-white">{t("button.filterByIngredients")}</h2>
-              {selectedIngredients.length > 0 && (
+                {(selectedIngredients.length > 0 || selectedMethods.length > 0 || selectedCuisine) && (
                 <Badge variant="secondary" className="bg-[#b94a2c] text-white dark:bg-[#ff6b47] px-3 py-1">
-                  {selectedIngredients.length} {language === "zh" ? "个已选择" : "selected"}
+                    {selectedIngredients.length + selectedMethods.length + (selectedCuisine ? 1 : 0)} {language === "zh" ? "个已选择" : "selected"}
                 </Badge>
               )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-medium mb-3 flex items-center dark:text-white">
+                <h3 className="text-lg font-medium mb-4 flex items-center dark:text-white">
                   <span className="mr-2">🥬</span> {language === "zh" ? "蔬菜" : "Vegetables"}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {ingredients.vegetables.map((veg) => renderIngredientButton(veg, "vegetables"))}
                 </div>
 
-                <h3 className="text-lg font-medium mb-3 mt-6 flex items-center dark:text-white">
+                <h3 className="text-lg font-medium mb-4 mt-6 flex items-center dark:text-white">
                   <span className="mr-2">🍖</span> {language === "zh" ? "肉类" : "Meat"}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {ingredients.meat.map((meat) => renderIngredientButton(meat, "meat"))}
-                </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-medium mb-3 flex items-center dark:text-white">
+                <h3 className="text-lg font-medium mb-4 mt-6 flex items-center dark:text-white">
                   <span className="mr-2">👨‍🍳</span> {language === "zh" ? "烹饪方式" : "Cooking Methods"}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {ingredients.cookingMethods.map((method) => renderMethodButton(method))}
                 </div>
 
-                <h3 className="text-lg font-medium mb-3 mt-6 dark:text-white">
+                <h3 className="text-lg font-medium mb-4 mt-6 dark:text-white">
                   {language === "zh" ? "您偏好的风格" : "Which style you prefer"}
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {ingredients.cuisineStyles.map((style) => (
                     <button
                       key={style.id}
-                      onClick={() => setSelectedCuisine(style.id === selectedCuisine ? "" : style.id)}
-                      className={`p-4 rounded-lg border text-left transition-colors ${
-                        selectedCuisine === style.id
+                      onClick={() => {
+                        const newCuisine = style.id === selectedCuisine ? "" : style.id;
+                        setSelectedCuisine(newCuisine);
+                        updateUrlParams({
+                          cuisine: newCuisine || null
+                        });
+                      }}
+                      className={`p-4 rounded-lg border text-center transition-colors flex flex-col items-center justify-center h-28 ${selectedCuisine === style.id
                           ? "border-[#b94a2c] bg-[#fff8f0] dark:border-[#ff6b47] dark:bg-[#3a2e1e]"
                           : "border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600"
                       } dark:text-white`}
                     >
-                      <div className="font-medium mb-1">{language === "zh" ? style.zhName : style.name}</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
-                        {language === "zh" ? style.zhDescription : style.description}
-                      </div>
+                      <span className="text-3xl mb-1">
+                        {style.id === 'eastern' ? '🍜' : '🍕'}
+                      </span>
+                      <span className="font-medium">
+                        {language === "zh" ? style.zhName.split(" ")[0] : style.name.split(" ")[0]}
+                      </span>
                     </button>
                   ))}
-                </div>
               </div>
             </div>
 
             <div className="flex justify-between mt-6">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setSelectedIngredients([])
-                  setSelectedMethods([])
-                  setSelectedCuisine("")
-                }}
+                  onClick={clearAllFilters}
                 className="dark:text-gray-300 dark:border-gray-600"
               >
                 {t("button.clearAll")}
               </Button>
               <Button
                 className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]"
-                onClick={handleSearch}
+                  onClick={() => handleSearch()}
               >
                 {t("button.applyFilters")}
               </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Recipe Results */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm mb-6 border dark:border-gray-700">
-          <div className="max-w-6xl mx-auto">
+        {/* Recipe Results - 下方 */}
+        <div className="w-full">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border dark:border-gray-700">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold dark:text-white">{t("recipe.recipeResults")}</h2>
             </div>
 
-            <Tabs defaultValue="all">
-              <TabsList className="dark:bg-gray-700 mb-6">
-                <TabsTrigger
-                  value="all"
-                  onClick={() => setActiveFilter("all")}
-                  className="dark:data-[state=active]:bg-gray-900"
-                >
-                  {t("filter.all")}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="eastern"
-                  onClick={() => setActiveFilter("Eastern")}
-                  className="dark:data-[state=active]:bg-gray-900"
-                >
-                  {t("filter.eastern")}
-                </TabsTrigger>
-                <TabsTrigger
-                  value="western"
-                  onClick={() => setActiveFilter("Western")}
-                  className="dark:data-[state=active]:bg-gray-900"
-                >
-                  {t("filter.western")}
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="all" className="mt-4">
-                {filteredRecipes.length > 0 ? (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-                    {filteredRecipes.map((recipe) => (
+            {isLoading && <p className="text-center dark:text-white">{t("recipe.loading") || "Loading recipes..."}</p>}
+            {!isLoading && apiRecipes.length > 0 ? (
+              <>
+                <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 px-2 md:px-4">
+                  {apiRecipes.map((recipe) => (
                       <div key={recipe.id} className="group relative">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border dark:border-gray-700 hover:shadow-md transition-shadow">
+                      <div className={globalStyles.recipeCard}>
                           <div className="relative h-48">
                             <Image
                               src={recipe.image || "/placeholder.svg"}
                               alt={recipe.title}
                               fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            loading="lazy"
+                            placeholder="blur"
+                            blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjwvc3ZnPg=="
                               className="object-cover"
-                            />
-                            <div className="absolute top-2 right-2 bg-white dark:bg-gray-800 rounded-full px-2 py-1 text-xs font-medium">
-                              {recipe.tags[0]}
-                            </div>
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = "/placeholder.svg";
+                              console.error(`[Page] Card/Preview Image load error for: "${recipe.image}"`, e);
+                            }}
+                            unoptimized={true}
+                          />
+                          <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-800/90 rounded-full px-3 py-1 text-xs font-medium shadow-sm transition-all duration-200 hover:bg-white dark:hover:bg-gray-800">
+                            {recipe.tags && recipe.tags.length > 0 ? recipe.tags[0] : ""}
                           </div>
-                          <div className="p-4">
-                            <h3 className="font-semibold text-lg mb-2 group-hover:text-[#b94a2c] dark:group-hover:text-[#ff6b47] transition-colors dark:text-white">
+                        </div>
+                        <div className={globalStyles.recipeContent}>
+                          <h3 className={globalStyles.recipeTitle} title={recipe.title}>
                               {recipe.title}
                             </h3>
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 gap-4 mb-3">
@@ -421,11 +721,11 @@ export default function BrickLinkRecipes() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <ChefHat className="h-4 w-4" />
-                                <span>{t(`recipe.difficulty.${recipe.difficulty.toLowerCase()}`)}</span>
-                              </div>
+                              <span>{t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}</span>
                             </div>
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {recipe.ingredients.map((ing, idx) => (
+                          </div>
+                          <div className={globalStyles.recipeTagContainer}>
+                            {recipe.ingredients?.slice(0, 4).map((ing, idx) => (
                                 <Badge
                                   key={idx}
                                   variant="outline"
@@ -434,9 +734,26 @@ export default function BrickLinkRecipes() {
                                   {ing}
                                 </Badge>
                               ))}
+                            {recipe.ingredients && recipe.ingredients.length > 4 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs dark:border-gray-600 dark:text-gray-300"
+                              >
+                                +{recipe.ingredients.length - 4} more
+                              </Badge>
+                            )}
                             </div>
-                            <div className="flex justify-between">
-                              <Link href={`/recipe-details?id=${recipe.id}`} className="w-full">
+                          <div className="flex justify-between mt-auto">
+                            <Link
+                              href={`/recipe-details?id=${recipe.id}`}
+                              className="w-full"
+                              onClick={() => {
+                                // 保存当前滚动位置
+                                if (typeof window !== 'undefined') {
+                                  sessionStorage.setItem('brick-recipes-scroll-position', window.scrollY.toString());
+                                }
+                              }}
+                            >
                                 <Button
                                   className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
                                 >
@@ -447,7 +764,6 @@ export default function BrickLinkRecipes() {
                           </div>
                         </div>
 
-                        {/* Recipe Preview Overlay */}
                         {previewRecipe === recipe.id && (
                           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div
@@ -462,7 +778,6 @@ export default function BrickLinkRecipes() {
                               >
                                 <X className="h-5 w-5" />
                               </Button>
-
                               <div className="grid md:grid-cols-2 gap-6 p-6">
                                 <div>
                                   <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
@@ -470,7 +785,18 @@ export default function BrickLinkRecipes() {
                                       src={recipe.image || "/placeholder.svg"}
                                       alt={recipe.title}
                                       fill
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    loading="lazy"
+                                    placeholder="blur"
+                                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjwvc3ZnPg=="
                                       className="object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.onerror = null;
+                                      target.src = "/placeholder.svg";
+                                      console.error(`[Page] Card/Preview Image load error for: "${recipe.image}"`, e);
+                                    }}
+                                    unoptimized={true}
                                     />
                                     <div className="absolute inset-0 flex items-center justify-center">
                                       <Button
@@ -487,9 +813,10 @@ export default function BrickLinkRecipes() {
                                     {videoSummaries[recipe.id as keyof typeof videoSummaries]}
                                   </p>
                                 </div>
-
                                 <div>
-                                  <h2 className="text-xl font-bold mb-3 dark:text-white">{recipe.title}</h2>
+                                <h2 className="text-xl font-bold mb-3 dark:text-white break-words" title={recipe.title}>
+                                  {recipe.title}
+                                </h2>
                                   <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 gap-4 mb-4">
                                     <div className="flex items-center gap-1">
                                       <Clock className="h-4 w-4" />
@@ -501,8 +828,8 @@ export default function BrickLinkRecipes() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <ChefHat className="h-4 w-4" />
-                                      <span>{t(`recipe.difficulty.${recipe.difficulty.toLowerCase()}`)}</span>
-                                    </div>
+                                    <span>{t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}</span>
+                                  </div>
                                   </div>
 
                                   <h3 className="font-semibold mb-3 dark:text-white">{t("video.quickRecipeGuide")}</h3>
@@ -510,12 +837,11 @@ export default function BrickLinkRecipes() {
                                     <div className="border-l-4 border-[#b94a2c] dark:border-[#ff6b47] pl-4">
                                       <h4 className="font-medium dark:text-white">{t("video.ingredients")}</h4>
                                       <ul className="list-disc list-inside text-gray-600 dark:text-gray-300 mt-2">
-                                        {recipe.ingredients.map((ing, idx) => (
+                                      {recipe.ingredients?.map((ing, idx) => (
                                           <li key={idx}>{ing}</li>
                                         ))}
                                       </ul>
                                     </div>
-
                                     <div className="border-l-4 border-[#b94a2c] dark:border-[#ff6b47] pl-4">
                                       <h4 className="font-medium dark:text-white">{t("video.preparationSteps")}</h4>
                                       <ol className="list-decimal list-inside text-gray-600 dark:text-gray-300 mt-2">
@@ -525,7 +851,6 @@ export default function BrickLinkRecipes() {
                                         <li>{t("recipe.step.serve")}</li>
                                       </ol>
                                     </div>
-
                                     <div className="border-l-4 border-[#b94a2c] dark:border-[#ff6b47] pl-4">
                                       <h4 className="font-medium dark:text-white">{t("video.nutritionInformation")}</h4>
                                       <div className="grid grid-cols-2 gap-2 mt-2">
@@ -548,8 +873,17 @@ export default function BrickLinkRecipes() {
                                       </div>
                                     </div>
                                   </div>
-
-                                  <Link href={`/recipe-details?id=${recipe.id}`}>
+                                <Link
+                                  href={`/recipe-details?id=${recipe.id}`}
+                                  onClick={() => {
+                                    // 保存当前滚动位置
+                                    if (typeof window !== 'undefined') {
+                                      sessionStorage.setItem('brick-recipes-scroll-position', window.scrollY.toString());
+                                    }
+                                    // 移除之前可能存在的fetchRecipeDetails调用，仅作跳转
+                                    setPreviewRecipe(null); // Close modal on link click
+                                  }}
+                                >
                                     <Button variant="outline" className="w-full bg-[#b94a2c] hover:bg-[#a03f25] text-white dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
                                       {t("button.viewFullRecipe")}
                                     </Button>
@@ -562,27 +896,117 @@ export default function BrickLinkRecipes() {
                       </div>
                     ))}
                   </div>
-                ) : (
+
+                <div className="flex justify-between items-center mt-8 mb-4">
+                  {/* 每页显示数量选择器 */}
+                  <div className="flex items-center space-x-2 ml-auto">
+                    <span className="text-sm text-gray-500">Show per page:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        const newSize = parseInt(e.target.value);
+                        setPageSize(newSize);
+                        // 更新URL参数并重置到第一页
+                        updateUrlParams({
+                          pageSize: newSize,
+                          page: 1
+                        });
+                        handleSearch(1); // 重置到第一页
+                      }}
+                      className="border border-gray-300 rounded px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+                    >
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* 分页控件 */}
+                <div className="flex justify-center mb-4">
+                  <nav className="inline-flex rounded-md shadow-sm -space-x-px bg-gray-50 dark:bg-gray-900">
+                    <button
+                      onClick={() => handleSearch(pagination.page - 1)}
+                      disabled={!pagination.hasPrevPage}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${pagination.hasPrevPage
+                          ? "text-gray-500 bg-white hover:bg-gray-50 border border-gray-300 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600"
+                          : "text-gray-300 bg-white cursor-not-allowed border border-gray-300 dark:text-gray-600 dark:bg-gray-800 dark:border-gray-600"
+                        } rounded-l-md`}
+                    >
+                      Previous
+                    </button>
+
+                    {/* 简洁页码显示 */}
+                    {[...Array(pagination.totalPages)].map((_, i) => {
+                      const pageNum = i + 1;
+                      // 显示当前页附近的页码和第一页/最后一页
+                      if (
+                        pageNum === 1 ||
+                        pageNum === pagination.totalPages ||
+                        (pageNum >= pagination.page - 1 && pageNum <= pagination.page + 1)
+                      ) {
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handleSearch(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium
+                                ${pagination.page === pageNum
+                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900 dark:border-blue-500 dark:text-blue-200"
+                                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                              }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      }
+
+                      // 简洁的省略号
+                      if (
+                        (pageNum === 2 && pagination.page > 3) ||
+                        (pageNum === pagination.totalPages - 1 && pagination.page < pagination.totalPages - 2)
+                      ) {
+                        return (
+                          <span
+                            key={`ellipsis-${pageNum}`}
+                            className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+                          >
+                            ...
+                          </span>
+                        );
+                      }
+
+                      return null;
+                    })}
+
+                    <button
+                      onClick={() => handleSearch(pagination.page + 1)}
+                      disabled={!pagination.hasNextPage}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${pagination.hasNextPage
+                          ? "text-gray-500 bg-white hover:bg-gray-50 border border-gray-300 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600"
+                          : "text-gray-300 bg-white cursor-not-allowed border border-gray-300 dark:text-gray-600 dark:bg-gray-800 dark:border-gray-600"
+                        } rounded-r-md`}
+                    >
+                      Next
+                    </button>
+                  </nav>
+                </div>
+              </>
+            ) : (
+              !isLoading && (
                   <div className="text-center py-12">
                     <div className="text-5xl mb-4">🔍</div>
                     <h3 className="text-xl font-bold mb-2 dark:text-white">{t("recipe.noRecipesFound")}</h3>
                     <p className="text-gray-600 dark:text-gray-300 mb-6">{t("recipe.trySelecting")}</p>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setSelectedIngredients([])
-                        setSelectedMethods([])
-                        setSelectedCuisine("")
-                        setSearchQuery("")
-                      }}
+                    onClick={clearAllFilters}
                       className="dark:text-gray-300 dark:border-gray-600"
                     >
                       {t("button.clearAll")}
                     </Button>
                   </div>
+              )
                 )}
-              </TabsContent>
-            </Tabs>
           </div>
         </div>
       </div>

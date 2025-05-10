@@ -10,11 +10,11 @@ import { useLanguage } from "@/components/language-provider"
 
 export function MainFooter() {
   const { resolvedTheme } = useTheme()
-  const [logoSrc, setLogoSrc] = useState("/BrickRecipes.png")
+  const [logoSrc, setLogoSrc] = useState("/BrickRecipes.svg")
   const { t } = useLanguage()
   
   useEffect(() => {
-    setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.png" : "/BrickRecipes.png")
+    setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.svg" : "/BrickRecipes.svg")
   }, [resolvedTheme])
 
   return (
@@ -63,6 +63,13 @@ export function MainFooter() {
               <Link href="/contact" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.contactUs" />
               </Link>
+              <a 
+                href="mailto:contact@brickrecipes.ai?subject=" 
+                className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400"
+                aria-label={t("footer.contactEmail")}
+              >
+                contact@brickrecipes.ai
+              </a>
             </div>
           </div>
         </div>

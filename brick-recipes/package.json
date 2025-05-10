@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check-env": "node -e \"!require('fs').existsSync('.env.local') && console.log('\\x1b[31m请创建 .env.local 文件（参考 .env.example）\\x1b[0m') && process.exit(1)\"",
+    "predev": "npm run check-env"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

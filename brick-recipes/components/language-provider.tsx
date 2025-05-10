@@ -42,6 +42,7 @@ const translations = {
     "button.browseMenu": "Browse Menu",
     "button.videoToRecipes": "Video to Recipes",
     "button.getStarted": "Get Started",
+    "button.tryNow": "Try Now",
 
     // Recipe page
     "recipe.findYourPerfect": "Find Your Perfect Recipe",
@@ -128,8 +129,26 @@ const translations = {
     "contact.emailPlaceholder": "Your email",
     "contact.feedbackPlaceholder": "Your feedback or suggestions",
     "contact.submit": "Submit",
+    "contact.submitting": "Submitting...",
     "contact.privacyNotice": "We'll never share your email with anyone else.",
     "contact.submitSuccess": "Thank you for your feedback!",
+    "contact.type": "Type",
+    "contact.details": "Details",
+    "contact.email": "Email",
+    "contact.phone": "Phone Number",
+    "contact.optional": "Optional",
+    "contact.selectType": "Select a type",
+    "contact.typePromotion": "Promotion and Earnings",
+    "contact.typeFeedback": "Product Feedback",
+    "contact.typeOther": "Other",
+    "contact.detailsPlaceholder": "Please provide more information...",
+    "contact.phonePlaceholder": "Enter your phone number",
+    "contact.missingFields": "Missing information",
+    "contact.pleaseCompleteRequiredFields": "Please complete all required fields",
+    "contact.ok": "OK",
+    "contact.submitError": "Error submitting form",
+    "contact.pleaseTryAgainLater": "Please try again later",
+    "contact.thankYouForReachingOut": "We'll get back to you soon",
 
     // Footer
     "footer.buildYourRecipes": "Build Your Recipes, Brick by Brick!",
@@ -139,6 +158,7 @@ const translations = {
     "footer.getLatest": "Get the latest recipes and updates",
     "footer.emailPlaceholder": "Your email",
     "footer.allRightsReserved": "All rights reserved.",
+    "footer.contactEmail": "Contact via Email",
 
     // Menu categories
     "category.breakfast": "Breakfast",
@@ -147,6 +167,11 @@ const translations = {
     "category.desserts": "Desserts",
     "category.snacks": "Snacks",
     "category.drinks": "Drinks",
+    "category.vegetarian": "Vegetarian",
+    "category.seafood": "Seafood",
+    "category.soup": "Soup",
+    "category.quickMeals": "Quick Recipes",
+    "category.holidays": "Holiday Recipes",
 
     // Video tips
     "video.forBestResults": "For best results",
@@ -271,6 +296,11 @@ const translations = {
     "menu.description.desserts": "Sweet treats with precise measurements and video demonstrations",
     "menu.description.snacks": "Quick and easy bites with video tutorials and calorie information",
     "menu.description.drinks": "Refreshing beverages with video guides and nutritional details",
+    "menu.description.vegetarian": "Delicious plant-based recipes full of flavor and nutrition",
+    "menu.description.seafood": "Fresh seafood recipes prepared in various delicious ways",
+    "menu.description.soup": "Comforting soup recipes from hearty stews to light broths",
+    "menu.description.quickMeals": "Quick and easy recipes that can be prepared in 30 minutes or less",
+    "menu.description.holidays": "Special recipes for festive occasions and holidays throughout the year",
     
     "menu.time": "min",
     "menu.calories": "kcal",
@@ -396,6 +426,7 @@ const translations = {
     "button.browseMenu": "浏览菜单",
     "button.videoToRecipes": "视频转食谱",
     "button.getStarted": "立即开始",
+    "button.tryNow": "立即体验",
 
     // Recipe page
     "recipe.findYourPerfect": "找到您的完美食谱",
@@ -479,8 +510,26 @@ const translations = {
     "contact.emailPlaceholder": "您的邮箱",
     "contact.feedbackPlaceholder": "您的反馈或建议",
     "contact.submit": "提交",
+    "contact.submitting": "提交中...",
     "contact.privacyNotice": "我们绝不会与任何人分享您的邮箱。",
     "contact.submitSuccess": "感谢您的反馈！",
+    "contact.type": "类型",
+    "contact.details": "详情",
+    "contact.email": "邮箱",
+    "contact.phone": "电话号码",
+    "contact.optional": "选填",
+    "contact.selectType": "选择一个类型",
+    "contact.typePromotion": "推广与收益",
+    "contact.typeFeedback": "产品反馈",
+    "contact.typeOther": "其他",
+    "contact.detailsPlaceholder": "请提供更多信息...",
+    "contact.phonePlaceholder": "输入您的电话号码",
+    "contact.missingFields": "信息不完整",
+    "contact.pleaseCompleteRequiredFields": "请完成所有必填字段",
+    "contact.ok": "确定",
+    "contact.submitError": "表单提交错误",
+    "contact.pleaseTryAgainLater": "请稍后再试",
+    "contact.thankYouForReachingOut": "我们会尽快回复您",
 
     // Footer
     "footer.buildYourRecipes": "一砖一瓦构建您的食谱！",
@@ -490,6 +539,7 @@ const translations = {
     "footer.getLatest": "获取最新食谱和更新",
     "footer.emailPlaceholder": "您的邮箱",
     "footer.allRightsReserved": "版权所有。",
+    "footer.contactEmail": "邮件联系",
 
     // Menu categories
     "category.breakfast": "早餐",
@@ -498,6 +548,11 @@ const translations = {
     "category.desserts": "甜点",
     "category.snacks": "小吃",
     "category.drinks": "饮品",
+    "category.vegetarian": "素食",
+    "category.seafood": "海鲜",
+    "category.soup": "汤品",
+    "category.quickMeals": "快速食谱",
+    "category.holidays": "节日食谱",
 
     // Video tips
     "video.forBestResults": "为获得最佳效果",
@@ -616,12 +671,17 @@ const translations = {
     "menu.recipeTitle.brickHouseBrownies": "特制布朗尼",
     "menu.recipeTitle.brickOvenApplePie": "砖炉苹果派",
     
-    "menu.description.breakfast": "通过这些美味的早餐食谱和视频教程开始新的一天",
-    "menu.description.lunch": "完美的午餐，配有逐步说明和卡路里信息",
-    "menu.description.dinner": "令人印象深刻的晚餐食谱，配有详细的视频指南和营养成分",
-    "menu.description.desserts": "精确测量和视频演示的甜点",
-    "menu.description.snacks": "快速简便的小吃，配有视频教程和卡路里信息",
-    "menu.description.drinks": "提神饮品，配有视频指南和营养详情",
+    "menu.description.breakfast": "以营养丰富的美味早餐开启活力满满的一天，配有详细视频教程",
+    "menu.description.lunch": "充满风味的午餐食谱，完美平衡营养与口感，提供详尽的步骤指导",
+    "menu.description.dinner": "令人印象深刻的晚餐佳肴，既美味又健康，配有专业视频演示",
+    "menu.description.desserts": "甜蜜诱人的甜点系列，为每一天增添幸福感，附精确配方和技巧",
+    "menu.description.snacks": "简单快捷的美味小食，适合忙碌生活的完美选择，热量信息清晰明了",
+    "menu.description.drinks": "提神醒脑的饮品系列，从经典到创新，满足各种口味需求",
+    "menu.description.vegetarian": "创意满满的素食料理，为素食者提供丰富多样的美味选择",
+    "menu.description.seafood": "新鲜海鲜的多种烹饪方式，展现海洋的丰富风味和营养价值",
+    "menu.description.soup": "从浓郁炖汤到清爽汤品，满足四季变化的暖心美食",
+    "menu.description.quickMeals": "30分钟内即可完成的快手料理，为忙碌生活提供美味解决方案",
+    "menu.description.holidays": "节庆佳肴特辑，让每个特殊时刻都拥有难忘的美食体验",
     
     "menu.time": "分钟",
     "menu.calories": "卡路里",

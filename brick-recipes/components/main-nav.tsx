@@ -18,10 +18,10 @@ export function TranslatedText({ textKey }: { textKey: string }) {
 export function MainNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { resolvedTheme, setTheme } = useTheme()
-  const [logoSrc, setLogoSrc] = useState("/BrickRecipes.png")
+  const [logoSrc, setLogoSrc] = useState("/BrickRecipes.svg")
   
   useEffect(() => {
-    setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.png" : "/BrickRecipes.png")
+    setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.svg" : "/BrickRecipes.svg")
   }, [resolvedTheme])
 
   return (

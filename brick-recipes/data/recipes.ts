@@ -560,37 +560,56 @@ export const categories = [
   {
     id: "breakfast",
     nameKey: "category.breakfast",
-    description: "Start your day with these delicious breakfast recipes with video tutorials",
     image: "/placeholder.svg?height=300&width=400",
   },
   {
     id: "lunch",
     nameKey: "category.lunch",
-    description: "Perfect midday meals with step-by-step instructions and calorie information",
     image: "/placeholder.svg?height=300&width=400",
   },
   {
     id: "dinner",
     nameKey: "category.dinner",
-    description: "Impressive dinner recipes with detailed video guides and nutritional facts",
     image: "/placeholder.svg?height=300&width=400",
   },
   {
     id: "desserts",
     nameKey: "category.desserts",
-    description: "Sweet treats with precise measurements and video demonstrations",
     image: "/placeholder.svg?height=300&width=400",
   },
   {
     id: "snacks",
     nameKey: "category.snacks",
-    description: "Quick and easy bites with video tutorials and calorie information",
     image: "/placeholder.svg?height=300&width=400",
   },
   {
     id: "drinks",
     nameKey: "category.drinks",
-    description: "Refreshing beverages with video guides and nutritional details",
+    image: "/placeholder.svg?height=300&width=400",
+  },
+  {
+    id: "vegetarian",
+    nameKey: "category.vegetarian",
+    image: "/placeholder.svg?height=300&width=400",
+  },
+  {
+    id: "seafood",
+    nameKey: "category.seafood",
+    image: "/placeholder.svg?height=300&width=400",
+  },
+  {
+    id: "soup",
+    nameKey: "category.soup",
+    image: "/placeholder.svg?height=300&width=400",
+  },
+  {
+    id: "quickmeals",
+    nameKey: "category.quickMeals",
+    image: "/placeholder.svg?height=300&width=400",
+  },
+  {
+    id: "holiday",
+    nameKey: "category.holidays",
     image: "/placeholder.svg?height=300&width=400",
   },
 ] 
