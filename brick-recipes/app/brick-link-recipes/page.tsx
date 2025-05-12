@@ -829,7 +829,7 @@ export default function BrickLinkRecipes() {
                                     <div className="flex items-center gap-1">
                                       <ChefHat className="h-4 w-4" />
                                     <span>{t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}</span>
-                                  </div>
+                                    </div>
                                   </div>
 
                                   <h3 className="font-semibold mb-3 dark:text-white">{t("video.quickRecipeGuide")}</h3>

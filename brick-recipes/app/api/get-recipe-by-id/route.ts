@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import redis from '@/config/redis'; // 使用默认的Redis客户端
+import { recipeRedisClient } from '@/config/redis'; // 使用菜谱专用的Redis客户端 (db=1)
 
 // 重试函数
 async function retryRedisConnection(maxRetries = 3, delay = 500) {
   for (let i = 0; i < maxRetries; i++) {
-    if (redis && redis.status === 'ready') {
+    if (recipeRedisClient && recipeRedisClient.status === 'ready') {
       return true;
     }
     
-    console.log(`[API/get-recipe-by-id] Redis not ready, retrying (${i+1}/${maxRetries})...`);
+    console.log(`[API/get-recipe-by-id] Recipe Redis (DB1) not ready, retrying (${i+1}/${maxRetries})...`);
     // 等待一段时间后重试
     await new Promise(resolve => setTimeout(resolve, delay));
     
@@ -21,14 +21,14 @@ async function retryRedisConnection(maxRetries = 3, delay = 500) {
 
 export async function GET(request: NextRequest) {
   // 尝试重新连接Redis
-  if (!redis || redis.status !== 'ready') {
-    console.log('[API/get-recipe-by-id] Redis client not ready, attempting to reconnect...');
+  if (!recipeRedisClient || recipeRedisClient.status !== 'ready') {
+    console.log('[API/get-recipe-by-id] Recipe Redis client (DB1) not ready, attempting to reconnect...');
     const redisReady = await retryRedisConnection();
     
     if (!redisReady) {
-      console.error('[API/get-recipe-by-id] Redis client from @/config/redis not available after retries.');
+      console.error('[API/get-recipe-by-id] Recipe Redis client (DB1) not available after retries.');
       return NextResponse.json({ 
-        message: 'Redis service is not available. Please try again later.',
+        message: 'Recipe database service is not available. Please try again later.',
         retryable: true 
       }, { status: 503 });
     }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const recipeKey = `recipe:${recipeId}`;
-    console.log(`[API/get-recipe-by-id] Attempting to GET key: ${recipeKey}`);
+    console.log(`[API/get-recipe-by-id] Attempting to GET key: ${recipeKey} from Recipe DB`);
     
     // 添加超时处理
     const timeoutPromise = new Promise((_, reject) => 
@@ -51,39 +51,57 @@ export async function GET(request: NextRequest) {
     );
     
     const recipeDataString = await Promise.race([
-      redis.get(recipeKey),
+      recipeRedisClient.get(recipeKey),
       timeoutPromise
     ]) as string | null;
 
     if (!recipeDataString) {
-      console.log(`[API/get-recipe-by-id] Recipe not found in Redis for key: ${recipeKey}`);
+      console.log(`[API/get-recipe-by-id] Recipe not found in Recipe DB for key: ${recipeKey}`);
       return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
     }
 
-    console.log(`[API/get-recipe-by-id] Found data for key: ${recipeKey}`);
+    console.log(`[API/get-recipe-by-id] Found data in Recipe DB for key: ${recipeKey}`);
     
     // 尝试解析 JSON，如果失败则返回错误
     let recipeData;
     try {
       recipeData = JSON.parse(recipeDataString);
     } catch (parseError) {
-      console.error(`[API/get-recipe-by-id] Failed to parse JSON from Redis for key ${recipeKey}:`, parseError, "Data:", recipeDataString);
+      console.error(`[API/get-recipe-by-id] Failed to parse JSON from Recipe DB for key ${recipeKey}:`, parseError, "Data:", recipeDataString);
       return NextResponse.json({ message: 'Invalid recipe data format in storage.' }, { status: 500 });
     }
+    
+    // --- BEGIN: Process ingredients field ---
+    if (recipeData && typeof recipeData.ingredients === 'string') {
+      console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is a string: "${recipeData.ingredients}". Converting to array.`);
+      recipeData.ingredients = recipeData.ingredients.split(/,\s*|\s*,\s*/).map((s: string) => s.trim()).filter((s: string) => s);
+      console.log(`[API/get-recipe-by-id] ingredients AFTER conversion:`, recipeData.ingredients);
+    } else if (recipeData && recipeData.ingredients !== undefined && !Array.isArray(recipeData.ingredients)) {
+      console.warn(`[API/get-recipe-by-id] ingredients for ${recipeId} is neither a string nor an array. Type: ${typeof recipeData.ingredients}. Setting to empty array.`);
+      recipeData.ingredients = [];
+    } else if (recipeData && Array.isArray(recipeData.ingredients)) {
+      // If it's already an array, ensure all elements are trimmed strings and filter out empty ones
+      console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is already an array. Trimming and filtering.`);
+      recipeData.ingredients = recipeData.ingredients.map((s: any) => typeof s === 'string' ? s.trim() : s).filter((s: any) => s);
+    } else if (recipeData && recipeData.ingredients === undefined) {
+        console.log(`[API/get-recipe-by-id] ingredients field is undefined for ${recipeId}. Setting to empty array.`);
+        recipeData.ingredients = [];
+    }
+    // --- END: Process ingredients field ---
     
     return NextResponse.json(recipeData, { status: 200 });
 
   } catch (error: any) {
-    console.error(`[API/get-recipe-by-id] Error fetching from Redis for ID ${recipeId}:`, error);
+    console.error(`[API/get-recipe-by-id] Error fetching from Recipe DB for ID ${recipeId}:`, error);
     // 避免将详细的内部错误暴露给客户端，但记录它们
     let errorMessage = 'Internal Server Error';
     let retryable = false;
     
     if (error.message && error.message.includes('ECONNREFUSED')) {
-      errorMessage = 'Could not connect to Redis service.';
+      errorMessage = 'Could not connect to Recipe database service.';
       retryable = true;
     } else if (error.message && error.message.includes('timed out')) {
-      errorMessage = 'Redis operation timed out.';
+      errorMessage = 'Recipe database operation timed out.';
       retryable = true;
     }
     // 根据需要添加更多具体的错误消息处理
