@@ -22,6 +22,7 @@ interface Recipe {
   videoUrl: string;
   ingredients: string[];
   hasVideo?: boolean;
+  strArea?: string;
 }
 
 // 分页信息类型
@@ -363,6 +364,7 @@ export default function CategoryPage() {
               {recipes.map((recipe) => (
                 <div key={recipe.id} className="group">
                 <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+
                   <div className="relative h-40">
                       <Image 
                         src={recipe.image || "/placeholder.svg"} 
@@ -377,6 +379,12 @@ export default function CategoryPage() {
                           console.error(`[CategoryPage] Image load error for: "${recipe.image}"`, e);
                         }}
                       />
+                      {/* 区域标签 */}
+                      {recipe.strArea && (
+                        <div className="absolute top-2 right-2 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-xs px-2 py-1 rounded-md shadow-sm">
+                          {recipe.strArea}
+                        </div>
+                      )}
                   </div>
                   <div className="p-4">
                       <h3 className="font-medium text-lg mb-2 group-hover:text-[#b94a2c] dark:text-white dark:group-hover:text-[#ff6b47] transition-colors line-clamp-2">

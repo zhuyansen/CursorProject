@@ -20,6 +20,7 @@ interface Recipe {
   videoUrl: string;
   ingredients: string[];
   hasVideo?: boolean;
+  strArea?: string;
 }
 
 // 分类组件
@@ -242,6 +243,12 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                     }}
                     unoptimized={true}
                   />
+                  {/* 区域标签 */}
+                  {recipe.strArea && (
+                    <div className="absolute top-2 right-2 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-xs px-2 py-1 rounded-md shadow-sm">
+                      {recipe.strArea}
+                    </div>
+                  )}
                   {recipe.hasVideo && (
                     <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center">
                       <PlayCircle className="h-3 w-3 mr-1" />

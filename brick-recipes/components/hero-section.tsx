@@ -38,7 +38,7 @@ export default function HeroSection() {
       icon: <ChefHat className="w-8 h-8 mb-2 text-[#b94a2c] dark:text-[#ff6b47]" />,
       title: language === "zh" ? "按食材查找" : "Search by Ingredients",
       description: language === "zh" ? "选择您已有的食材，获取个性化食谱推荐" : "Select ingredients you have, get personalized recipe recommendations",
-      buttonText: "button.findByIngredients",
+      buttonText: "findByIngredients",
       path: "/brick-link-recipes",
       type: "ingredients"
     },
@@ -46,7 +46,7 @@ export default function HeroSection() {
       icon: <Utensils className="w-8 h-8 mb-2 text-[#b94a2c] dark:text-[#ff6b47]" />,
       title: language === "zh" ? "精选菜单" : "Curated Menu",
       description: language === "zh" ? "探索我们精心准备的带有视频教程的食谱合集" : "Explore our carefully curated recipe collections with video tutorials",
-      buttonText: "button.browseMenu",
+      buttonText: "browseMenu",
       path: "/menu",
       type: "menu"
     },
@@ -54,7 +54,7 @@ export default function HeroSection() {
       icon: <Video className="w-8 h-8 mb-2 text-[#b94a2c] dark:text-[#ff6b47]" />,
       title: language === "zh" ? "视频转食谱" : "Video to Recipes",
       description: language === "zh" ? "将任何烹饪视频转换为详细的食谱指南" : "Turn any cooking video into a detailed recipe guide",
-      buttonText: "button.videoToRecipes",
+      buttonText: "videoToRecipes",
       path: "/videotorecipes",
       type: "video"
     }
@@ -148,7 +148,7 @@ export default function HeroSection() {
               onClick={() => handleButtonClick("ingredients", "/brick-link-recipes")}
             >
               <span className="absolute top-0 left-0 w-full h-full bg-white opacity-20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
-              <TranslatedText textKey="button.tryNow" /> →
+              <TranslatedText textKey="tryNow" /> →
             </Button>
           </div>
         </div>
@@ -204,15 +204,15 @@ export default function HeroSection() {
               <div className="grid grid-cols-2 gap-8 mt-6 md:mt-0">
                 <div className="bg-[#f8e3c5] dark:bg-[#3a2e1e] p-5 rounded-lg text-center shadow-md transform hover:scale-105 transition-transform duration-300 hover:shadow-xl relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#b94a2c]/10 dark:to-[#ff6b47]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><TranslatedText textKey="hero.over" /></p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><TranslatedText textKey="over" /></p>
                   <p className="text-4xl font-bold text-[#b94a2c] dark:text-[#ff6b47] group-hover:animate-pulse">1,000+</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1"><TranslatedText textKey="hero.recipes" /></p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1"><TranslatedText textKey="recipes" /></p>
                 </div>
                 <div className="bg-[#f8e3c5] dark:bg-[#3a2e1e] p-5 rounded-lg text-center shadow-md transform hover:scale-105 transition-transform duration-300 hover:shadow-xl relative overflow-hidden group">
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#b94a2c]/10 dark:to-[#ff6b47]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><TranslatedText textKey="hero.join" /></p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-1"><TranslatedText textKey="join" /></p>
                   <p className="text-4xl font-bold text-[#b94a2c] dark:text-[#ff6b47] group-hover:animate-pulse">200+</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1"><TranslatedText textKey="hero.users" /></p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1"><TranslatedText textKey="users" /></p>
                 </div>
               </div>
             </div>

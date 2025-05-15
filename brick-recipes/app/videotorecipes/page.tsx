@@ -28,6 +28,7 @@ export default function VideoToRecipes() {
   const [errorMessage, setErrorMessage] = useState("")
   const [errorTitle, setErrorTitle] = useState("")
   const [processedUrl, setProcessedUrl] = useState("")
+  const [recipeData, setRecipeData] = useState<any>(null)
 
   // 当用户粘贴链接时自动检测类型
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function VideoToRecipes() {
     return false;
   }
 
-  const handleAnalyzeVideo = () => {
+  const handleAnalyzeVideo = async () => {
     if (!videoUrl) return;
 
     // 重置错误状态
@@ -128,13 +129,106 @@ export default function VideoToRecipes() {
       return;
     }
 
-    setIsAnalyzing(true);
+    // 提取视频ID并构建URL（不依赖processedUrl状态）
+    let urlToProcess = "";
+    
+    if (activeTab === "youtube") {
+      const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+      const match = videoUrl.match(youtubeRegex);
+      
+      if (match && match[1]) {
+        const videoId = match[1];
+        urlToProcess = `https://www.youtube.com/watch?v=${videoId}`;
+      } else {
+        setShowError(true);
+        setErrorTitle(t("video.linkError"));
+        setErrorMessage(t("video.invalidYoutubeLink"));
+        return;
+      }
+    } else if (activeTab === "bilibili") {
+      const bilibiliRegex = /(?:bilibili\.com\/video\/|b23\.tv\/)(BV[a-zA-Z0-9]+|av\d+)/i;
+      const match = videoUrl.match(bilibiliRegex);
+      
+      if (match && match[1]) {
+        const videoId = match[1];
+        urlToProcess = `https://www.bilibili.com/video/${videoId}`;
+      } else {
+        setShowError(true);
+        setErrorTitle(t("video.linkError"));
+        setErrorMessage(t("video.invalidBilibiliLink"));
+        return;
+      }
+    }
+    
+    // 确保URL已处理
+    if (!urlToProcess) {
+      setShowError(true);
+      setErrorTitle(t("video.linkError"));
+      setErrorMessage(t("video.invalidVideoUrl"));
+      return;
+    }
 
-    // 模拟视频分析
-    setTimeout(() => {
+    setIsAnalyzing(true);
+    setAnalysisComplete(false);
+    setRecipeData(null);
+
+    try {
+      // 调用我们的API
+      console.log("发送视频URL到API:", urlToProcess);
+      const response = await fetch('/api/video-to-recipes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videoUrl: urlToProcess }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '视频分析失败');
+      }
+
+      const data = await response.json();
+      console.log("API返回数据:", data);
+      
+      // 处理API返回的数据
+      let processedData = data;
+      
+      // 如果data.summary存在且是字符串，尝试解析JSON
+      if (data.summary && typeof data.summary === 'string') {
+        try {
+          // 尝试提取JSON部分
+          const jsonMatch = data.summary.match(/```json\n([\s\S]*?)\n```/);
+          if (jsonMatch && jsonMatch[1]) {
+            const parsedSummary = JSON.parse(jsonMatch[1]);
+            processedData = {
+              ...data,
+              ...parsedSummary
+            };
+          }
+        } catch (error) {
+          console.error("解析summary JSON失败:", error);
+        }
+      } 
+      // 如果data.summary已经是对象（在API中已处理），则直接使用
+      else if (data.summary && typeof data.summary === 'object') {
+        processedData = {
+          ...data,
+          ...data.summary
+        };
+      }
+      
+      console.log("处理后的数据:", processedData);
+      setRecipeData(processedData);
       setIsAnalyzing(false);
       setAnalysisComplete(true);
-    }, 3000);
+    } catch (error: any) {
+      console.error('分析视频时出错:', error);
+      setIsAnalyzing(false);
+      setShowError(true);
+      setErrorTitle(t("video.analysisError"));
+      setErrorMessage(error.message || t("video.genericError"));
+    }
   }
 
   // 关闭错误弹窗
@@ -277,90 +371,113 @@ export default function VideoToRecipes() {
           </div>
 
           {isAnalyzing && (
-            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm text-center dark:border dark:border-gray-700">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#b94a2c] dark:text-[#ff6b47]" />
-              <h2 className="text-2xl font-bold mb-2 dark:text-white">{t("video.analyzingVideo")}</h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">{t("video.pleaseWait")}</p>
-              <div className="w-full max-w-md mx-auto bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-6">
-                <div className="bg-[#b94a2c] dark:bg-[#ff6b47] h-2.5 rounded-full w-2/3 animate-pulse"></div>
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="mb-6">
+                <Loader2 className="h-12 w-12 animate-spin text-[#b94a2c] dark:text-[#ff6b47]" />
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t("video.identifying")}</p>
+              <h2 className="text-xl font-bold mb-2 dark:text-white">{t("video.analyzingVideo")}</h2>
+              <p className="text-gray-600 dark:text-gray-300 text-center max-w-md">
+                {t("video.analyzingDescription")}
+              </p>
+              <div className="mt-8 w-full max-w-md bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div className="bg-[#b94a2c] dark:bg-[#ff6b47] h-2.5 rounded-full animate-pulse w-3/4"></div>
+              </div>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {t("video.analyzingTimeEstimate")}
+              </p>
             </div>
           )}
 
           {analysisComplete && !isAnalyzing && (
             <div className="grid md:grid-cols-3 gap-8">
-              {/* Video Preview */}
+              {/* 左侧栏 - 使用sticky定位使其在滚动时悬浮 */}
               <div className="md:col-span-1">
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700">
-                  <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
-                    <Image
-                      src="/placeholder.svg?height=300&width=500"
-                      alt="Video thumbnail"
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800"
-                      >
-                        <PlayCircle className="h-12 w-12 text-[#b94a2c] dark:text-[#ff6b47]" />
+                <div className="sticky top-24 space-y-6">
+                  {/* 组件1: 图片和文字描述 */}
+                  <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700 w-full">
+                    <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                      <Image
+                        src={recipeData?.detail?.cover || recipeData?.metadata?.strMealThumb || recipeData?.thumbnail || recipeData?.detail?.thumbnailUrl || "/placeholder.svg?height=300&width=500"}
+                        alt={recipeData?.metadata?.strMeal || recipeData?.title || recipeData?.detail?.title || "Recipe thumbnail"}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        priority
+                      />
+                    </div>
+                    
+                    <h3 className="font-semibold text-lg mb-2 dark:text-white">
+                      {recipeData?.metadata?.strMeal || recipeData?.title || recipeData?.detail?.title || "Recipe from Video"}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                      {recipeData?.metadata?.strArea || "International"} • {recipeData?.metadata?.all_time || "N/A"}
+                    </p>
+                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 gap-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{recipeData?.metadata?.all_time || "N/A"}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <ChefHat className="h-4 w-4" />
+                        <span>{recipeData?.metadata?.difficulty || "Medium"}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 组件2: 视频播放器和原始视频链接 */}
+                  <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700 w-full">
+                    {/* 内嵌视频播放器 */}
+                    <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                      {recipeData?.sourceUrl && (
+                        <iframe
+                          src={
+                            recipeData.sourceUrl.includes('youtube.com') 
+                              ? recipeData.sourceUrl.replace('watch?v=', 'embed/').split('&')[0]
+                              : recipeData.sourceUrl.includes('bilibili.com')
+                                ? `https://player.bilibili.com/player.html?bvid=${recipeData.sourceUrl.split('/').pop()}&high_quality=1&danmaku=0`
+                                : recipeData.sourceUrl
+                          }
+                          className="w-full h-full"
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          loading="lazy"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                        ></iframe>
+                      )}
+                    </div>
+                    
+                    <a 
+                      href={processedUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <Button className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
+                        {t("button.watchOriginalVideo")}
                       </Button>
-                    </div>
+                    </a>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2 dark:text-white">Homemade Pizza Recipe</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    By Chef John • 1.2M views • 15:42 minutes
-                  </p>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 gap-4 mb-4">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>30 min</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Flame className="h-4 w-4" />
-                      <span>320 kcal</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <ChefHat className="h-4 w-4" />
-                      <span>Medium</span>
-                    </div>
-                  </div>
-                  <a 
-                    href={processedUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <Button className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
-                      {t("button.watchOriginalVideo")}
-                    </Button>
-                  </a>
                 </div>
               </div>
 
-              {/* Recipe Details */}
+              {/* 右侧内容区域 */}
               <div className="md:col-span-2">
                 <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm mb-6 dark:border dark:border-gray-700">
                   <h2 className="text-xl font-bold mb-4 dark:text-white">{t("video.videoSummary")}</h2>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
-                    This video demonstrates how to make a perfect homemade pizza from scratch. The chef shows techniques
-                    for making the dough, preparing the sauce, and achieving a crispy crust using a regular home oven. Key
-                    techniques include proper kneading methods, the importance of letting the dough rest, and how to
-                    stretch the dough without tearing.
+                    {recipeData?.metadata?.videoSummary || recipeData?.detail?.descriptionText || "视频分析中..."}
                   </p>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h3 className="font-medium mb-2 dark:text-white">Key Timestamps</h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm dark:text-gray-300">
-                      <div>0:45 - Dough preparation</div>
-                      <div>3:20 - Sauce making</div>
-                      <div>5:15 - Dough stretching</div>
-                      <div>7:30 - Topping application</div>
-                      <div>9:45 - Baking techniques</div>
-                      <div>12:30 - Serving suggestions</div>
+                  {recipeData?.steps && recipeData.steps.length > 0 && (
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="font-medium mb-2 dark:text-white">Key Steps</h3>
+                      <div className="grid grid-cols-2 gap-2 text-sm dark:text-gray-300">
+                        {recipeData.steps.map((step: any, index: number) => (
+                          <div key={index}>
+                            {index + 1}. {step.title} - {step.time} min
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm mb-6 dark:border dark:border-gray-700">
@@ -369,68 +486,66 @@ export default function VideoToRecipes() {
                     <div>
                       <h3 className="font-medium mb-2 dark:text-white">{t("video.ingredients")}</h3>
                       <ul className="list-disc list-inside text-gray-600 dark:text-gray-300">
-                        <li>2 1/2 cups all-purpose flour</li>
-                        <li>1 teaspoon salt</li>
-                        <li>1 teaspoon sugar</li>
-                        <li>1 tablespoon active dry yeast</li>
-                        <li>1 cup warm water</li>
-                        <li>2 tablespoons olive oil</li>
-                        <li>1/2 cup tomato sauce</li>
-                        <li>2 cups mozzarella cheese, shredded</li>
-                        <li>Toppings of your choice</li>
+                        {recipeData?.steps ? (
+                          recipeData.steps.flatMap((step: any) => 
+                            step.ingredients ? step.ingredients.map((ingredient: any, idx: number) => (
+                              <li key={`${step.step_number}-${idx}`}>
+                                {ingredient.name} - {ingredient.quantity}
+                              </li>
+                            )) : []
+                          )
+                        ) : (
+                          <li>加载中...</li>
+                        )}
                       </ul>
                     </div>
 
                     <div>
                       <h3 className="font-medium mb-2 dark:text-white">{t("video.preparationSteps")}</h3>
                       <ol className="list-decimal list-inside text-gray-600 dark:text-gray-300">
-                        <li>Mix flour, salt, sugar, and yeast in a large bowl</li>
-                        <li>Add warm water and olive oil, mix until dough forms</li>
-                        <li>Knead dough for 5 minutes until smooth and elastic</li>
-                        <li>Let dough rise for 30 minutes in a warm place</li>
-                        <li>Preheat oven to 475°F (245°C)</li>
-                        <li>Roll out dough and transfer to a baking sheet</li>
-                        <li>Add sauce, cheese, and toppings</li>
-                        <li>Bake for 12-15 minutes until crust is golden</li>
+                        {recipeData?.steps ? (
+                          recipeData.steps.map((step: any, stepIndex: number) => (
+                            <li key={stepIndex} className="mb-2">
+                              <span className="font-medium">{step.title}</span>
+                              <ul className="list-disc list-inside ml-4 mt-1">
+                                {step.instructions && step.instructions.map((instruction: string, idx: number) => (
+                                  <li key={idx} className="text-sm">{instruction}</li>
+                                ))}
+                              </ul>
+                            </li>
+                          ))
+                        ) : (
+                          <li>加载中...</li>
+                        )}
                       </ol>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700">
-                  <h2 className="text-xl font-bold mb-4 dark:text-white">{t("video.nutritionInformation")}</h2>
+                  <h2 className="text-xl font-bold mb-4 dark:text-white">{t("Recipe Information")}</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
                         <div className="bg-gray-100 dark:bg-gray-700 p-3 border-b dark:border-gray-600">
                           <h3 className="font-medium dark:text-white">{t("video.amountPerServing")}</h3>
                         </div>
-                        <div className="p-3 border-b dark:border-gray-600">
-                          <div className="flex justify-between items-center dark:text-white">
-                            <span className="font-medium">Calories</span>
-                            <span>320</span>
-                          </div>
-                        </div>
                         <div className="p-3 space-y-2 text-sm dark:text-gray-300">
                           <div className="flex justify-between">
-                            <span>Total Fat</span>
-                            <span>12g</span>
-                          </div>
-                          <div className="flex justify-between pl-4 text-gray-600 dark:text-gray-400">
-                            <span>Saturated Fat</span>
-                            <span>5g</span>
+                            <span>Total Cooking Time</span>
+                            <span>{recipeData?.metadata?.all_time || "N/A"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Total Carbohydrates</span>
-                            <span>40g</span>
-                          </div>
-                          <div className="flex justify-between pl-4 text-gray-600 dark:text-gray-400">
-                            <span>Dietary Fiber</span>
-                            <span>2g</span>
+                            <span>Difficulty</span>
+                            <span>{recipeData?.metadata?.difficulty || "Medium"}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Protein</span>
-                            <span>15g</span>
+                            <span>Cooking Method</span>
+                            <span>{recipeData?.metadata?.cookingMethods || "N/A"}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Cuisine Style</span>
+                            <span>{recipeData?.metadata?.mealStyle || "N/A"}</span>
                           </div>
                         </div>
                       </div>
@@ -439,33 +554,27 @@ export default function VideoToRecipes() {
                     <div>
                       <h3 className="font-medium mb-3 dark:text-white">{t("video.dietaryInformation")}</h3>
                       <div className="flex flex-wrap gap-2 mb-4">
-                        <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                          Vegetarian
-                        </Badge>
-                        <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                          High Protein
-                        </Badge>
-                        <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                          Contains Gluten
-                        </Badge>
-                        <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                          Contains Dairy
-                        </Badge>
+                        {recipeData?.metadata?.strTags ? (
+                          recipeData.metadata.strTags.split(',').map((tag: string, idx: number) => (
+                            <Badge key={idx} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              {tag.trim()}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                            未分类
+                          </Badge>
+                        )}
                       </div>
-
-                      <h3 className="font-medium mb-3 dark:text-white">{t("video.healthBenefits")}</h3>
-                      <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
-                        <li>Good source of calcium from cheese</li>
-                        <li>Contains lycopene from tomato sauce</li>
-                        <li>Provides complex carbohydrates for energy</li>
-                      </ul>
                     </div>
                   </div>
 
                   <div className="mt-6 flex justify-end">
-                    <Link href="/recipe-details?id=1">
-                      <Button className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
-                        {t("button.viewFullRecipe")}
+                    <Link href="/recipe-details">
+                      <Button 
+                        className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]"
+                      >
+                        View Recipes
                       </Button>
                     </Link>
                   </div>

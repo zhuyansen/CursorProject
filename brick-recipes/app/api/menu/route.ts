@@ -13,6 +13,7 @@ interface Recipe {
   videoUrl: string;
   ingredients: string[];
   hasVideo?: boolean;
+  strArea?: string;
 }
 
 // 将Redis分类键映射到应用分类
@@ -184,7 +185,8 @@ export async function GET(request: NextRequest) {
             videoUrl: recipeData.strYoutube || recipeData.strBilibili || "",
             ingredients: Array.isArray(recipeData.ingredients) ? recipeData.ingredients : 
                         (recipeData.ingredients ? String(recipeData.ingredients).split(',').map((i: string) => i.trim()).slice(0, 4) : []),
-            hasVideo: !!(recipeData.strYoutube || recipeData.strBilibili)
+            hasVideo: !!(recipeData.strYoutube || recipeData.strBilibili),
+            strArea: recipeData.strArea || ""
           };
           
           recipes.push(formattedRecipe);
