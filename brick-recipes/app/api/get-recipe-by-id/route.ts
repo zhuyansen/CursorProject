@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     
     // 添加超时处理
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Redis operation timed out')), 5000)
+      setTimeout(() => reject(new Error('Redis operation timed out')), 10000)
     );
     
     const recipeDataString = await Promise.race([

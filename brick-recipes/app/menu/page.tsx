@@ -249,12 +249,6 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                       {recipe.strArea}
                     </div>
                   )}
-                  {recipe.hasVideo && (
-                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center">
-                      <PlayCircle className="h-3 w-3 mr-1" />
-                      {t("menu.video")}
-                    </div>
-                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-medium text-lg mb-2 group-hover:text-[#b94a2c] dark:text-white dark:group-hover:text-[#ff6b47] transition-colors line-clamp-2">
@@ -273,7 +267,13 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                   <div className="flex justify-between items-center mt-4">
                     <div className="flex items-center">
                       <ChefHat className="h-4 w-4 mr-1 text-[#b94a2c] dark:text-[#ff6b47]" />
-                      <span className="text-sm">{recipe.difficulty}</span>
+                      <span className="text-sm">
+                        {language === "zh" ? 
+                          (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                           recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                           recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                          recipe.difficulty}
+                      </span>
                     </div>
                     <Link href={`/recipe-details?id=${recipe.id}`}>
                       <Button 

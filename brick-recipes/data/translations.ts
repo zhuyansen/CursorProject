@@ -196,11 +196,16 @@ export const translations = {
       backToMenu: "Back to Menu",
       categoryNotFound: "Category Not Found",
       viewAll: "View All",
+      recipeCategories: "Recipe Categories",
+      browseByCategory: "Browse by Category",
       description: {
         breakfast: "Start your day with our delicious breakfast recipes. From quick and easy options to weekend treats, we've got you covered.",
         lunch: "Discover diverse lunch ideas that are perfect for meal prep, work lunches, or weekend gatherings with friends and family.",
         dinner: "Explore satisfying dinner recipes that bring everyone to the table. From quick weeknight meals to special occasions.",
         dessert: "Indulge in sweet treats with our collection of dessert recipes. Perfect for satisfying your sweet tooth any time of day.",
+        desserts: "Explore our delightful collection of desserts. From cakes and cookies to pies and ice cream, satisfy your sweet cravings with these delicious treats.",
+        snacks: "Find the perfect bite-sized treats for any time of day. Our snack recipes are perfect for quick energy boosts, entertaining guests, or satisfying cravings.",
+        drinks: "Quench your thirst with our collection of beverages. From refreshing smoothies and cocktails to warming teas and coffees, find the perfect drink for any occasion.",
         vegetarian: "Explore delicious plant-based meals that are full of flavor and nutrition. Perfect for vegetarians or anyone looking to eat less meat.",
         seafood: "Dive into our collection of seafood recipes featuring fresh fish, shrimp, crab and more, prepared in various delicious ways.",
         soup: "Warm up with our comforting soup recipes. From hearty stews to light broths, we have options for every season.",
@@ -213,11 +218,16 @@ export const translations = {
       backToMenu: "返回菜单",
       categoryNotFound: "分类不存在",
       viewAll: "查看全部",
+      recipeCategories: "食谱分类",
+      browseByCategory: "按分类浏览",
       description: {
         breakfast: "用我们美味的早餐食谱开始新的一天。从快速简单的选择到周末美食，应有尽有。",
         lunch: "探索多样化的午餐创意，非常适合餐前准备、工作午餐或与亲友共度周末聚会。",
         dinner: "探索能让所有人齐聚一堂的晚餐食谱。从快速的工作日晚餐到特殊场合的大餐。",
         dessert: "尽情享用我们的甜点食谱。完美满足您随时随地的甜食欲望。",
+        desserts: "探索我们美味的甜点系列。从蛋糕和饼干到派和冰淇淋，用这些美味的甜点满足您的甜食欲望。",
+        snacks: "找到适合一天中任何时间的完美小吃。我们的小吃食谱非常适合快速补充能量、招待客人或满足口腹之欲。",
+        drinks: "用我们的饮品系列解渴。从清爽的冰沙和鸡尾酒到暖心的茶和咖啡，为任何场合找到完美的饮品。",
         vegetarian: "探索美味的植物性餐点，充满风味和营养。非常适合素食者或任何想减少肉类摄入的人。",
         seafood: "深入探索我们的海鲜食谱，包括新鲜的鱼、虾、蟹等，以各种美味方式烹制。",
         soup: "温暖身心的汤品食谱。从浓郁的炖菜到清淡的高汤，我们为每个季节提供选择。",
@@ -277,11 +287,32 @@ export const translations = {
       // ... existing code ...
       noRecipesFound: "No Recipes Found",
       brickLinkDescription: "Select ingredients you already have, and we'll show you recipes you can make. Filter by cooking method, cuisine, or dietary preferences.",
+      recipeResults: "Recipe Results",
       menuDescription: "Browse our curated collection of recipes organized by categories. Each recipe includes detailed instructions, ingredients list, and video tutorials.",
       videoToRecipesDescription: "Upload or paste a link to any cooking video, and we'll convert it into a detailed recipe with ingredients, steps, and nutritional information.",
-      findYourPerfect: "Find Your Perfect Recipe",
-      recipeResults: "Recipe Results",
-      trySelecting: "Try selecting different ingredients or filters to find recipes.",
+      
+      // 食谱难度
+      difficulty: {
+        easy: "Easy",
+        medium: "Medium",
+        hard: "Hard"
+      },
+      
+      // 食谱类型
+      type: {
+        vegetable_dish: "Vegetable Dish",
+        meat_dish: "Meat Dish",
+        seafood_dish: "Seafood Dish",
+        soup: "Soup",
+        dessert: "Dessert",
+        breakfast: "Breakfast",
+        main_course: "Main Course",
+        appetizer: "Appetizer",
+        side_dish: "Side Dish"
+      },
+      
+      // 食谱营养信息
+      calories: "Calories",
       
       // New recipe steps
       step: {
@@ -303,11 +334,32 @@ export const translations = {
       // ... existing code ...
       noRecipesFound: "未找到菜谱",
       brickLinkDescription: "选择您已有的食材，我们将向您展示可以制作的食谱。按烹饪方法、菜系或饮食偏好进行筛选。",
-      menuDescription: "浏览我们按类别组织的精选食谱集合。每个食谱都包含详细说明、食材清单和视频教程。",
-      videoToRecipesDescription: "上传或粘贴任何烹饪视频的链接，我们将把它转换为详细的食谱，包括食材、步骤和营养信息。",
-      findYourPerfect: "找到您的完美食谱",
-      recipeResults: "食谱结果",
-      trySelecting: "尝试选择不同的食材或筛选条件来查找食谱。",
+      recipeResults: "菜谱结果",
+      menuDescription: "浏览我们的按分类组织的精选食谱。每个食谱都包含详细说明、食材列表和视频教程。",
+      videoToRecipesDescription: "上传或粘贴任何烹饪视频的链接，我们将其转换为包含食材、步骤和营养信息的详细食谱。",
+      
+      // 食谱难度
+      difficulty: {
+        easy: "简单",
+        medium: "中等",
+        hard: "困难"
+      },
+      
+      // 食谱类型
+      type: {
+        vegetable_dish: "蔬菜菜",
+        meat_dish: "肉类菜",
+        seafood_dish: "海鲜菜",
+        soup: "汤",
+        dessert: "甜点",
+        breakfast: "早餐",
+        main_course: "主菜",
+        appetizer: "开胃菜",
+        side_dish: "配菜"
+      },
+      
+      // 食谱营养信息
+      calories: "卡路里",
       
       // New recipe steps
       step: {
@@ -349,7 +401,14 @@ export const translations = {
       supportedVideoTypes: "Supported Video Types",
       supportedVideoTypes1: "YouTube cooking tutorials and recipe videos",
       supportedVideoTypes2: "Bilibili cooking channels and food vlogs",
-      supportedVideoTypes3: "Most professional cooking demonstration videos"
+      supportedVideoTypes3: "Most professional cooking demonstration videos",
+      videoSummary: "Video Summary",
+      quickRecipeGuide: "Quick Recipe Guide",
+      ingredients: "Ingredients",
+      preparationSteps: "Preparation Steps",
+      nutritionInformation: "Nutrition Information",
+      amountPerServing: "Amount Per Serving",
+      dietaryInformation: "Dietary Information"
     },
     zh: {
       title: "视频转食谱转换器",
@@ -371,7 +430,14 @@ export const translations = {
       supportedVideoTypes: "支持的视频类型",
       supportedVideoTypes1: "YouTube烹饪教程和食谱视频",
       supportedVideoTypes2: "Bilibili烹饪频道和美食vlog",
-      supportedVideoTypes3: "大多数专业烹饪演示视频"
+      supportedVideoTypes3: "大多数专业烹饪演示视频",
+      videoSummary: "视频摘要",
+      quickRecipeGuide: "快速食谱指南",
+      ingredients: "食材",
+      preparationSteps: "准备步骤",
+      nutritionInformation: "营养信息",
+      amountPerServing: "每份含量",
+      dietaryInformation: "饮食信息"
     }
   },
   
@@ -490,6 +556,9 @@ export const translations = {
       subtitle: "We'd love to hear from you",
       type: "Inquiry Type",
       selectType: "Select inquiry type",
+      typePromotion: "Promotion & Partnership",
+      typeFeedback: "Feedback & Suggestions",
+      typeOther: "Other Questions",
       details: "Message Details",
       detailsPlaceholder: "Please describe your inquiry or feedback in detail...",
       email: "Email Address",
@@ -505,6 +574,9 @@ export const translations = {
       subtitle: "我们很乐意听取您的意见",
       type: "咨询类型",
       selectType: "选择咨询类型",
+      typePromotion: "促销与合作",
+      typeFeedback: "反馈与建议",
+      typeOther: "其他问题",
       details: "消息详情",
       detailsPlaceholder: "请详细描述您的咨询或反馈...",
       email: "电子邮箱",

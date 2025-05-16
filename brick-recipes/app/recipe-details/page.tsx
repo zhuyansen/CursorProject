@@ -377,9 +377,9 @@ export default function RecipeDetails() {
             {/* Recipe Title and Description */}
             <div className="flex-1 max-w-2xl">
               <h1 className="text-4xl font-bold mb-4 dark:text-white">{recipe.strMeal}</h1>
-              {recipe.strCategory && recipe.strArea && (
+              {typeof recipe.strCategory !== 'object' && typeof recipe.strArea !== 'object' && (
               <p className="text-gray-600 dark:text-gray-300 mb-8 text-lg leading-relaxed">
-                  {recipe.strCategory} • {recipe.strArea} • {recipe.mealStyle}
+                  {typeof recipe.strCategory !== 'object' ? recipe.strCategory : ''} • {typeof recipe.strArea !== 'object' ? recipe.strArea : ''} • {typeof recipe.mealStyle !== 'object' ? recipe.mealStyle : ''}
               </p>
               )}
 
@@ -403,7 +403,11 @@ export default function RecipeDetails() {
                 )}
                 <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
                   <ChefHat className="h-4 w-4 text-[#b94a2c] dark:text-[#ff6b47]" />
-                  <span className="text-gray-700 dark:text-gray-300">{t("recipe.difficulty")}: {t(`recipe.difficulty.${recipe.difficulty?.toLowerCase() || ''}`)}</span>
+                  <span className="text-gray-700 dark:text-gray-300">{language === "zh" ? "难度" : "Difficulty"}: {recipe.difficulty ? (language === "zh" ? 
+                    (recipe.difficulty.toLowerCase() === "easy" ? "简单" : 
+                     recipe.difficulty.toLowerCase() === "medium" ? "中等" : 
+                     recipe.difficulty.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                    recipe.difficulty) : ""}</span>
                 </div>
                 {recipe.Energy && (
                 <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
@@ -635,7 +639,7 @@ export default function RecipeDetails() {
                     onClick={() => window.print()}
                     title={language === "zh" ? "打印食谱" : "Print recipe"}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300"><polyline points="6 9 6 2 18 2 18 9"/><path d="M9 15h6" /><path d="M8.5 11h7" /><path d="M9 7h6" /></svg>
                   </button>
                   <button 
                     className={`w-14 h-14 rounded-full border ${isFavorite 
@@ -650,8 +654,8 @@ export default function RecipeDetails() {
                       width="22" 
                       height="22" 
                       viewBox="0 0 24 24" 
-                      fill={isFavorite ? "#ef4444" : "none"} 
-                      stroke={isFavorite ? "#ef4444" : "currentColor"} 
+                      fill={isFavorite ? "currentColor" : "none"} 
+                      stroke="currentColor" 
                       strokeWidth="2" 
                       strokeLinecap="round" 
                       strokeLinejoin="round" 
@@ -724,14 +728,13 @@ export default function RecipeDetails() {
                     
                     // 尝试匹配数字部分
                     const numMatch = weightStr.match(/(\d+)(?:\.\d+)?/);
-                    if (numMatch && numMatch[1]) {
-                      // 确保数字后面有g单位
-                      return weightStr.toLowerCase().endsWith('g') ? weightStr : `${numMatch[1]}g`;
-                    }
+                    if (!numMatch) return "0g";
+                    const value = parseFloat(numMatch[1]);
                     
-                    return "0g";
+                    // 确保数字后面有g单位
+                    return weightStr.toLowerCase().endsWith('g') ? weightStr : `${value}g`;
                   })()})</span>
-              </div>
+                </div>
 
                 {/* 卡路里 */}
                 <div className="py-2">
@@ -770,7 +773,7 @@ export default function RecipeDetails() {
                 <div className="border-b-4 border-black dark:border-gray-300 my-1"></div>
                 
                 {/* 每日价值百分比 */}
-                <div className="text-right text-sm py-1 border-b border-black dark:border-gray-300">
+                <div className="text-right text-sm py-1 border-b border-gray-300">
                   <span className="font-bold">% {language === "zh" ? "每日参考值" : "Daily Value*"}</span>
                 </div>
                 
@@ -784,7 +787,9 @@ export default function RecipeDetails() {
                     const match = String(fat).match(/(\d+\.?\d*)/);
                     if (!match) return "18.2%";
                     const value = parseFloat(match[1]);
-                    return `${((value / 78) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有g单位
+                    return fat.toLowerCase().endsWith('g') ? fat : `${value}g`;
                   })()}</span>
                 </div>
                 
@@ -797,33 +802,39 @@ export default function RecipeDetails() {
                     const match = String(satFat).match(/(\d+\.?\d*)/);
                     if (!match) return "10.0%";
                     const satFatValue = parseFloat(match[1]);
-                    return `${((satFatValue / 20) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有g单位
+                    return satFat.toLowerCase().endsWith('g') ? satFat : `${satFatValue}g`;
                   })()}</span>
                 </div>
                 
                 {/* 胆固醇 */}
                 <div className="flex justify-between py-2 border-b border-gray-300">
                   <span className="font-bold">{language === "zh" ? "胆固醇" : "Cholesterol"} {recipe.NutritionPerServing?.Cholesterol || "1.5mg"}</span>
-                  <span className="font-bold">{(() => {
+                  <span>{(() => {
                     const chol = recipe.NutritionPerServing?.Cholesterol || "1.5mg";
                     // 提取数值，保留小数点
                     const match = String(chol).match(/(\d+\.?\d*)/);
                     if (!match) return "0.5%";
                     const cholValue = parseFloat(match[1]);
-                    return `${((cholValue / 300) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有mg单位
+                    return chol.toLowerCase().endsWith('mg') ? chol : `${cholValue}mg`;
                   })()}</span>
                 </div>
                 
                 {/* 钠 */}
                 <div className="flex justify-between py-2 border-b border-gray-300">
                   <span className="font-bold">{language === "zh" ? "钠" : "Sodium"} {recipe.NutritionPerServing?.Sodium || recipe.Sodium || "150.5mg"}</span>
-                  <span className="font-bold">{(() => {
+                  <span>{(() => {
                     const sodium = recipe.NutritionPerServing?.Sodium || recipe.Sodium || "150.5mg";
                     // 提取数值，保留小数点
                     const match = String(sodium).match(/(\d+\.?\d*)/);
                     if (!match) return "6.5%";
                     const sodiumValue = parseFloat(match[1]);
-                    return `${((sodiumValue / 2300) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有mg单位
+                    return sodium.toLowerCase().endsWith('mg') ? sodium : `${sodiumValue}mg`;
                   })()}</span>
                 </div>
                 
@@ -836,7 +847,9 @@ export default function RecipeDetails() {
                     const match = String(carbs).match(/(\d+\.?\d*)/);
                     if (!match) return "0.7%";
                     const carbsValue = parseFloat(match[1]);
-                    return `${((carbsValue / 275) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有g单位
+                    return carbs.toLowerCase().endsWith('g') ? carbs : `${carbsValue}g`;
                   })()}</span>
                 </div>
                 
@@ -844,7 +857,7 @@ export default function RecipeDetails() {
                 <div className="flex justify-between py-1 border-b border-gray-300 pl-8">
                   <span>{language === "zh" ? "总糖" : "Total Sugars"} {recipe.NutritionPerServing?.Sugars || recipe.Sugars || "1.0g"}</span>
                   <span></span>
-              </div>
+                </div>
 
                 {/* 蛋白质 */}
                 <div className="flex justify-between py-2 border-b-8 border-black dark:border-gray-300">
@@ -855,9 +868,11 @@ export default function RecipeDetails() {
                     const match = String(protein).match(/(\d+\.?\d*)/);
                     if (!match) return "2.0%";
                     const proteinValue = parseFloat(match[1]);
-                    return `${((proteinValue / 50) * 100).toFixed(1)}%`;
+                    
+                    // 确保数字后面有g单位
+                    return protein.toLowerCase().endsWith('g') ? protein : `${proteinValue}g`;
                   })()}</span>
-            </div>
+                </div>
                 
                 {/* 维生素和矿物质 */}
                 <div className="flex justify-between py-1 border-b border-gray-300">
@@ -882,7 +897,7 @@ export default function RecipeDetails() {
                     // 四舍五入到一位小数并显示
                     return percentage < 0.0005 ? "0.0%" : `${(percentage * 100).toFixed(1)}%`;
                   })()}</span>
-          </div>
+                </div>
                 
                 <div className="flex justify-between py-1 border-b border-gray-300">
                   <span>{language === "zh" ? "钙" : "Calcium"} {recipe.NutritionPerServing?.Calcium || "19.1mg"}</span>
@@ -906,7 +921,7 @@ export default function RecipeDetails() {
                     // 四舍五入到一位小数并显示
                     return `${(percentage * 100).toFixed(1)}%`;
                   })()}</span>
-        </div>
+                </div>
                 
                 <div className="flex justify-between py-1 border-b border-gray-300">
                   <span>{language === "zh" ? "铁" : "Iron"} {recipe.NutritionPerServing?.Iron || "0.1mg"}</span>
@@ -930,7 +945,7 @@ export default function RecipeDetails() {
                     // 四舍五入到一位小数并显示
                     return `${(percentage * 100).toFixed(1)}%`;
                   })()}</span>
-      </div>
+                </div>
 
                 <div className="flex justify-between py-1 border-b border-gray-300">
                   <span>{language === "zh" ? "钾" : "Potassium"} {recipe.NutritionPerServing?.Potassium || "88.0mg"}</span>
@@ -954,7 +969,7 @@ export default function RecipeDetails() {
                     // 四舍五入到一位小数并显示
                     return `${(percentage * 100).toFixed(1)}%`;
                   })()}</span>
-                  </div>
+                </div>
                 
                 {/* 注释 */}
                 <div className="text-xs mt-4">
@@ -962,9 +977,9 @@ export default function RecipeDetails() {
                       ? "每日参考值百分比告诉您食品中的营养成分对每日饮食的贡献程度。每天2,000卡路里被用作一般营养建议。"
                       : "The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice."}
                   </p>
-                    </div>
-                  </div>
                 </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -719,11 +719,17 @@ export default function BrickLinkRecipes() {
                                 <Flame className="h-4 w-4" />
                                 <span>{recipe.calories}</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <ChefHat className="h-4 w-4" />
-                              <span>{t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}</span>
+                              <div className="flex items-center gap-2">
+                                <ChefHat className="h-4 w-4 text-gray-400" />
+                                <span>
+                                  {language === "zh" ? 
+                                    (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                                     recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                                     recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                                    recipe.difficulty}
+                                </span>
+                              </div>
                             </div>
-                          </div>
                           <div className={globalStyles.recipeTagContainer}>
                             {recipe.ingredients?.slice(0, 4).map((ing, idx) => (
                                 <Badge
@@ -826,9 +832,15 @@ export default function BrickLinkRecipes() {
                                       <Flame className="h-4 w-4" />
                                       <span>{recipe.calories}</span>
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <ChefHat className="h-4 w-4" />
-                                    <span>{t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}</span>
+                                    <div className="flex items-center gap-2">
+                                      <ChefHat className="h-4 w-4 text-gray-400" />
+                                      <span>
+                                        {language === "zh" ? 
+                                          (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                                           recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                                           recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                                          recipe.difficulty}
+                                      </span>
                                     </div>
                                   </div>
 

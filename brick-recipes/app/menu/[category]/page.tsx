@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlayCircle, Clock, Flame, ChevronLeft, ChevronRight } from "lucide-react"
+import { PlayCircle, Clock, Flame, ChevronLeft, ChevronRight, ChefHat } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
 
@@ -390,28 +390,31 @@ export default function CategoryPage() {
                       <h3 className="font-medium text-lg mb-2 group-hover:text-[#b94a2c] dark:text-white dark:group-hover:text-[#ff6b47] transition-colors line-clamp-2">
                         {recipe.title}
                     </h3>
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-3 mb-3">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1 text-[#b94a2c] dark:text-[#ff6b47]" />
-                          <span>{recipe.time}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Flame className="h-4 w-4 mr-1 text-[#b94a2c] dark:text-[#ff6b47]" />
-                          <span>{recipe.calories}</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center mb-3">
-                      <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300">
-                          {t(`recipe.difficulty.${recipe.difficulty?.toLowerCase()}`)}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
+                        <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span>{recipe.time}</span>
+                      </span>
+                      <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
+                        <ChefHat className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span>
+                          {language === "zh" ? 
+                            (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                             recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                             recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                            recipe.difficulty}
+                        </span>
                       </span>
                     </div>
-                    <Link href={`/recipe-details?id=${recipe.id}`} className="w-full block">
-                      <Button
-                        className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
-                      >
-                        {t("button.viewRecipe")}
-                      </Button>
-                    </Link>
+                    <div className="flex justify-between items-center mt-4 mb-3">
+                      <Link href={`/recipe-details?id=${recipe.id}`} className="w-full block">
+                        <Button
+                          className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
+                        >
+                          {t("button.viewRecipe")}
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>

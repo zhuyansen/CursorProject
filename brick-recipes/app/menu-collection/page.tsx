@@ -451,7 +451,7 @@ export default function MenuCollection() {
             {activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)} Recipes
           </h1>
           <p className="text-center text-gray-600 dark:text-gray-300 mb-6">
-            Discover delicious {activeCategory} recipes with video tutorials, detailed instructions, and nutritional information
+            {t(`menu.description.${activeCategory}`)}
           </p>
         </div>
       </div>
@@ -543,15 +543,16 @@ export default function MenuCollection() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <ChefHat className="h-4 w-4" />
-                                <span>{recipe.difficulty}</span>
+                                <span>
+                                  {language === "zh" ? 
+                                    (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                                     recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                                     recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                                    recipe.difficulty}
+                                </span>
                               </div>
                             </div>
-                            <div className="flex justify-between items-center mt-2">
-                              <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300">
-                                {t(`recipe.difficulty.${recipe.difficulty.toLowerCase()}`)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between mt-4">
                               <Link href={`/recipe-details?id=${recipe.id}`}>
                                 <Button
                                   variant="outline"
