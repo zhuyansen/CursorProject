@@ -388,6 +388,7 @@ export const translations = {
       searchVideoUrl: "Search for video URL",
       toTitle: "Video Analysis",
       forBestResults: "For best results:",
+      tipTitle: "Tips for Better Results",
       tipClearVideo: "Use clear, well-lit cooking videos",
       tipMayTakeTime: "Analysis may take 1-2 minutes",
       tipDetailedVideo: "More detailed videos yield better recipes",
@@ -408,7 +409,10 @@ export const translations = {
       preparationSteps: "Preparation Steps",
       nutritionInformation: "Nutrition Information",
       amountPerServing: "Amount Per Serving",
-      dietaryInformation: "Dietary Information"
+      dietaryInformation: "Dietary Information",
+      analyzingVideo: "Analyzing Video",
+      analyzingDescription: "We are extracting recipe details from your cooking video. This includes ingredients, steps, and cooking instructions.",
+      analyzingTimeEstimate: "This process may take 1-2 minutes to complete."
     },
     zh: {
       title: "视频转食谱转换器",
@@ -417,6 +421,7 @@ export const translations = {
       searchVideoUrl: "搜索视频链接",
       toTitle: "视频分析",
       forBestResults: "为获得最佳效果：",
+      tipTitle: "更好结果的提示",
       tipClearVideo: "使用清晰、光线良好的烹饪视频",
       tipMayTakeTime: "分析可能需要1-2分钟",
       tipDetailedVideo: "更详细的视频会产生更好的食谱",
@@ -437,7 +442,10 @@ export const translations = {
       preparationSteps: "准备步骤",
       nutritionInformation: "营养信息",
       amountPerServing: "每份含量",
-      dietaryInformation: "饮食信息"
+      dietaryInformation: "饮食信息",
+      analyzingVideo: "正在分析视频",
+      analyzingDescription: "我们正在从您的烹饪视频中提取食谱详情，包括食材、步骤和烹饪指南。",
+      analyzingTimeEstimate: "此过程可能需要1-2分钟才能完成。"
     }
   },
   

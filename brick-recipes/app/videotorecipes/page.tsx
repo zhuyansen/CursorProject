@@ -61,15 +61,15 @@ export default function VideoToRecipes() {
 
     // 平台不匹配检查 - YouTube链接在Bilibili标签页
     if (isYoutubeLink && platform === "bilibili") {
-      setErrorTitle(t("video.platformMismatchTitle"));
-      setErrorMessage(t("video.onlyUseYoutubeOnYoutube"));
+      setErrorTitle(language === "zh" ? "平台不匹配错误" : "Platform Mismatch Error");
+      setErrorMessage(language === "zh" ? "请只在YouTube标签页使用YouTube链接" : "Only use YouTube links for YouTube tab");
       return false;
     }
 
     // 平台不匹配检查 - Bilibili链接在YouTube标签页
     if (isBilibiliLink && platform === "youtube") {
-      setErrorTitle(t("video.platformMismatchTitle"));
-      setErrorMessage(t("video.onlyUseBilibiliOnBilibili"));
+      setErrorTitle(language === "zh" ? "平台不匹配错误" : "Platform Mismatch Error");
+      setErrorMessage(language === "zh" ? "请只在Bilibili标签页使用Bilibili链接" : "Only use Bilibili links for Bilibili tab");
       return false;
     }
 
@@ -86,8 +86,8 @@ export default function VideoToRecipes() {
         console.log("处理后的YouTube链接:", `https://www.youtube.com/watch?v=${videoId}`);
         return true;
       } else {
-        setErrorTitle(t("video.linkError"));
-        setErrorMessage(t("video.invalidYoutubeLink"));
+        setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+        setErrorMessage(language === "zh" ? "无效的YouTube链接" : "Invalid YouTube link");
         return false;
       }
     }
@@ -105,15 +105,15 @@ export default function VideoToRecipes() {
         console.log("处理后的Bilibili链接:", `https://www.bilibili.com/video/${videoId}`);
         return true;
       } else {
-        setErrorTitle(t("video.linkError"));
-        setErrorMessage(t("video.invalidBilibiliLink"));
+        setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+        setErrorMessage(language === "zh" ? "无效的Bilibili链接" : "Invalid Bilibili link");
         return false;
       }
     }
     
     // 不支持的链接类型
-    setErrorTitle(t("video.linkError"));
-    setErrorMessage(t("video.unsupportedPlatform"));
+    setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+    setErrorMessage(language === "zh" ? "不支持的平台" : "Unsupported platform");
     return false;
   }
 
@@ -130,6 +130,8 @@ export default function VideoToRecipes() {
 
     if (!isValid) {
       setShowError(true);
+      setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+      setErrorMessage(language === "zh" ? "无效的视频链接" : "Invalid video link");
       return;
     }
 
@@ -159,8 +161,8 @@ export default function VideoToRecipes() {
         urlToProcess = `https://www.bilibili.com/video/${videoId}`;
       } else {
         setShowError(true);
-        setErrorTitle(t("video.linkError"));
-        setErrorMessage(t("video.invalidBilibiliLink"));
+        setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+        setErrorMessage(language === "zh" ? "无效的Bilibili链接" : "Invalid Bilibili link");
         return;
       }
     }
@@ -168,8 +170,8 @@ export default function VideoToRecipes() {
     // 确保URL已处理
     if (!urlToProcess) {
       setShowError(true);
-      setErrorTitle(t("video.linkError"));
-      setErrorMessage(t("video.invalidVideoUrl"));
+      setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
+      setErrorMessage(language === "zh" ? "无效的视频URL" : "Invalid video URL");
       return;
     }
 
@@ -540,8 +542,8 @@ export default function VideoToRecipes() {
       console.error('分析视频时出错:', error);
       setIsAnalyzing(false);
       setShowError(true);
-      setErrorTitle(t("video.analysisError"));
-      setErrorMessage(error.message || t("video.genericError"));
+      setErrorTitle(language === "zh" ? "分析错误" : "Analysis Error");
+      setErrorMessage(error.message || (language === "zh" ? "视频处理过程中发生错误" : "An error occurred during video processing"));
     }
   }
 
@@ -642,6 +644,233 @@ export default function VideoToRecipes() {
     return String(value);
   };
 
+  // 选择食材图标的辅助函数
+  const getIngredientEmoji = (name: string): string => {
+    // 检查中文和英文名称
+    const lowerName = name.toLowerCase();
+    
+    // 肉类
+    if (lowerName.includes('牛肉') || lowerName.includes('beef')) return '🥩';
+    else if (lowerName.includes('猪肉') || lowerName.includes('pork')) return '🥓';
+    else if (lowerName.includes('羊肉') || lowerName.includes('lamb') || lowerName.includes('mutton')) return '🍖';
+    else if (lowerName.includes('鸡') || lowerName.includes('chicken')) return '🍗';
+    else if (lowerName.includes('火腿') || lowerName.includes('ham')) return '🍖';
+    else if (lowerName.includes('培根') || lowerName.includes('bacon')) return '🥓';
+    else if (lowerName.includes('香肠') || lowerName.includes('sausage')) return '🌭';
+    
+    // 海鲜
+    else if (lowerName.includes('鱼') || lowerName.includes('fish')) return '🐟';
+    else if (lowerName.includes('虾') || lowerName.includes('shrimp') || lowerName.includes('prawn')) return '🦐';
+    else if (lowerName.includes('蟹') || lowerName.includes('crab')) return '🦀';
+    else if (lowerName.includes('贝') || lowerName.includes('clam') || lowerName.includes('mussel')) return '🦪';
+    else if (lowerName.includes('龙虾') || lowerName.includes('lobster')) return '🦞';
+    else if (lowerName.includes('章鱼') || lowerName.includes('octopus')) return '🐙';
+    else if (lowerName.includes('鱿鱼') || lowerName.includes('squid')) return '🦑';
+    
+    // 蔬菜
+    else if (lowerName.includes('西红柿') || lowerName.includes('番茄') || lowerName.includes('tomato')) return '🍅';
+    else if (lowerName.includes('土豆') || lowerName.includes('potato')) return '🥔';
+    else if (lowerName.includes('茄子') || lowerName.includes('eggplant') || lowerName.includes('aubergine')) return '🍆';
+    else if (lowerName.includes('胡萝卜') || lowerName.includes('carrot')) return '🥕';
+    else if (lowerName.includes('玉米') || lowerName.includes('corn')) return '🌽';
+    else if (lowerName.includes('青椒') || lowerName.includes('辣椒') || lowerName.includes('pepper') || lowerName.includes('chili')) return '🌶️';
+    else if (lowerName.includes('洋葱') || lowerName.includes('onion')) return '🧅';
+    else if (lowerName.includes('大蒜') || lowerName.includes('蒜') || lowerName.includes('garlic')) return '🧄';
+    else if (lowerName.includes('生菜') || lowerName.includes('lettuce')) return '🥬';
+    else if (lowerName.includes('花椰菜') || lowerName.includes('西兰花') || lowerName.includes('broccoli')) return '🥦';
+    else if (lowerName.includes('菠菜') || lowerName.includes('spinach')) return '🥬';
+    else if (lowerName.includes('黄瓜') || lowerName.includes('cucumber')) return '🥒';
+    else if (lowerName.includes('豆') || lowerName.includes('bean')) return '🫘';
+    else if (lowerName.includes('芹菜') || lowerName.includes('celery')) return '🥬';
+    else if (lowerName.includes('香菇') || lowerName.includes('蘑菇') || lowerName.includes('mushroom')) return '🍄';
+    
+    // 水果
+    else if (lowerName.includes('苹果') || lowerName.includes('apple')) return '🍎';
+    else if (lowerName.includes('香蕉') || lowerName.includes('banana')) return '🍌';
+    else if (lowerName.includes('葡萄') || lowerName.includes('grape')) return '🍇';
+    else if (lowerName.includes('草莓') || lowerName.includes('strawberry')) return '🍓';
+    else if (lowerName.includes('柠檬') || lowerName.includes('lemon')) return '🍋';
+    else if (lowerName.includes('橙') || lowerName.includes('橘') || lowerName.includes('orange')) return '🍊';
+    else if (lowerName.includes('西瓜') || lowerName.includes('watermelon')) return '🍉';
+    else if (lowerName.includes('桃') || lowerName.includes('peach')) return '🍑';
+    else if (lowerName.includes('梨') || lowerName.includes('pear')) return '🍐';
+    else if (lowerName.includes('樱桃') || lowerName.includes('cherry')) return '🍒';
+    else if (lowerName.includes('蓝莓') || lowerName.includes('blueberry')) return '🫐';
+    else if (lowerName.includes('菠萝') || lowerName.includes('凤梨') || lowerName.includes('pineapple')) return '🍍';
+    else if (lowerName.includes('椰子') || lowerName.includes('coconut')) return '🥥';
+    else if (lowerName.includes('瓜')) return '🍈';
+    
+    // 主食和谷物
+    else if (lowerName.includes('米') || lowerName.includes('饭') || lowerName.includes('rice')) return '🍚';
+    else if (lowerName.includes('面粉') || lowerName.includes('flour')) return '🌾';
+    else if (lowerName.includes('意大利面') || lowerName.includes('pasta') || lowerName.includes('spaghetti')) return '🍝';
+    else if (lowerName.includes('面包') || lowerName.includes('bread')) return '🍞';
+    else if (lowerName.includes('三明治') || lowerName.includes('sandwich')) return '🥪';
+    else if (lowerName.includes('汉堡') || lowerName.includes('hamburger')) return '🍔';
+    else if (lowerName.includes('披萨') || lowerName.includes('pizza')) return '🍕';
+    else if (lowerName.includes('馒头') || lowerName.includes('包子')) return '🧁';
+    else if (lowerName.includes('饺子') || lowerName.includes('dumpling')) return '🥟';
+    else if (lowerName.includes('面')) return '🍜';
+    
+    // 调味料
+    else if (lowerName.includes('蛋')) return '🥚';
+    else if (lowerName.includes('牛奶') || lowerName.includes('奶') || lowerName.includes('milk')) return '🥛';
+    else if (lowerName.includes('奶酪') || lowerName.includes('芝士') || lowerName.includes('cheese')) return '🧀';
+    else if (lowerName.includes('黄油') || lowerName.includes('butter')) return '🧈';
+    else if (lowerName.includes('盐') || lowerName.includes('salt')) return '🧂';
+    else if (lowerName.includes('糖') || lowerName.includes('sugar')) return '🍬';
+    else if (lowerName.includes('酱油') || lowerName.includes('soy sauce')) return '🍯';
+    else if (lowerName.includes('醋') || lowerName.includes('vinegar')) return '🧉';
+    else if (lowerName.includes('酒') || lowerName.includes('wine')) return '🍶';
+    else if (lowerName.includes('水') || lowerName.includes('water')) return '💧';
+    else if (lowerName.includes('油') || lowerName.includes('oil')) return '🫗';
+    else if (lowerName.includes('蜂蜜') || lowerName.includes('honey')) return '🍯';
+    else if (lowerName.includes('巧克力') || lowerName.includes('chocolate')) return '🍫';
+    
+    // 如果具体匹配失败，尝试更通用的匹配
+    else if (lowerName.includes('肉')) return '🥩';
+    else if (lowerName.includes('菜')) return '🥬';
+    else if (lowerName.includes('果')) return '🍎';
+    
+    // 默认图标
+    return '🍳';
+  };
+
+  // 根据食材名称生成简洁的背景颜色
+  const getIngredientBgStyle = (name: string, idx: number): {bg: string, from: string, to: string} => {
+    const lowerName = name.toLowerCase();
+    
+    // 更丰富的配色方案，增强暗黑模式对比度
+    const colorSchemes = [
+      // 默认灰色系
+      { bg: "bg-gray-100 dark:bg-gray-800/90", from: "from-gray-100 dark:from-gray-800/90", to: "to-gray-200 dark:to-gray-700/90" },
+      
+      // 肉类 - 暖色系
+      { bg: "bg-red-50 dark:bg-red-900/40", from: "from-red-50 dark:from-red-900/50", to: "to-orange-100 dark:to-red-800/60" },
+      { bg: "bg-orange-50 dark:bg-orange-900/40", from: "from-orange-50 dark:from-orange-900/50", to: "to-orange-100 dark:to-orange-800/60" },
+      { bg: "bg-rose-50 dark:bg-rose-900/40", from: "from-rose-50 dark:from-rose-900/50", to: "to-red-100 dark:to-rose-800/60" },
+      
+      // 海鲜 - 蓝色系
+      { bg: "bg-blue-50 dark:bg-blue-900/40", from: "from-blue-50 dark:from-blue-900/50", to: "to-sky-100 dark:to-blue-800/60" },
+      { bg: "bg-sky-50 dark:bg-sky-900/40", from: "from-sky-50 dark:from-sky-900/50", to: "to-cyan-100 dark:to-sky-800/60" },
+      { bg: "bg-cyan-50 dark:bg-cyan-900/40", from: "from-cyan-50 dark:from-cyan-900/50", to: "to-teal-100 dark:to-cyan-800/60" },
+      
+      // 蔬菜 - 绿色系
+      { bg: "bg-green-50 dark:bg-green-900/40", from: "from-green-50 dark:from-green-900/50", to: "to-emerald-100 dark:to-green-800/60" },
+      { bg: "bg-emerald-50 dark:bg-emerald-900/40", from: "from-emerald-50 dark:from-emerald-900/50", to: "to-teal-100 dark:to-emerald-800/60" },
+      { bg: "bg-lime-50 dark:bg-lime-900/40", from: "from-lime-50 dark:from-lime-900/50", to: "to-green-100 dark:to-lime-800/60" },
+      
+      // 水果 - 粉色/紫色系
+      { bg: "bg-pink-50 dark:bg-pink-900/40", from: "from-pink-50 dark:from-pink-900/50", to: "to-rose-100 dark:to-pink-800/60" },
+      { bg: "bg-fuchsia-50 dark:bg-fuchsia-900/40", from: "from-fuchsia-50 dark:from-fuchsia-900/50", to: "to-pink-100 dark:to-fuchsia-800/60" },
+      { bg: "bg-purple-50 dark:bg-purple-900/40", from: "from-purple-50 dark:from-purple-900/50", to: "to-violet-100 dark:to-purple-800/60" },
+      
+      // 主食和谷物 - 黄色/棕色系
+      { bg: "bg-yellow-50 dark:bg-yellow-900/40", from: "from-yellow-50 dark:from-yellow-900/50", to: "to-amber-100 dark:to-yellow-800/60" },
+      { bg: "bg-amber-50 dark:bg-amber-900/40", from: "from-amber-50 dark:from-amber-900/50", to: "to-yellow-100 dark:to-amber-800/60" },
+      { bg: "bg-stone-50 dark:bg-stone-800/70", from: "from-stone-50 dark:from-stone-800/70", to: "to-stone-100 dark:to-stone-700/80" },
+      
+      // 调味料 - 多样颜色
+      { bg: "bg-indigo-50 dark:bg-indigo-900/40", from: "from-indigo-50 dark:from-indigo-900/50", to: "to-violet-100 dark:to-indigo-800/60" },
+      { bg: "bg-slate-50 dark:bg-slate-800/70", from: "from-slate-50 dark:from-slate-800/70", to: "to-slate-100 dark:to-slate-700/80" },
+      { bg: "bg-neutral-50 dark:bg-neutral-800/70", from: "from-neutral-50 dark:from-neutral-800/70", to: "to-neutral-100 dark:to-neutral-700/80" },
+    ];
+    
+    // 基于食材类型和索引选择颜色方案，增加随机性
+    let colorSchemeIndex = 0; // 默认使用灰色系
+    
+    // 肉类
+    if (lowerName.includes('肉') || lowerName.includes('牛') || lowerName.includes('猪') || 
+        lowerName.includes('羊') || lowerName.includes('鸡') || lowerName.includes('beef') || 
+        lowerName.includes('pork') || lowerName.includes('meat') || lowerName.includes('chicken') || 
+        lowerName.includes('ham') || lowerName.includes('bacon') || lowerName.includes('sausage')) {
+      // 肉类使用红色/橙色系 (索引1-3)
+      colorSchemeIndex = 1 + (idx % 3);
+    } 
+    // 海鲜
+    else if (lowerName.includes('鱼') || lowerName.includes('虾') || lowerName.includes('蟹') || 
+             lowerName.includes('贝') || lowerName.includes('fish') || lowerName.includes('shrimp') || 
+             lowerName.includes('crab') || lowerName.includes('seafood') || lowerName.includes('lobster') || 
+             lowerName.includes('squid') || lowerName.includes('octopus')) {
+      // 海鲜使用蓝色系 (索引4-6)
+      colorSchemeIndex = 4 + (idx % 3);
+    } 
+    // 蔬菜
+    else if (lowerName.includes('菜') || lowerName.includes('蔬') || lowerName.includes('葱') || 
+             lowerName.includes('蒜') || lowerName.includes('西红柿') || lowerName.includes('番茄') || 
+             lowerName.includes('土豆') || lowerName.includes('茄子') || lowerName.includes('胡萝卜') || 
+             lowerName.includes('玉米') || lowerName.includes('veggie') || lowerName.includes('vegetable') || 
+             lowerName.includes('tomato') || lowerName.includes('potato') || lowerName.includes('carrot') || 
+             lowerName.includes('broccoli') || lowerName.includes('lettuce') || lowerName.includes('onion')) {
+      // 蔬菜使用绿色系 (索引7-9)
+      colorSchemeIndex = 7 + (idx % 3);
+    } 
+    // 水果
+    else if (lowerName.includes('果') || lowerName.includes('苹果') || lowerName.includes('香蕉') || 
+             lowerName.includes('葡萄') || lowerName.includes('草莓') || lowerName.includes('fruit') || 
+             lowerName.includes('apple') || lowerName.includes('banana') || lowerName.includes('berry') || 
+             lowerName.includes('grape') || lowerName.includes('orange') || lowerName.includes('peach')) {
+      // 水果使用粉色/紫色系 (索引10-12)
+      colorSchemeIndex = 10 + (idx % 3);
+    } 
+    // 主食和谷物
+    else if (lowerName.includes('米') || lowerName.includes('面') || lowerName.includes('粉') || 
+             lowerName.includes('饭') || lowerName.includes('面包') || lowerName.includes('rice') || 
+             lowerName.includes('flour') || lowerName.includes('bread') || lowerName.includes('noodle') || 
+             lowerName.includes('pasta') || lowerName.includes('grain') || lowerName.includes('cereal')) {
+      // 主食使用黄色/棕色系 (索引13-15)
+      colorSchemeIndex = 13 + (idx % 3);
+    } 
+    // 调味料
+    else if (lowerName.includes('糖') || lowerName.includes('盐') || lowerName.includes('油') || 
+             lowerName.includes('奶') || lowerName.includes('蛋') || lowerName.includes('酱') || 
+             lowerName.includes('sauce') || lowerName.includes('sugar') || lowerName.includes('salt') || 
+             lowerName.includes('oil') || lowerName.includes('egg') || lowerName.includes('milk') || 
+             lowerName.includes('spice') || lowerName.includes('seasoning')) {
+      // 调味料使用多样颜色 (索引16-18)
+      colorSchemeIndex = 16 + (idx % 3);
+    } 
+    // 未知类型，使用基于索引的随机颜色
+    else {
+      colorSchemeIndex = (idx % (colorSchemes.length - 1)) + 1; // 避免使用索引0(默认色)
+    }
+    
+    return colorSchemes[colorSchemeIndex];
+  };
+
+  // 渲染单个食材的辅助函数
+  const renderIngredient = (ingredient: any, idx: number) => {
+    let name = '';
+    let quantity = '';
+    
+    if (typeof ingredient === 'string') {
+      name = ingredient;
+    } else if (ingredient && typeof ingredient === 'object') {
+      name = ingredient.name || '';
+      quantity = ingredient.quantity || '';
+    }
+    
+    // 获取基于食材的样式
+    const { bg, from, to } = getIngredientBgStyle(name, idx);
+    const emoji = getIngredientEmoji(name);
+    
+    return (
+      <li key={idx} className={`flex items-center gap-2 p-2 ${bg} rounded-lg shadow-sm hover:shadow-md transition-all border-[1.5px] border-gray-200 dark:border-gray-600`}>
+        <div className={`w-10 h-10 flex-shrink-0 bg-gradient-to-br ${from} ${to} rounded-full flex items-center justify-center shadow-sm`}>
+          <span className="text-xl" role="img" aria-label={name}>
+            {emoji}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-100 truncate">{name}</p>
+          {quantity && (
+            <p className="text-xs text-gray-500 dark:text-gray-300">{quantity}</p>
+          )}
+        </div>
+      </li>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -701,20 +930,20 @@ export default function VideoToRecipes() {
           <DialogHeader>
             <DialogTitle className="flex items-center text-red-500">
               <AlertCircle className="h-5 w-5 mr-2" />
-              {errorTitle || t("video.linkError")}
+              {errorTitle || (language === "zh" ? "链接错误" : "Link Error")}
             </DialogTitle>
             <DialogDescription className="pt-2">
               {errorMessage}
             </DialogDescription>
-            {(errorTitle === t("video.platformMismatchTitle")) && (
+            {(errorTitle === (language === "zh" ? "平台不匹配错误" : "Platform Mismatch Error")) && (
               <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-sm">
-                <p className="text-gray-700 dark:text-gray-300">{t("video.switchToCorrectTab")}</p>
+                <p className="text-gray-700 dark:text-gray-300">{language === "zh" ? "请切换到正确的标签页" : "Switch to the correct tab"}</p>
               </div>
             )}
           </DialogHeader>
           <div className="flex justify-end">
             <Button onClick={closeErrorDialog} className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
-              {t("video.confirmButtonText")}
+              {language === "zh" ? "确认" : "Confirm"}
             </Button>
           </div>
         </DialogContent>
@@ -735,8 +964,8 @@ export default function VideoToRecipes() {
                 <li>{t("video.tipCorrectUrl")}</li>
                 <li className="font-medium text-[#b94a2c] dark:text-[#ff6b47]">
                   {activeTab === "youtube" 
-                    ? t("video.onlyUseYoutubeOnYoutube") 
-                    : t("video.onlyUseBilibiliOnBilibili")}
+                    ? (language === "zh" ? "请只在YouTube标签页使用YouTube链接" : "Only use YouTube links for YouTube tab") 
+                    : (language === "zh" ? "请只在Bilibili标签页使用Bilibili链接" : "Only use Bilibili links for Bilibili tab")}
                 </li>
               </ul>
             </AlertDescription>
@@ -891,9 +1120,9 @@ export default function VideoToRecipes() {
                   </div>
                   
                   {/* 组件2: 视频播放器和原始视频链接 */}
-                  <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700 w-full">
+                  <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border-[1.5px] dark:border-gray-600 w-full">
                     {/* 内嵌视频播放器 */}
-                    <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                    <div className="relative aspect-video rounded-lg overflow-hidden mb-4 border dark:border-gray-700">
                       {recipeData?.videoUrl || recipeData?.sourceUrl ? (
                         (() => {
                           const url = recipeData?.videoUrl || recipeData?.sourceUrl || "";
@@ -1078,7 +1307,7 @@ export default function VideoToRecipes() {
                           }
                         })()
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                        <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-750">
                           <PlayCircle className="h-16 w-16 text-gray-300 dark:text-gray-500" />
                         </div>
                       )}
@@ -1120,8 +1349,8 @@ export default function VideoToRecipes() {
                     <div className="flex flex-wrap gap-2 mb-4">
                       {(Array.isArray(recipeData?.tags) ? recipeData?.tags : 
                         Array.isArray(recipeData?.detail?.tags) ? recipeData?.detail?.tags : []).map((tag: any, idx: number) => (
-                        <Badge key={idx} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
-                          {safeRender(tag)}
+                        <Badge key={idx} variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
+                          {tag.trim()}
                         </Badge>
                       ))}
                     </div>
@@ -1133,7 +1362,7 @@ export default function VideoToRecipes() {
                       <div className="grid grid-cols-2 gap-2 text-sm dark:text-gray-300">
                         {recipeData.steps.map((step: any, index: number) => (
                           <div key={index}>
-                            {index + 1}. {safeRender(step.title || step.name || step.text)} {step.time ? `- ${safeRender(step.time)} min` : ''}
+                            {safeRender(step.title || step.name || step.text)} {step.time ? `- ${safeRender(step.time)} min` : ''}
                           </div>
                         ))}
                       </div>
@@ -1141,12 +1370,13 @@ export default function VideoToRecipes() {
                   )}
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm mb-6 dark:border dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-sm dark:border dark:border-gray-700">
                   <h2 className="text-xl font-bold mb-4 dark:text-white">{t("video.quickRecipeGuide")}</h2>
                   <div className="space-y-6">
                     <div>
                       <h3 className="font-medium mb-2 dark:text-white">{t("video.ingredients")}</h3>
-                      <ul className="list-disc list-inside text-gray-600 dark:text-gray-300">
+                      <ul className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {/* 渲染食材列表 */}
                         {(() => {
                           // 食材名称去重辅助函数，用于比较两个食材是否相同
                           const isSameIngredient = (ing1: any, ing2: any): boolean => {
@@ -1198,19 +1428,7 @@ export default function VideoToRecipes() {
                             const uniqueIngredients = deduplicateIngredients(allIngredients);
                             
                             if (uniqueIngredients.length > 0) {
-                              return uniqueIngredients.map((ingredient, index) => {
-                                if (typeof ingredient === 'string') {
-                                  return <li key={`str-${index}`}>{ingredient}</li>;
-                                } else {
-                                  const name = ingredient.name || "";
-                                  const quantity = ingredient.quantity || "";
-                                  return (
-                                    <li key={`obj-${index}`}>
-                                      {name}{quantity ? ` - ${quantity}` : ''}
-                                    </li>
-                                  );
-                                }
-                              });
+                              return uniqueIngredients.map((ingredient, index) => renderIngredient(ingredient, index));
                             }
                           }
                           
@@ -1230,12 +1448,7 @@ export default function VideoToRecipes() {
                             const uniqueIngredients = deduplicateIngredients(allIngredients);
                             
                             if (uniqueIngredients.length > 0) {
-                              return uniqueIngredients.map((ingredient, idx) => (
-                                <li key={idx}>
-                                  {typeof ingredient === 'string' ? ingredient : 
-                                    safeRender(ingredient.name || '') + (ingredient.quantity ? ` - ${safeRender(ingredient.quantity)}` : '')}
-                                </li>
-                              ));
+                              return uniqueIngredients.map((ingredient, idx) => renderIngredient(ingredient, idx));
                             }
                           }
                           
@@ -1244,12 +1457,7 @@ export default function VideoToRecipes() {
                             if (Array.isArray(recipeData.ingredients)) {
                               // 去重食材
                               const uniqueIngredients = deduplicateIngredients(recipeData.ingredients);
-                              
-                              return uniqueIngredients.map((ingredient: any, idx: number) => (
-                                <li key={idx}>
-                                  {typeof ingredient === 'string' ? ingredient : safeRender(ingredient.name || ingredient.text || ingredient)}
-                                </li>
-                              ));
+                              return uniqueIngredients.map((ingredient, idx) => renderIngredient(ingredient, idx));
                             }
                             
                             if (typeof recipeData.ingredients === 'string') {
@@ -1261,9 +1469,7 @@ export default function VideoToRecipes() {
                                   self.findIndex((i: string) => i.toLowerCase() === item.toLowerCase()) === index
                                 );
                                 
-                              return ingredientsArray.map((item: string, idx: number) => (
-                                <li key={idx}>{item}</li>
-                              ));
+                              return ingredientsArray.map((item: string, idx: number) => renderIngredient(item, idx));
                             }
                             
                             if (typeof recipeData.ingredients === 'object') {
@@ -1274,9 +1480,7 @@ export default function VideoToRecipes() {
                               // 去重(简单字符串比较)
                               const uniqueIngredients = Array.from(new Set(ingredientsArray));
                                 
-                              return uniqueIngredients.map((item, idx: number) => (
-                                <li key={idx}>{item}</li>
-                              ));
+                              return uniqueIngredients.map((item, idx) => renderIngredient(item, idx));
                             }
                           }
                           
@@ -1285,89 +1489,488 @@ export default function VideoToRecipes() {
                             // 去重食材
                             const uniqueIngredients = deduplicateIngredients(recipeData.detail.ingredients);
                             
-                            return uniqueIngredients.map((ingredient: any, idx: number) => (
-                              <li key={idx}>
-                                {typeof ingredient === 'string' ? ingredient : safeRender(ingredient.name || ingredient.text || ingredient)}
-                              </li>
-                            ));
+                            return uniqueIngredients.map((ingredient, idx) => renderIngredient(ingredient, idx));
                           }
                           
                           // 如果都没有找到可用的配料信息，显示加载中
-                          return <li>加载中...</li>;
+                          return (
+                            <li className="col-span-full flex items-center justify-center p-4 text-gray-500 dark:text-gray-400">
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 加载中...
+                            </li>
+                          );
                         })()}
                       </ul>
                     </div>
 
                     <div>
                       <h3 className="font-medium mb-2 dark:text-white">{t("video.preparationSteps")}</h3>
-                      <ol className="list-decimal list-inside text-gray-600 dark:text-gray-300">
-                        {(() => {
-                          // 哔哩哔哩特殊处理
-                          if (recipeData?.isBilibili && recipeData?.steps && Array.isArray(recipeData.steps)) {
-                            return recipeData.steps.map((step: any, stepIndex: number) => (
-                              <li key={stepIndex} className="mb-2">
-                                <span className="font-medium">
+                      <ol className="text-gray-600 dark:text-gray-300">
+                        {/* 步骤列表 */}
+                        {recipeData?.isBilibili && recipeData?.steps && Array.isArray(recipeData.steps) ? (
+                          recipeData.steps.map((step: any, stepIndex: number) => (
+                            <li key={stepIndex} id={`step-${stepIndex}`} className="mb-6 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium">
+                                    {stepIndex + 1}
+                                  </div>
+                                  <span className="font-medium text-base dark:text-white">
                                   {step.title || `步骤 ${step.step_number || stepIndex + 1}`}
                                 </span>
-                                {step.time ? ` (${step.time})` : ''}
-                                <ul className="list-disc list-inside ml-4 mt-1">
+                                </div>
+                                {step.time && (
+                                  <div className="flex items-center space-x-2">
+                                    <Clock className="h-4 w-4 text-[#b94a2c] dark:text-[#ff6b47]" />
+                                    <div className="flex gap-1">
+                                      <button 
+                                        id={`start-${stepIndex}`}
+                                        className="bg-[#b94a2c] text-white dark:bg-[#ff6b47] px-3 py-1 rounded-l-md text-xs hover:bg-[#a03f25] dark:hover:bg-[#e05a3a] transition-colors"
+                                        onClick={(e) => {
+                                          // 获取时间
+                                          const timeInMinutes = parseInt(step.time) || 5;
+                                          const timeInSeconds = timeInMinutes * 60;
+                                          const startBtn = document.getElementById(`start-${stepIndex}`);
+                                          const pauseBtn = document.getElementById(`pause-${stepIndex}`);
+                                          const timerElement = document.getElementById(`timer-${stepIndex}`);
+                                          const stepCard = e.currentTarget.closest('li');
+                                          
+                                          if (!timerElement?.dataset.running || timerElement?.dataset.running === "false") {
+                                            // 设置状态为运行中
+                                            timerElement!.dataset.running = "true";
+                                            timerElement!.dataset.endTime = String(Date.now() + (parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000));
+                                            
+                                            // 更新UI
+                                            startBtn!.textContent = "继续";
+                                            pauseBtn!.style.display = "block";
+                                            
+                                            // 先移除所有步骤的高亮
+                                            document.querySelectorAll('li[id^="step-"]').forEach(el => {
+                                              el.classList.remove('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                              (el as HTMLElement).style.boxShadow = '';
+                                              (el as HTMLElement).style.borderWidth = '';
+                                              (el as HTMLElement).style.borderColor = '';
+                                            });
+                                            
+                                            // 突出显示当前步骤
+                                            if (stepCard) {
+                                              // 添加当前步骤的高亮
+                                              stepCard.classList.add('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                              
+                                              // 增强高亮效果
+                                              stepCard.style.boxShadow = '0 0 8px rgba(237, 137, 54, 0.5)';
+                                              stepCard.style.borderWidth = '2px';
+                                              stepCard.style.borderColor = '#ed8936';
+                                              
+                                              // 滚动到当前步骤
+                                              stepCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            }
+                                            
+                                            // 创建通知
+                                            if (Notification.permission === "granted") {
+                                              const timeoutId = setTimeout(() => {
+                                                new Notification(`步骤 ${stepIndex + 1} 完成`, {
+                                                  body: `${step.title || `步骤 ${stepIndex + 1}`} 已完成`,
+                                                  icon: "/favicon.ico"
+                                                });
+                                              }, parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000);
+                                              
+                                              timerElement!.dataset.timeoutId = String(timeoutId);
+                                            }
+                                            
+                                            // 显示倒计时
+                                            if (timerElement) {
+                                              const timerInterval = setInterval(() => {
+                                                if (timerElement.dataset.running === "true") {
+                                                  const now = Date.now();
+                                                  const endTime = parseInt(timerElement.dataset.endTime || "0");
+                                                  const remainingMs = endTime - now;
+                                                  
+                                                  if (remainingMs <= 0) {
+                                                    clearInterval(parseInt(timerElement.dataset.intervalId || "0"));
+                                                    timerElement.textContent = "完成!";
+                                                    timerElement.classList.add("text-green-500");
+                                                    startBtn!.style.display = "none";
+                                                    pauseBtn!.style.display = "none";
+                                                    timerElement.dataset.running = "false";
+                                                    
+                                                    // 移除当前步骤的高亮
+                                                    const stepCard = document.getElementById(`step-${stepIndex}`);
+                                                    if (stepCard) {
+                                                      stepCard.classList.remove('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                                      stepCard.style.boxShadow = '';
+                                                      stepCard.style.borderWidth = '';
+                                                      stepCard.style.borderColor = '';
+                                                    }
+                                                    
+                                                    // 如果有下一个步骤，自动开始下一个步骤
+                                                    const nextStepIndex = stepIndex + 1;
+                                                    setTimeout(() => {
+                                                      const nextStartBtn = document.getElementById(`start-${nextStepIndex}`);
+                                                      if (nextStartBtn) {
+                                                        nextStartBtn.click();
+                                                      }
+                                                    }, 1000);
+                                                  } else {
+                                                    const remainingSecs = Math.ceil(remainingMs / 1000);
+                                                    timerElement.dataset.remaining = String(remainingSecs);
+                                                    const minutes = Math.floor(remainingSecs / 60);
+                                                    const seconds = remainingSecs % 60;
+                                                    timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                                                  }
+                                                }
+                                              }, 500);
+                                              
+                                              timerElement.dataset.intervalId = String(timerInterval);
+                                            }
+                                          } else if (timerElement?.dataset.running === "paused") {
+                                            // 继续计时
+                                            timerElement.dataset.running = "true";
+                                            timerElement.dataset.endTime = String(Date.now() + (parseInt(timerElement.dataset.remaining || "0") * 1000));
+                                            startBtn!.textContent = "继续";
+                                          }
+                                        }}
+                                      >
+                                        开始 {step.time}
+                                      </button>
+                                      <button 
+                                        id={`pause-${stepIndex}`}
+                                        className="bg-gray-500 text-white px-3 py-1 rounded-r-md text-xs hover:bg-gray-600 transition-colors hidden"
+                                        onClick={(e) => {
+                                          const timerElement = document.getElementById(`timer-${stepIndex}`);
+                                          if (timerElement?.dataset.running === "true") {
+                                            // 暂停计时器
+                                            timerElement.dataset.running = "paused";
+                                            
+                                            // 清除通知计时器
+                                            if (timerElement.dataset.timeoutId) {
+                                              clearTimeout(parseInt(timerElement.dataset.timeoutId));
+                                            }
+                                            
+                                            // 更新UI
+                                            const startBtn = document.getElementById(`start-${stepIndex}`);
+                                            startBtn!.textContent = "继续";
+                                            e.currentTarget.textContent = "暂停";
+                                          }
+                                        }}
+                                      >
+                                        暂停
+                                      </button>
+                                    </div>
+                                    <span 
+                                      id={`timer-${stepIndex}`} 
+                                      className="text-sm font-mono"
+                                      data-running="false"
+                                      data-remaining={parseInt(step.time || "5") * 60}
+                                    ></span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* 显示食材图标 */}
+                              {step.ingredients && step.ingredients.length > 0 && (
+                                <div className="flex flex-wrap gap-3 my-3 pb-3 border-b border-orange-100 dark:border-gray-700">
+                                  {step.ingredients.map((ingredient: any, idx: number) => {
+                                    const ingredientName = typeof ingredient === 'string' ? ingredient : ingredient.name || '';
+                                    
+                                    // 获取基于食材的样式
+                                    const { bg, from, to } = getIngredientBgStyle(ingredientName, idx);
+                                    
+                                    return (
+                                      <div key={idx} className={`flex flex-col items-center ${bg} p-2 rounded-lg shadow-sm hover:shadow-md transition-all border-[1.5px] border-gray-200 dark:border-gray-600`}>
+                                        <div className={`w-14 h-14 bg-gradient-to-br ${from} ${to} rounded-full flex items-center justify-center mb-1 shadow-sm`}>
+                                          <span className="text-3xl" role="img" aria-label={ingredientName}>
+                                            {getIngredientEmoji(ingredientName)}
+                                          </span>
+                                        </div>
+                                        <span className="text-xs text-center font-medium text-gray-700 dark:text-gray-100">{ingredientName}</span>
+                                        {typeof ingredient !== 'string' && ingredient.quantity && (
+                                          <span className="text-xs text-center text-gray-500 dark:text-gray-300">{ingredient.quantity}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* 步骤说明 */}
+                              <ul className="list-disc list-inside ml-4 mt-3 space-y-2">
                                   {Array.isArray(step.instructions) ? 
                                     step.instructions.map((instruction: any, idx: number) => (
-                                      <li key={idx} className="text-sm">{safeRender(instruction)}</li>
+                                    <li key={idx} className="text-sm my-1 text-gray-700 dark:text-gray-200">{safeRender(instruction)}</li>
                                     )) : 
                                     typeof step.instructions === 'string' ? 
-                                      <li className="text-sm">{step.instructions}</li> : 
+                                    <li className="text-sm my-1 text-gray-700 dark:text-gray-200">{step.instructions}</li> : 
                                       null
                                   }
                                 </ul>
                               </li>
-                            ));
-                          }
-                          
-                          // 现有逻辑保持不变
-                          if (recipeData?.steps && Array.isArray(recipeData.steps)) {
-                            return recipeData.steps.map((step: any, stepIndex: number) => (
-                              <li key={stepIndex} className="mb-2">
-                                <span className="font-medium">{safeRender(step.title)}</span>
-                                <ul className="list-disc list-inside ml-4 mt-1">
-                                  {Array.isArray(step.instructions) && step.instructions.map((instruction: any, idx: number) => (
-                                    <li key={idx} className="text-sm">{safeRender(instruction)}</li>
-                                  ))}
+                          ))
+                        ) : recipeData?.steps && Array.isArray(recipeData.steps) ? (
+                          recipeData.steps.map((step: any, stepIndex: number) => (
+                            <li key={stepIndex} id={`step-${stepIndex}`} className="mb-6 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium">
+                                    {stepIndex + 1}
+                                  </div>
+                                  <span className="font-medium text-base dark:text-white">
+                                  {step.title || `步骤 ${step.step_number || stepIndex + 1}`}
+                                </span>
+                                </div>
+                                {step.time && (
+                                  <div className="flex items-center space-x-2">
+                                    <Clock className="h-4 w-4 text-[#b94a2c] dark:text-[#ff6b47]" />
+                                    <div className="flex gap-1">
+                                      <button 
+                                        id={`start-${stepIndex}`}
+                                        className="bg-[#b94a2c] text-white dark:bg-[#ff6b47] px-3 py-1 rounded-l-md text-xs hover:bg-[#a03f25] dark:hover:bg-[#e05a3a] transition-colors"
+                                        onClick={(e) => {
+                                          // 获取时间
+                                          const timeInMinutes = parseInt(step.time) || 5;
+                                          const timeInSeconds = timeInMinutes * 60;
+                                          const startBtn = document.getElementById(`start-${stepIndex}`);
+                                          const pauseBtn = document.getElementById(`pause-${stepIndex}`);
+                                          const timerElement = document.getElementById(`timer-${stepIndex}`);
+                                          const stepCard = e.currentTarget.closest('li');
+                                          
+                                          if (!timerElement?.dataset.running || timerElement?.dataset.running === "false") {
+                                            // 设置状态为运行中
+                                            timerElement!.dataset.running = "true";
+                                            timerElement!.dataset.endTime = String(Date.now() + (parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000));
+                                            
+                                            // 更新UI
+                                            startBtn!.textContent = "继续";
+                                            pauseBtn!.style.display = "block";
+                                            
+                                            // 先移除所有步骤的高亮
+                                            document.querySelectorAll('li[id^="step-"]').forEach(el => {
+                                              el.classList.remove('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                              (el as HTMLElement).style.boxShadow = '';
+                                              (el as HTMLElement).style.borderWidth = '';
+                                              (el as HTMLElement).style.borderColor = '';
+                                            });
+                                            
+                                            // 突出显示当前步骤
+                                            if (stepCard) {
+                                              // 添加当前步骤的高亮
+                                              stepCard.classList.add('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                              
+                                              // 增强高亮效果
+                                              stepCard.style.boxShadow = '0 0 8px rgba(237, 137, 54, 0.5)';
+                                              stepCard.style.borderWidth = '2px';
+                                              stepCard.style.borderColor = '#ed8936';
+                                              
+                                              // 滚动到当前步骤
+                                              stepCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            }
+                                            
+                                            // 创建通知
+                                            if (Notification.permission === "granted") {
+                                              const timeoutId = setTimeout(() => {
+                                                new Notification(`步骤 ${stepIndex + 1} 完成`, {
+                                                  body: `${step.title || `步骤 ${stepIndex + 1}`} 已完成`,
+                                                  icon: "/favicon.ico"
+                                                });
+                                              }, parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000);
+                                              
+                                              timerElement!.dataset.timeoutId = String(timeoutId);
+                                            }
+                                            
+                                            // 显示倒计时
+                                            if (timerElement) {
+                                              const timerInterval = setInterval(() => {
+                                                if (timerElement.dataset.running === "true") {
+                                                  const now = Date.now();
+                                                  const endTime = parseInt(timerElement.dataset.endTime || "0");
+                                                  const remainingMs = endTime - now;
+                                                  
+                                                  if (remainingMs <= 0) {
+                                                    clearInterval(parseInt(timerElement.dataset.intervalId || "0"));
+                                                    timerElement.textContent = "完成!";
+                                                    timerElement.classList.add("text-green-500");
+                                                    startBtn!.style.display = "none";
+                                                    pauseBtn!.style.display = "none";
+                                                    timerElement.dataset.running = "false";
+                                                    
+                                                    // 移除当前步骤的高亮
+                                                    const stepCard = document.getElementById(`step-${stepIndex}`);
+                                                    if (stepCard) {
+                                                      stepCard.classList.remove('step-highlight', 'bg-orange-50', 'dark:bg-gray-750', 'border-orange-200');
+                                                      stepCard.style.boxShadow = '';
+                                                      stepCard.style.borderWidth = '';
+                                                      stepCard.style.borderColor = '';
+                                                    }
+                                                    
+                                                    // 如果有下一个步骤，自动开始下一个步骤
+                                                    const nextStepIndex = stepIndex + 1;
+                                                    setTimeout(() => {
+                                                      const nextStartBtn = document.getElementById(`start-${nextStepIndex}`);
+                                                      if (nextStartBtn) {
+                                                        nextStartBtn.click();
+                                                      }
+                                                    }, 1000);
+                                                  } else {
+                                                    const remainingSecs = Math.ceil(remainingMs / 1000);
+                                                    timerElement.dataset.remaining = String(remainingSecs);
+                                                    const minutes = Math.floor(remainingSecs / 60);
+                                                    const seconds = remainingSecs % 60;
+                                                    timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                                                  }
+                                                }
+                                              }, 500);
+                                              
+                                              timerElement.dataset.intervalId = String(timerInterval);
+                                            }
+                                          } else if (timerElement?.dataset.running === "paused") {
+                                            // 继续计时
+                                            timerElement.dataset.running = "true";
+                                            timerElement.dataset.endTime = String(Date.now() + (parseInt(timerElement.dataset.remaining || "0") * 1000));
+                                            startBtn!.textContent = "继续";
+                                          }
+                                        }}
+                                      >
+                                        开始 {step.time}
+                                      </button>
+                                      <button 
+                                        id={`pause-${stepIndex}`}
+                                        className="bg-gray-500 text-white px-3 py-1 rounded-r-md text-xs hover:bg-gray-600 transition-colors hidden"
+                                        onClick={(e) => {
+                                          const timerElement = document.getElementById(`timer-${stepIndex}`);
+                                          if (timerElement?.dataset.running === "true") {
+                                            // 暂停计时器
+                                            timerElement.dataset.running = "paused";
+                                            
+                                            // 清除通知计时器
+                                            if (timerElement.dataset.timeoutId) {
+                                              clearTimeout(parseInt(timerElement.dataset.timeoutId));
+                                            }
+                                            
+                                            // 更新UI
+                                            const startBtn = document.getElementById(`start-${stepIndex}`);
+                                            startBtn!.textContent = "继续";
+                                            e.currentTarget.textContent = "暂停";
+                                          }
+                                        }}
+                                      >
+                                        暂停
+                                      </button>
+                                    </div>
+                                    <span 
+                                      id={`timer-${stepIndex}`} 
+                                      className="text-sm font-mono"
+                                      data-running="false"
+                                      data-remaining={parseInt(step.time || "5") * 60}
+                                    ></span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* 显示食材图标 */}
+                              {step.ingredients && step.ingredients.length > 0 && (
+                                <div className="flex flex-wrap gap-3 my-3 pb-3 border-b border-orange-100 dark:border-gray-700">
+                                  {step.ingredients.map((ingredient: any, idx: number) => {
+                                    const ingredientName = typeof ingredient === 'string' ? ingredient : ingredient.name || '';
+                                    
+                                    // 获取基于食材的样式
+                                    const { bg, from, to } = getIngredientBgStyle(ingredientName, idx);
+                                    
+                                    return (
+                                      <div key={idx} className={`flex flex-col items-center ${bg} p-2 rounded-lg shadow-sm hover:shadow-md transition-all border-[1.5px] border-gray-200 dark:border-gray-600`}>
+                                        <div className={`w-14 h-14 bg-gradient-to-br ${from} ${to} rounded-full flex items-center justify-center mb-1 shadow-sm`}>
+                                          <span className="text-3xl" role="img" aria-label={ingredientName}>
+                                            {getIngredientEmoji(ingredientName)}
+                                          </span>
+                                        </div>
+                                        <span className="text-xs text-center font-medium text-gray-700 dark:text-gray-100">{ingredientName}</span>
+                                        {typeof ingredient !== 'string' && ingredient.quantity && (
+                                          <span className="text-xs text-center text-gray-500 dark:text-gray-300">{ingredient.quantity}</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* 步骤说明 */}
+                              <ul className="list-disc list-inside ml-4 mt-3 space-y-2">
+                                  {Array.isArray(step.instructions) ? 
+                                    step.instructions.map((instruction: any, idx: number) => (
+                                    <li key={idx} className="text-sm my-1 text-gray-700 dark:text-gray-200">{safeRender(instruction)}</li>
+                                    )) : 
+                                    typeof step.instructions === 'string' ? 
+                                    <li className="text-sm my-1 text-gray-700 dark:text-gray-200">{step.instructions}</li> : 
+                                      null
+                                  }
                                 </ul>
                               </li>
-                            ));
-                          } else if (recipeData?.instructions) {
-                            if (Array.isArray(recipeData.instructions)) {
-                              return recipeData.instructions.map((instruction: any, idx: number) => (
-                                <li key={idx} className="mb-2">
-                                  {safeRender(typeof instruction === 'string' ? instruction : instruction.text || instruction)}
-                                </li>
-                              ));
-                            } else if (typeof recipeData.instructions === 'string') {
-                              return recipeData.instructions.split('\n').filter((line: string) => line.trim() !== '').map((line: string, idx: number) => (
-                                <li key={idx} className="mb-2">{line.trim()}</li>
-                              ));
-                            } else {
-                              return [];
-                            }
-                          } else if (recipeData?.detail?.instructions) {
-                            if (Array.isArray(recipeData.detail.instructions)) {
-                              return recipeData.detail.instructions.map((instruction: any, idx: number) => (
-                                <li key={idx} className="mb-2">
-                                  {safeRender(typeof instruction === 'string' ? instruction : instruction.text || instruction)}
-                                </li>
-                              ));
-                            } else if (typeof recipeData.detail.instructions === 'string') {
-                              return recipeData.detail.instructions.split('\n').filter((line: string) => line.trim() !== '').map((line: string, idx: number) => (
-                                <li key={idx} className="mb-2">{line.trim()}</li>
-                              ));
-                            } else {
-                              return [];
-                            }
-                          } else {
-                            return <li>加载中...</li>;
-                          }
-                        })()}
+                          ))
+                        ) : recipeData?.instructions && Array.isArray(recipeData.instructions) ? (
+                          recipeData.instructions.map((instruction: any, idx: number) => (
+                            <li key={idx} id={`step-${idx}`} className="mb-4 p-3 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium text-xs">
+                                    {idx + 1}
+                                  </div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                                    {safeRender(typeof instruction === 'string' ? instruction : instruction.text || instruction)}
+                                  </span>
+                                </div>
+                                {/* 其余部分不变 */}
+                              </div>
+                            </li>
+                          ))
+                        ) : recipeData?.instructions && typeof recipeData.instructions === 'string' ? (
+                          recipeData.instructions.split('\n').filter((line: string) => line.trim() !== '').map((line: string, idx: number) => (
+                            <li key={idx} id={`step-${idx}`} className="mb-4 p-3 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium text-xs">
+                                    {idx + 1}
+                                  </div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                                    {safeRender(line)}
+                                  </span>
+                                </div>
+                                {/* 其余部分不变 */}
+                              </div>
+                            </li>
+                          ))
+                        ) : recipeData?.detail?.instructions && Array.isArray(recipeData.detail.instructions) ? (
+                          recipeData.detail.instructions.map((instruction: any, idx: number) => (
+                            <li key={idx} id={`step-${idx}`} className="mb-4 p-3 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium text-xs">
+                                    {idx + 1}
+                                  </div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                                    {safeRender(instruction)}
+                                  </span>
+                                </div>
+                                {/* 其余部分不变 */}
+                              </div>
+                            </li>
+                          ))
+                        ) : recipeData?.detail?.instructions && typeof recipeData.detail.instructions === 'string' ? (
+                          recipeData.detail.instructions.split('\n').filter((line: string) => line.trim() !== '').map((line: string, idx: number) => (
+                            <li key={idx} id={`step-${idx}`} className="mb-4 p-3 border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80">
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white font-medium text-xs">
+                                    {idx + 1}
+                                  </div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                                    {safeRender(line)}
+                                  </span>
+                                </div>
+                                {/* 其余部分不变 */}
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li>加载中...</li>
+                        )}
                       </ol>
                     </div>
                   </div>
@@ -1377,51 +1980,57 @@ export default function VideoToRecipes() {
                   <h2 className="text-xl font-bold mb-4 dark:text-white">{t("Recipe Information")}</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-                        <div className="bg-gray-100 dark:bg-gray-700 p-3 border-b dark:border-gray-600">
-                          <h3 className="font-medium dark:text-white">{t("video.amountPerServing")}</h3>
+                      <div className="border-[1.5px] border-orange-100 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm">
+                        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-gray-800 dark:to-gray-750 p-3 border-b dark:border-gray-600">
+                          <h3 className="font-medium dark:text-white">{language === 'zh' ? '烹饪详情' : 'Amount Per Serving'}</h3>
                         </div>
-                        <div className="p-3 space-y-2 text-sm dark:text-gray-300">
-                          <div className="flex justify-between">
-                            <span>Total Cooking Time</span>
-                            <span>{(() => {
-                              const value = recipeData?.all_time || 
+                        <div className="p-4 space-y-3 text-sm dark:text-gray-200">
+                          <div className="flex justify-between py-1 border-b border-orange-50 dark:border-gray-700">
+                            <span className="text-gray-600 dark:text-gray-300">Total Cooking Time</span>
+                            <span className="font-medium dark:text-white">
+                              {safeRender(
+                                recipeData?.all_time || 
                                          recipeData?.cookingTime || 
                                          recipeData?.metadata?.all_time || 
-                                         recipeData?.detail?.cookTime;
-                              return safeRender(value);
-                            })()}</span>
+                                recipeData?.detail?.cookTime
+                              )}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Difficulty</span>
-                            <span>{(() => {
-                              const value = recipeData?.difficulty || 
+                          <div className="flex justify-between py-1 border-b border-orange-50 dark:border-gray-700">
+                            <span className="text-gray-600 dark:text-gray-300">Difficulty</span>
+                            <span className="font-medium dark:text-white">
+                              {safeRender(
+                                recipeData?.difficulty || 
                                          recipeData?.metadata?.difficulty || 
-                                         recipeData?.detail?.difficulty;
-                              return safeRender(value, "Medium");
-                            })()}</span>
+                                recipeData?.detail?.difficulty,
+                                "Medium"
+                              )}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Cooking Method</span>
-                            <span>{(() => {
-                              const value = recipeData?.cookingMethods || 
+                          <div className="flex justify-between py-1 border-b border-orange-50 dark:border-gray-700">
+                            <span className="text-gray-600 dark:text-gray-300">Cooking Method</span>
+                            <span className="font-medium dark:text-white">
+                              {safeRender(
+                                recipeData?.cookingMethods || 
                                          recipeData?.cookingMethod || 
                                          recipeData?.metadata?.cookingMethods || 
-                                         recipeData?.detail?.cookingMethod;
-                              return safeRender(value);
-                            })()}</span>
+                                recipeData?.detail?.cookingMethod
+                              )}
+                            </span>
                           </div>
-                          <div className="flex justify-between">
-                            <span>Cuisine Style</span>
-                            <span>{(() => {
-                              const value = recipeData?.strArea || 
+                          <div className="flex justify-between py-1">
+                            <span className="text-gray-600 dark:text-gray-300">Cuisine Style</span>
+                            <span className="font-medium dark:text-white">
+                              {safeRender(
+                                recipeData?.strArea || 
                                          recipeData?.mealStyle || 
                                          recipeData?.cuisine || 
                                          recipeData?.metadata?.mealStyle || 
                                          recipeData?.metadata?.strArea || 
-                                         recipeData?.detail?.cuisine;
-                              return safeRender(value, "国际料理");
-                            })()}</span>
+                                recipeData?.detail?.cuisine,
+                                "国际料理"
+                              )}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1430,8 +2039,8 @@ export default function VideoToRecipes() {
                     <div>
                       <h3 className="font-medium mb-3 dark:text-white">{t("video.dietaryInformation")}</h3>
                       <div className="flex flex-wrap gap-2 mb-4">
+                        {/* 处理各种格式的标签 */}
                         {(() => {
-                          // 处理各种格式的标签
                           const tags = recipeData?.strTags || 
                                        recipeData?.metadata?.strTags || 
                                        recipeData?.tags || 
@@ -1439,7 +2048,7 @@ export default function VideoToRecipes() {
                           
                           if (!tags) {
                             return (
-                              <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              <Badge variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
                                 未分类
                               </Badge>
                             );
@@ -1448,7 +2057,7 @@ export default function VideoToRecipes() {
                           // 字符串格式标签
                           if (typeof tags === 'string') {
                             return tags.split(',').map((tag: string, idx: number) => (
-                              <Badge key={idx} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              <Badge key={idx} variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
                                 {tag.trim()}
                               </Badge>
                             ));
@@ -1457,7 +2066,7 @@ export default function VideoToRecipes() {
                           // 数组格式标签
                           if (Array.isArray(tags)) {
                             return tags.map((tag: any, idx: number) => (
-                              <Badge key={idx} variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              <Badge key={idx} variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
                                 {safeRender(tag)}
                               </Badge>
                             ));
@@ -1466,7 +2075,7 @@ export default function VideoToRecipes() {
                           // 对象格式标签
                           if (typeof tags === 'object') {
                             return (
-                              <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                              <Badge variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
                                 {JSON.stringify(tags)}
                               </Badge>
                             );
@@ -1474,7 +2083,7 @@ export default function VideoToRecipes() {
                           
                           // 默认情况
                           return (
-                            <Badge variant="outline" className="dark:border-gray-600 dark:text-gray-300">
+                            <Badge variant="outline" className="bg-orange-50 border-orange-200 text-gray-700 dark:border-gray-500 dark:text-gray-200 dark:bg-gray-700/80">
                               未分类
                             </Badge>
                           );
@@ -1482,85 +2091,7 @@ export default function VideoToRecipes() {
                       </div>
                     </div>
                   </div>
-
-                  {/* 添加营养信息部分 */}
-                  <div className="mt-6">
-                    <h3 className="text-xl font-bold mb-4 dark:text-white">{t("video.nutritionInformation")}</h3>
-                    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
-                      <div className="bg-gray-100 dark:bg-gray-700 p-3 border-b dark:border-gray-600">
-                        <h3 className="text-lg font-medium dark:text-white">Nutrition Facts</h3>
                       </div>
-                      <div className="p-4">
-                        <div className="border-b dark:border-gray-700 pb-2 mb-2">
-                          <p className="text-xl font-bold">5 servings per container</p>
-                        </div>
-                        <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2 mb-2">
-                          <p className="font-medium">Serving size</p>
-                          <p className="font-medium">(930g)</p>
-                        </div>
-                        <div className="border-b-4 border-black dark:border-gray-300 pb-1 mb-1">
-                          <p className="text-sm">Amount per serving</p>
-                        </div>
-                        <div className="flex justify-between items-center border-b-8 border-black dark:border-gray-300 pb-1 mb-2">
-                          <p className="text-3xl font-bold">Calories</p>
-                          <p className="text-4xl font-bold">561 cal</p>
-                        </div>
-                        <div className="text-right text-sm border-b dark:border-gray-700 pb-1 mb-2">
-                          <p>% Daily Value*</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p><strong>Total Fat</strong> 40.9 g</p>
-                          <p><strong>40.9 g</strong></p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1 pl-5">
-                          <p>Saturated Fat 21.3 g</p>
-                          <p>21.3 g</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p><strong>Cholesterol</strong> 159.2 mg</p>
-                          <p>159.2 mg</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p><strong>Sodium</strong> 1237.7 mg</p>
-                          <p>1237.7 mg</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p><strong>Total Carbohydrate</strong> 5.8 g</p>
-                          <p>5.8 g</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1 pl-5">
-                          <p>Total Sugars 2.1 g</p>
-                          <p></p>
-                        </div>
-                        <div className="flex justify-between border-b-8 border-black dark:border-gray-300 py-1">
-                          <p><strong>Protein</strong> 41.8 g</p>
-                          <p>41.8 g</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p>Vitamin D 3.0 μg</p>
-                          <p>15.0%</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p>Calcium 830.2 mg</p>
-                          <p>63.9%</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p>Iron 2.5 mg</p>
-                          <p>13.9%</p>
-                        </div>
-                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
-                          <p>Potassium 422.5 mg</p>
-                          <p>9.0%</p>
-                        </div>
-                        <div className="mt-4 text-xs text-gray-600 dark:text-gray-400">
-                          <p>* The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 删除View Recipe按钮 */}
-                </div>
               </div>
             </div>
           )}
@@ -1636,7 +2167,7 @@ export default function VideoToRecipes() {
       </div>
 
       {/* 开发模式下的数据结构调试区 */}
-      {process.env.NODE_ENV === 'development' && recipeData && (
+      {/* process.env.NODE_ENV === 'development' && recipeData && (
         <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
           <details className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
             <summary className="font-medium cursor-pointer dark:text-white">
@@ -1667,7 +2198,7 @@ export default function VideoToRecipes() {
             </div>
           </details>
         </div>
-      )}
+      )} */}
     </div>
   )
 } 
