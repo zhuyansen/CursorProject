@@ -788,8 +788,11 @@ export default function RecipeDetails() {
                     if (!match) return "18.2%";
                     const value = parseFloat(match[1]);
                     
-                    // 确保数字后面有g单位
-                    return fat.toLowerCase().endsWith('g') ? fat : `${value}g`;
+                    // 计算每日摄入百分比 - 脂肪每日参考值为78g
+                    const percentage = (value / 78 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 
@@ -803,8 +806,11 @@ export default function RecipeDetails() {
                     if (!match) return "10.0%";
                     const satFatValue = parseFloat(match[1]);
                     
-                    // 确保数字后面有g单位
-                    return satFat.toLowerCase().endsWith('g') ? satFat : `${satFatValue}g`;
+                    // 计算每日摄入百分比 - 饱和脂肪每日参考值为20g
+                    const percentage = (satFatValue / 20 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 
@@ -818,8 +824,11 @@ export default function RecipeDetails() {
                     if (!match) return "0.5%";
                     const cholValue = parseFloat(match[1]);
                     
-                    // 确保数字后面有mg单位
-                    return chol.toLowerCase().endsWith('mg') ? chol : `${cholValue}mg`;
+                    // 计算每日摄入百分比 - 胆固醇每日参考值为300mg
+                    const percentage = (cholValue / 300 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 
@@ -833,8 +842,11 @@ export default function RecipeDetails() {
                     if (!match) return "6.5%";
                     const sodiumValue = parseFloat(match[1]);
                     
-                    // 确保数字后面有mg单位
-                    return sodium.toLowerCase().endsWith('mg') ? sodium : `${sodiumValue}mg`;
+                    // 计算每日摄入百分比 - 钠每日参考值为2300mg
+                    const percentage = (sodiumValue / 2300 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 
@@ -848,8 +860,11 @@ export default function RecipeDetails() {
                     if (!match) return "0.7%";
                     const carbsValue = parseFloat(match[1]);
                     
-                    // 确保数字后面有g单位
-                    return carbs.toLowerCase().endsWith('g') ? carbs : `${carbsValue}g`;
+                    // 计算每日摄入百分比 - 碳水化合物每日参考值为275g
+                    const percentage = (carbsValue / 275 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 
@@ -869,8 +884,11 @@ export default function RecipeDetails() {
                     if (!match) return "2.0%";
                     const proteinValue = parseFloat(match[1]);
                     
-                    // 确保数字后面有g单位
-                    return protein.toLowerCase().endsWith('g') ? protein : `${proteinValue}g`;
+                    // 计算每日摄入百分比 - 蛋白质每日参考值为50g
+                    const percentage = (proteinValue / 50 * 100).toFixed(1);
+                    
+                    // 返回百分比
+                    return `${percentage}%`;
                   })()}</span>
                 </div>
                 

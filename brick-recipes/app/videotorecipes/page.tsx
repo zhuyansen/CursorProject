@@ -1483,15 +1483,83 @@ export default function VideoToRecipes() {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-end">
-                    <Link href="/recipe-details">
-                      <Button 
-                        className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]"
-                      >
-                        View Recipes
-                      </Button>
-                    </Link>
+                  {/* 添加营养信息部分 */}
+                  <div className="mt-6">
+                    <h3 className="text-xl font-bold mb-4 dark:text-white">{t("video.nutritionInformation")}</h3>
+                    <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="bg-gray-100 dark:bg-gray-700 p-3 border-b dark:border-gray-600">
+                        <h3 className="text-lg font-medium dark:text-white">Nutrition Facts</h3>
+                      </div>
+                      <div className="p-4">
+                        <div className="border-b dark:border-gray-700 pb-2 mb-2">
+                          <p className="text-xl font-bold">5 servings per container</p>
+                        </div>
+                        <div className="flex justify-between items-center border-b dark:border-gray-700 pb-2 mb-2">
+                          <p className="font-medium">Serving size</p>
+                          <p className="font-medium">(930g)</p>
+                        </div>
+                        <div className="border-b-4 border-black dark:border-gray-300 pb-1 mb-1">
+                          <p className="text-sm">Amount per serving</p>
+                        </div>
+                        <div className="flex justify-between items-center border-b-8 border-black dark:border-gray-300 pb-1 mb-2">
+                          <p className="text-3xl font-bold">Calories</p>
+                          <p className="text-4xl font-bold">561 cal</p>
+                        </div>
+                        <div className="text-right text-sm border-b dark:border-gray-700 pb-1 mb-2">
+                          <p>% Daily Value*</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p><strong>Total Fat</strong> 40.9 g</p>
+                          <p><strong>40.9 g</strong></p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1 pl-5">
+                          <p>Saturated Fat 21.3 g</p>
+                          <p>21.3 g</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p><strong>Cholesterol</strong> 159.2 mg</p>
+                          <p>159.2 mg</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p><strong>Sodium</strong> 1237.7 mg</p>
+                          <p>1237.7 mg</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p><strong>Total Carbohydrate</strong> 5.8 g</p>
+                          <p>5.8 g</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1 pl-5">
+                          <p>Total Sugars 2.1 g</p>
+                          <p></p>
+                        </div>
+                        <div className="flex justify-between border-b-8 border-black dark:border-gray-300 py-1">
+                          <p><strong>Protein</strong> 41.8 g</p>
+                          <p>41.8 g</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p>Vitamin D 3.0 μg</p>
+                          <p>15.0%</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p>Calcium 830.2 mg</p>
+                          <p>63.9%</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p>Iron 2.5 mg</p>
+                          <p>13.9%</p>
+                        </div>
+                        <div className="flex justify-between border-b dark:border-gray-700 py-1">
+                          <p>Potassium 422.5 mg</p>
+                          <p>9.0%</p>
+                        </div>
+                        <div className="mt-4 text-xs text-gray-600 dark:text-gray-400">
+                          <p>* The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* 删除View Recipe按钮 */}
                 </div>
               </div>
             </div>
