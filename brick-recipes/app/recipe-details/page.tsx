@@ -18,6 +18,8 @@ interface RecipeDetail {
   strTags?: string
   strYoutube?: string
   strBilibili?: string
+  generatedBy?: string
+  videoSummary?: string
   
   // 烹饪信息
   cookingMethods?: string
@@ -59,6 +61,7 @@ interface RecipeDetail {
   ingredients?: string[]
   instructions?: string[]
   strInstructions?: string  // 添加 MealDB API 格式的说明字段
+  steps?: any[] // 添加steps字段，用于存储videotorecipe解析的步骤
   
   // MealDB API 格式的食材和计量
   strIngredient1?: string
@@ -118,6 +121,7 @@ export default function RecipeDetails() {
   const [madeCounts, setMadeCounts] = useState(1426)
   const [hasMade, setHasMade] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null)
 
   // 从MealDB格式获取食材和计量数据
   const getIngredientsWithMeasures = (recipe: RecipeDetail) => {
@@ -220,6 +224,199 @@ export default function RecipeDetails() {
     }));
   };
 
+  // 添加getIngredientEmoji函数
+  const getIngredientEmoji = (name: string): string => {
+    // 基于食材名称返回表情符号
+    const normalizedName = name.toLowerCase().trim();
+    
+    // 蔬菜
+    if (normalizedName.includes('potato') || normalizedName.includes('土豆')) return '🥔';
+    if (normalizedName.includes('tomato') || normalizedName.includes('番茄') || normalizedName.includes('西红柿')) return '🍅';
+    if (normalizedName.includes('carrot') || normalizedName.includes('胡萝卜')) return '🥕';
+    if (normalizedName.includes('corn') || normalizedName.includes('玉米')) return '🌽';
+    if (normalizedName.includes('broccoli') || normalizedName.includes('西兰花') || normalizedName.includes('花椰菜')) return '🥦';
+    if (normalizedName.includes('cucumber') || normalizedName.includes('黄瓜')) return '🥒';
+    if (normalizedName.includes('pepper') || normalizedName.includes('辣椒')) return '🌶️';
+    if (normalizedName.includes('garlic') || normalizedName.includes('大蒜')) return '🧄';
+    if (normalizedName.includes('onion') || normalizedName.includes('洋葱')) return '🧅';
+    if (normalizedName.includes('lettuce') || normalizedName.includes('生菜') || normalizedName.includes('莴苣')) return '🥬';
+    if (normalizedName.includes('avocado') || normalizedName.includes('牛油果')) return '🥑';
+    
+    // 水果
+    if (normalizedName.includes('apple') || normalizedName.includes('苹果')) return '🍎';
+    if (normalizedName.includes('orange') || normalizedName.includes('橙子')) return '🍊';
+    if (normalizedName.includes('banana') || normalizedName.includes('香蕉')) return '🍌';
+    if (normalizedName.includes('grape') || normalizedName.includes('葡萄')) return '🍇';
+    if (normalizedName.includes('pineapple') || normalizedName.includes('菠萝')) return '🍍';
+    if (normalizedName.includes('kiwi') || normalizedName.includes('猕猴桃')) return '🥝';
+    if (normalizedName.includes('lemon') || normalizedName.includes('柠檬')) return '🍋';
+    if (normalizedName.includes('strawberry') || normalizedName.includes('草莓')) return '🍓';
+    if (normalizedName.includes('coconut') || normalizedName.includes('椰子')) return '🥥';
+    
+    // 肉类
+    if (normalizedName.includes('meat') || normalizedName.includes('beef') || normalizedName.includes('肉') || normalizedName.includes('牛肉')) return '🥩';
+    if (normalizedName.includes('chicken') || normalizedName.includes('鸡肉')) return '🍗';
+    if (normalizedName.includes('turkey') || normalizedName.includes('火鸡')) return '🦃';
+    if (normalizedName.includes('bacon') || normalizedName.includes('培根')) return '🥓';
+    
+    // 海鲜
+    if (normalizedName.includes('fish') || normalizedName.includes('鱼')) return '🐟';
+    if (normalizedName.includes('shrimp') || normalizedName.includes('prawn') || normalizedName.includes('虾')) return '🦐';
+    if (normalizedName.includes('crab') || normalizedName.includes('蟹')) return '🦀';
+    if (normalizedName.includes('squid') || normalizedName.includes('octopus') || normalizedName.includes('鱿鱼') || normalizedName.includes('章鱼')) return '🦑';
+    
+    // 主食
+    if (normalizedName.includes('rice') || normalizedName.includes('米饭') || normalizedName.includes('大米')) return '🍚';
+    if (normalizedName.includes('bread') || normalizedName.includes('面包')) return '🍞';
+    if (normalizedName.includes('noodle') || normalizedName.includes('pasta') || normalizedName.includes('spaghetti') || normalizedName.includes('面条')) return '🍜';
+    if (normalizedName.includes('baguette') || normalizedName.includes('法棍')) return '🥖';
+    if (normalizedName.includes('pancake') || normalizedName.includes('薄饼')) return '🥞';
+    if (normalizedName.includes('dumpling') || normalizedName.includes('饺子')) return '🥟';
+    
+    // 调味料
+    if (normalizedName.includes('salt') || normalizedName.includes('盐')) return '🧂';
+    if (normalizedName.includes('sugar') || normalizedName.includes('糖')) return '🍬';
+    if (normalizedName.includes('honey') || normalizedName.includes('蜂蜜')) return '🍯';
+    
+    // 饮料
+    if (normalizedName.includes('tea') || normalizedName.includes('茶')) return '🍵';
+    if (normalizedName.includes('coffee') || normalizedName.includes('咖啡')) return '☕';
+    if (normalizedName.includes('milk') || normalizedName.includes('牛奶')) return '🥛';
+    if (normalizedName.includes('wine') || normalizedName.includes('葡萄酒')) return '🍷';
+    if (normalizedName.includes('beer') || normalizedName.includes('啤酒')) return '🍺';
+    if (normalizedName.includes('water') || normalizedName.includes('水')) return '💧';
+    
+    // 坚果
+    if (normalizedName.includes('peanut') || normalizedName.includes('花生')) return '🥜';
+    
+    // 蛋奶制品
+    if (normalizedName.includes('egg') || normalizedName.includes('蛋')) return '🥚';
+    if (normalizedName.includes('cheese') || normalizedName.includes('奶酪') || normalizedName.includes('芝士')) return '🧀';
+    
+    // 甜点
+    if (normalizedName.includes('cake') || normalizedName.includes('蛋糕')) return '🍰';
+    if (normalizedName.includes('cookie') || normalizedName.includes('饼干')) return '🍪';
+    if (normalizedName.includes('chocolate') || normalizedName.includes('巧克力')) return '🍫';
+    if (normalizedName.includes('ice cream') || normalizedName.includes('冰淇淋')) return '🍦';
+    
+    // 其他
+    if (normalizedName.includes('butter') || normalizedName.includes('黄油')) return '🧈';
+    if (normalizedName.includes('oil') || normalizedName.includes('油')) return '🛢️';
+    if (normalizedName.includes('sauce') || normalizedName.includes('酱')) return '🧴';
+    
+    // 默认情况
+    return '🍲';
+  }
+
+  // 添加getIngredientBgStyle函数
+  const getIngredientBgStyle = (name: string, idx: number): {bg: string, from: string, to: string} => {
+    // 归一化食材名称
+    const normalizedName = name.toLowerCase().trim();
+    
+    // 基于食材类别的样式映射
+    const styleMap: {[key: string]: {bg: string, from: string, to: string}} = {
+      // 蔬菜类: 绿色调
+      vegetable: {
+        bg: "bg-green-50 dark:bg-green-900/20",
+        from: "from-green-200 dark:from-green-800",
+        to: "to-green-100 dark:to-green-900"
+      },
+      // 肉类: 红色调
+      meat: {
+        bg: "bg-red-50 dark:bg-red-900/20",
+        from: "from-red-200 dark:from-red-800",
+        to: "to-red-100 dark:to-red-900"
+      },
+      // 海鲜类: 蓝色调
+      seafood: {
+        bg: "bg-blue-50 dark:bg-blue-900/20",
+        from: "from-blue-200 dark:from-blue-800",
+        to: "to-blue-100 dark:to-blue-900"
+      },
+      // 谷物类: 黄色调
+      grain: {
+        bg: "bg-yellow-50 dark:bg-yellow-900/20",
+        from: "from-yellow-200 dark:from-yellow-800",
+        to: "to-yellow-100 dark:to-yellow-900"
+      },
+      // 水果类: 橙色调
+      fruit: {
+        bg: "bg-orange-50 dark:bg-orange-900/20",
+        from: "from-orange-200 dark:from-orange-800",
+        to: "to-orange-100 dark:to-orange-900"
+      },
+      // 调味料: 紫色调
+      spice: {
+        bg: "bg-purple-50 dark:bg-purple-900/20",
+        from: "from-purple-200 dark:from-purple-800",
+        to: "to-purple-100 dark:to-purple-900"
+      },
+      // 奶制品: 青色调
+      dairy: {
+        bg: "bg-cyan-50 dark:bg-cyan-900/20",
+        from: "from-cyan-200 dark:from-cyan-800",
+        to: "to-cyan-100 dark:to-cyan-900"
+      },
+      // 液体: 蓝绿色调
+      liquid: {
+        bg: "bg-teal-50 dark:bg-teal-900/20",
+        from: "from-teal-200 dark:from-teal-800",
+        to: "to-teal-100 dark:to-teal-900"
+      },
+      // 默认: 灰色调
+      default: {
+        bg: "bg-gray-50 dark:bg-gray-900/20",
+        from: "from-gray-200 dark:from-gray-800",
+        to: "to-gray-100 dark:to-gray-900"
+      }
+    };
+    
+    // 根据食材名称选择样式
+    // 蔬菜
+    if (/potato|tomato|carrot|corn|broccoli|cucumber|pepper|garlic|onion|lettuce|avocado|eggplant|radish|pumpkin|cabbage|spinach|菜|蔬菜|土豆|番茄|西红柿|胡萝卜|玉米|西兰花|黄瓜|辣椒|大蒜|洋葱|生菜|牛油果|茄子|白萝卜|南瓜|卷心菜|菠菜/.test(normalizedName)) {
+      return styleMap.vegetable;
+    }
+    
+    // 肉类
+    if (/beef|pork|chicken|meat|lamb|duck|turkey|bacon|sausage|肉|牛肉|猪肉|鸡肉|羊肉|鸭肉|火鸡|培根|香肠/.test(normalizedName)) {
+      return styleMap.meat;
+    }
+    
+    // 海鲜
+    if (/fish|shrimp|prawn|crab|squid|octopus|lobster|clam|mussel|oyster|鱼|虾|蟹|鱿鱼|章鱼|龙虾|蛤蜊|贻贝|牡蛎/.test(normalizedName)) {
+      return styleMap.seafood;
+    }
+    
+    // 谷物
+    if (/rice|bread|noodle|pasta|spaghetti|flour|oat|corn|米饭|面包|面条|意面|面粉|燕麦|玉米/.test(normalizedName)) {
+      return styleMap.grain;
+    }
+    
+    // 水果
+    if (/apple|orange|banana|grape|pineapple|kiwi|lemon|strawberry|berry|cherry|peach|watermelon|fruit|苹果|橙子|香蕉|葡萄|菠萝|猕猴桃|柠檬|草莓|浆果|樱桃|桃子|西瓜|水果/.test(normalizedName)) {
+      return styleMap.fruit;
+    }
+    
+    // 调味料
+    if (/salt|pepper|sugar|honey|spice|herb|vanilla|cinnamon|ginger|garlic|vinegar|sauce|盐|胡椒|糖|蜂蜜|香料|香草|香草精|肉桂|姜|蒜|醋|酱/.test(normalizedName)) {
+      return styleMap.spice;
+    }
+    
+    // 奶制品
+    if (/milk|cheese|cream|butter|yogurt|牛奶|奶酪|芝士|奶油|黄油|酸奶/.test(normalizedName)) {
+      return styleMap.dairy;
+    }
+    
+    // 液体
+    if (/water|oil|juice|wine|beer|milk|vinegar|水|油|果汁|葡萄酒|啤酒|牛奶|醋/.test(normalizedName)) {
+      return styleMap.liquid;
+    }
+    
+    // 默认样式，根据索引变化颜色
+    const styles = Object.values(styleMap);
+    return styles[idx % styles.length];
+  }
+
   useEffect(() => {
     if (recipeId) {
       const fetchRecipeDetails = async () => {
@@ -264,6 +461,7 @@ export default function RecipeDetails() {
             }
             
             // 处理instructions，如果不存在或不是数组，创建一个默认的说明
+            if (!data.steps || !Array.isArray(data.steps)) {
             if (!data.instructions || !Array.isArray(data.instructions)) {
               // 如果有strInstructions字段（MealDB API格式），按段落分割
               if (data.strInstructions) {
@@ -284,6 +482,7 @@ export default function RecipeDetails() {
                     ? "装盘并享用美食！" 
                     : "Plate and enjoy your meal!"
                 ];
+                }
               }
             }
             
@@ -332,6 +531,306 @@ export default function RecipeDetails() {
     }
   }, [recipeId, language])
 
+  useEffect(() => {
+    // 添加打印样式
+    const addPrintStyles = () => {
+      // 检查是否已存在打印样式表
+      let printStyleSheet = document.getElementById('recipe-print-styles');
+      
+      if (!printStyleSheet) {
+        // 创建新的样式表元素，并使用HTMLStyleElement类型断言
+        const styleElement = document.createElement('style') as HTMLStyleElement;
+        styleElement.id = 'recipe-print-styles';
+        styleElement.media = 'print';
+        
+        // 添加打印样式规则
+        styleElement.innerHTML = `
+          /* 基本页面设置 */
+          @page {
+            size: A4;
+            margin: 1.5cm;
+          }
+          
+          /* 隐藏不需要打印的元素 */
+          .bg-[#fff8f0], 
+          .py-8.bg-gray-50,
+          .bg-white.border-b, 
+          button,
+          .sticky {
+            display: none !important;
+          }
+          
+          /* 确保内容在页面中显示完整 */
+          body, html {
+            width: 100% !important;
+            height: auto !important;
+            overflow: visible !important;
+            background: white !important;
+            font-size: 12pt !important;
+            color: black !important;
+          }
+          
+          /* 重置容器样式 */
+          .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          
+          /* 打印布局调整 - 修复重叠问题 */
+          .print-two-columns {
+            display: block !important;
+            clear: both !important;
+          }
+          
+          /* 保持材料和步骤明确分开 */
+          .print-column {
+            width: 100% !important;
+            margin-bottom: 20px !important;
+            page-break-inside: avoid !important;
+            clear: both !important;
+          }
+          
+          /* 食材部分样式调整 */
+          .ingredients-section {
+            width: 100% !important;
+            page-break-after: always !important; 
+            margin-bottom: 30px !important;
+            display: block !important;
+          }
+          
+          /* 内容区域样式 */
+          .bg-white.dark\\:bg-gray-800 {
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin-bottom: 30px !important;
+            page-break-inside: avoid !important;
+          }
+          
+          /* 标题样式 */
+          h1, h2, h3 {
+            page-break-after: avoid !important;
+            margin-top: 20px !important;
+          }
+          
+          /* 食材列表调整 */
+          .space-y-4 {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 30px !important;
+          }
+          
+          .space-y-4 > div {
+            display: flex !important;
+            align-items: center !important;
+            border-bottom: 1px solid #eee !important;
+            padding: 8px 0 !important;
+            margin-bottom: 6px !important;
+          }
+          
+          .space-y-4 > div > div.flex-1 {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            width: 90% !important;
+          }
+          
+          .space-y-4 > div > div.flex-1 > span:first-child {
+            max-width: 60% !important;
+            display: inline-block !important;
+            overflow: visible !important;
+            white-space: normal !important;
+          }
+          
+          .space-y-4 > div > div.flex-1 > span:last-child {
+            max-width: 35% !important;
+            display: inline-block !important;
+            text-align: right !important;
+          }
+          
+          /* 步骤和食材列表 */
+          .space-y-6 {
+            display: block !important;
+            page-break-before: always !important;
+            margin-top: 30px !important;
+          }
+          
+          /* 步骤项 */
+          .mb-6 {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 20px !important;
+            clear: both !important;
+          }
+          
+          /* 步骤食材图标调整 */
+          .flex.flex-wrap.gap-3 {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 12px !important;
+            width: 100% !important;
+            margin: 15px 0 !important;
+            page-break-inside: avoid !important;
+          }
+          
+          .flex.flex-wrap.gap-3 > div {
+            width: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 8px !important;
+            box-sizing: border-box !important;
+            break-inside: avoid !important;
+          }
+          
+          /* 食材名称和图标调整 */
+          .line-clamp-2 {
+            display: block !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            text-align: center !important;
+            font-size: 10pt !important;
+          }
+          
+          /* 固定可能产生错位的图标和文字 */
+          .w-10.h-10, .lg\\:w-14.lg\\:h-14 {
+            width: 44px !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto 8px auto !important;
+          }
+          
+          .text-2xl, .lg\\:text-3xl {
+            font-size: 18px !important;
+            line-height: 1 !important;
+          }
+          
+          /* 指令说明步骤调整 */
+          .flex.gap-4.mb-6 {
+            display: block !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 10px !important;
+            border-bottom: 1px solid #ddd !important;
+          }
+          
+          .flex.gap-4.mb-6 > div:first-child {
+            float: left !important;
+            margin-right: 10px !important;
+            margin-top: 3px !important;
+          }
+          
+          .flex.gap-4.mb-6 > div.flex-1 {
+            display: block !important;
+            overflow: auto !important;
+          }
+          
+          /* 确保每个步骤不会在页面间分隔 */
+          #step-0, #step-1, #step-2, #step-3, #step-4, #step-5, #step-6, #step-7, #step-8, #step-9 {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 25px !important;
+            border: 1px solid #ddd !important;
+            padding: 15px !important;
+            clear: both !important;
+          }
+          
+          /* 保留部分圆角和边框 */
+          .rounded-lg, .rounded-md, .rounded-full {
+            border-radius: 2px !important;
+          }
+          
+          /* 改进打印标题 */
+          .recipe-print-title {
+            display: block !important;
+            font-size: 24pt !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            margin: 20px 0 !important;
+            border-bottom: 1px solid #000 !important;
+            padding-bottom: 10px !important;
+          }
+          
+          /* 步骤标题调整 */
+          .flex.justify-between.items-center {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-bottom: 10px !important;
+            border-bottom: 1px solid #ddd !important;
+            padding-bottom: 6px !important;
+          }
+          
+          /* 打印时隐藏时间控制按钮 */
+          .timer-controls {
+            display: none !important;
+          }
+          
+          /* 确保分栏显示不重叠 */
+          .lg\\:w-1\\/3, .lg\\:w-2\\/3 {
+            display: block !important;
+            width: 100% !important;
+            clear: both !important;
+          }
+          
+          /* 调整打印时食材和步骤显示顺序 */
+          .container.py-12 > div {
+            display: flex !important;
+            flex-direction: column !important;
+          }
+          
+          /* 确保打印时食材区域在顶部 */
+          .container.py-12 > div > div:first-child {
+            order: 1 !important;
+          }
+          
+          /* 确保打印时步骤区域在食材之后 */
+          .container.py-12 > div > div:last-child {
+            order: 2 !important;
+            page-break-before: always !important;
+          }
+          
+          /* 增加食材列表区域 */
+          .ingredients-section .bg-white {
+            padding: 15px !important;
+            margin-bottom: 20px !important;
+          }
+          
+          /* 添加食材部分结束标记 */
+          .ingredients-section::after {
+            content: "" !important;
+            display: block !important;
+            page-break-after: always !important;
+            height: 1px !important;
+          }
+        `;
+        
+        // 将样式表添加到文档头
+        document.head.appendChild(styleElement);
+        printStyleSheet = styleElement;
+      }
+    };
+    
+    // 添加打印样式
+    addPrintStyles();
+    
+    // 清理函数
+    return () => {
+      const printStyleSheet = document.getElementById('recipe-print-styles');
+      if (printStyleSheet) {
+        printStyleSheet.remove();
+      }
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
@@ -370,9 +869,14 @@ export default function RecipeDetails() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black">
+      {/* 打印标题 - 仅在打印时显示 */}
+      <div style={{ display: 'none' }} className="recipe-print-title">
+        {recipe.strMeal}
+      </div>
+      
       {/* Recipe Header */}
       <div className="bg-white border-b dark:bg-gray-800 dark:border-gray-800">
-        <div className="container py-10 px-6 md:px-10 lg:px-16 max-w-5xl mx-auto">
+        <div className="container py-10 px-6 md:px-10 lg:px-16 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row gap-10 items-start">
             {/* Recipe Title and Description */}
             <div className="flex-1 max-w-2xl">
@@ -479,7 +983,7 @@ export default function RecipeDetails() {
                 
       {/* Video Summary */}
       <div className="py-8 bg-gray-50 dark:bg-black">
-        <div className="container px-6 md:px-10 lg:px-16 max-w-5xl mx-auto">
+        <div className="container px-6 md:px-10 lg:px-16 max-w-7xl mx-auto">
           <div className="flex flex-col lg:flex-row gap-12">
             <div className="flex-1">
               <div className="bg-[#fff8f0] dark:bg-gray-800 p-6 md:p-8 rounded-lg border border-[#f8e3c5] dark:border-gray-700 shadow-sm h-full">
@@ -509,13 +1013,13 @@ export default function RecipeDetails() {
                   <div className="md:w-3/5">
                     <p className="text-gray-600 dark:text-gray-200 leading-relaxed">
                     {language === "zh" 
-                      ? "这个视频展示了如何在家中制作完美的砖炉披萨。厨师展示了拉伸面团、均匀涂抹酱料以及在没有专用烤箱的情况下获得酥脆外皮的技巧。关键时间点：面团准备（0:45）、酱料涂抹（3:20）、配料摆放（5:15）和烘焙技巧（7:30）。"
-                      : "This video demonstrates how to make a perfect brick oven pizza at home. The chef shows techniques for stretching dough, applying sauce evenly, and achieving a crispy crust without a specialized oven. Key timestamps: dough preparation (0:45), sauce application (3:20), topping arrangement (5:15), and baking techniques (7:30)."}
+                      ? (recipe.videoSummary || "这个视频展示了如何在家中制作完美的砖炉披萨。厨师展示了拉伸面团、均匀涂抹酱料以及在没有专用烤箱的情况下获得酥脆外皮的技巧。关键时间点：面团准备（0:45）、酱料涂抹（3:20）、配料摆放（5:15）和烘焙技巧（7:30）。") 
+                      : (recipe.videoSummary || "This video demonstrates how to make a perfect brick oven pizza at home. The chef shows techniques for stretching dough, applying sauce evenly, and achieving a crispy crust without a specialized oven. Key timestamps: dough preparation (0:45), sauce application (3:20), topping arrangement (5:15), and baking techniques (7:30).")}
                   </p>
                     <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
                       {language === "zh" 
-                        ? "视频长度: 8分钟 • 由Gordon Ramsay提供"
-                        : "Video length: 8 minutes • By Gordon Ramsay"}
+                        ? `生成者: ${recipe.generatedBy || "Gordon Ramsay"}`
+                        : `Generated by: ${recipe.generatedBy || "Gordon Ramsay"}`}
                     </div>
                   </div>
                 </div>
@@ -527,10 +1031,11 @@ export default function RecipeDetails() {
 
       {/* Recipe Content */}
       <div className="py-12 bg-gray-50 dark:bg-black">
-        <div className="container px-6 md:px-10 lg:px-16 max-w-5xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-12">
-            {/* Ingredients */}
-            <div className="flex-1">
+        <div className="container px-6 md:px-10 lg:px-16 max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row gap-8 print-two-columns">
+            {/* Ingredients - 减小宽度并使其悬浮 */}
+            <div className="lg:w-1/3 flex-shrink-0 print-column ingredients-section">
+              <div className="sticky top-24">
               <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg border dark:border-gray-800 shadow-sm">
                 <div className="mb-6">
                   <h2 className="text-2xl font-bold dark:text-white">{t("video.ingredients")}</h2>
@@ -549,14 +1054,16 @@ export default function RecipeDetails() {
                           </svg>
                         )}
                       </div>
-                      <span className={`text-gray-800 dark:text-white ${checkedIngredients[index] ? 'line-through text-gray-500 dark:text-gray-400' : ''}`}>
+                        <div className="flex flex-1 flex-wrap items-center justify-between">
+                          <span className={`text-gray-800 dark:text-white ${checkedIngredients[index] ? 'line-through text-gray-500 dark:text-gray-400' : ''} max-w-[60%]`}>
                         {item.ingredient}
                       </span>
                       {item.measure && (
-                        <span className={`text-gray-500 dark:text-gray-400 ${checkedIngredients[index] ? 'line-through' : ''}`}>
-                          ({item.measure})
+                            <span className={`text-gray-500 dark:text-gray-400 ${checkedIngredients[index] ? 'line-through' : ''} text-right max-w-[35%]`}>
+                              {item.measure}
                         </span>
                       )}
+                        </div>
                     </div>
                   ))}
                 </div>
@@ -573,18 +1080,218 @@ export default function RecipeDetails() {
                   >
                     {language === "zh" ? "检查清单" : "Check List"}
                   </Button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Instructions */}
-            <div className="flex-1">
+            {/* Instructions - 增加宽度 */}
+            <div className="lg:w-2/3 flex-grow print-column">
               <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg border dark:border-gray-800 shadow-sm">
                 <h2 className="text-2xl font-bold mb-6 dark:text-white">{language === "zh" ? "步骤说明" : "Instructions"}</h2>
 
-                <div className="space-y-6">
-                  {recipe.instructions?.map((instruction, index) => (
-                    <div key={index} className="flex gap-4">
+                <div className="space-y-6 mb-8">
+                  {recipe.steps && Array.isArray(recipe.steps) ? (
+                    recipe.steps.map((step: any, index: number) => (
+                      <div key={index} id={`step-${index}`} className={`mb-6 border-[1.5px] ${
+                        activeStepIndex === index 
+                          ? 'border-orange-300 dark:border-orange-600 bg-orange-50 dark:bg-gray-750 shadow-md' 
+                          : 'border-orange-100 dark:border-gray-600'
+                      } rounded-lg p-4 shadow-sm hover:shadow-md transition-all dark:bg-gray-800/80`}
+                        style={{
+                          boxShadow: activeStepIndex === index ? '0 0 8px rgba(237, 137, 54, 0.5)' : '',
+                          borderWidth: activeStepIndex === index ? '2px' : '',
+                          borderColor: activeStepIndex === index ? '#ed8936' : ''
+                        }}>
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center text-white dark:text-black font-medium">
+                        {index + 1}
+                      </div>
+                            <span className="font-medium text-base dark:text-white">
+                              {step.title || `步骤 ${step.step_number || index + 1}`}
+                            </span>
+                      </div>
+                          {step.time && (
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-4 w-4 text-[#b94a2c] dark:text-[#ff6b47]" />
+                              <div className="flex gap-1 timer-controls">
+                                <button 
+                                  id={`start-${index}`}
+                                  className="bg-[#b94a2c] text-white dark:bg-[#ff6b47] px-3 py-1 rounded-l-md text-xs hover:bg-[#a03f25] dark:hover:bg-[#e05a3a] transition-colors"
+                                  onClick={(e) => {
+                                    // 获取时间
+                                    const timeInMinutes = parseInt(step.time) || 5;
+                                    const timeInSeconds = timeInMinutes * 60;
+                                    const startBtn = document.getElementById(`start-${index}`);
+                                    const pauseBtn = document.getElementById(`pause-${index}`);
+                                    const timerElement = document.getElementById(`timer-${index}`);
+                                    
+                                    if (!timerElement?.dataset.running || timerElement?.dataset.running === "false") {
+                                      // 设置新的活动步骤（清除旧的高亮）
+                                      setActiveStepIndex(index);
+                                      
+                                      // 设置状态为运行中
+                                      timerElement!.dataset.running = "true";
+                                      timerElement!.dataset.endTime = String(Date.now() + (parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000));
+                                      
+                                      // 更新UI
+                                      startBtn!.textContent = language === "zh" ? "继续" : "Resume";
+                                      pauseBtn!.style.display = "block";
+                                      
+                                      // 创建通知
+                                      if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+                                        const timeoutId = setTimeout(() => {
+                                          new Notification(language === "zh" ? `步骤 ${index + 1} 完成` : `Step ${index + 1} Complete`, {
+                                            body: language === "zh" 
+                                              ? `${step.title || `步骤 ${index + 1}`} 已完成` 
+                                              : `${step.title || `Step ${index + 1}`} is complete`,
+                                            icon: "/favicon.ico"
+                                          });
+                                        }, parseInt(timerElement!.dataset.remaining || String(timeInSeconds)) * 1000);
+                                        
+                                        timerElement!.dataset.timeoutId = String(timeoutId);
+                                      }
+                                      
+                                      // 显示倒计时
+                                      if (timerElement) {
+                                        const timerInterval = setInterval(() => {
+                                          if (timerElement.dataset.running === "true") {
+                                            const now = Date.now();
+                                            const endTime = parseInt(timerElement.dataset.endTime || "0");
+                                            const remainingMs = endTime - now;
+                                            
+                                            if (remainingMs <= 0) {
+                                              clearInterval(parseInt(timerElement.dataset.intervalId || "0"));
+                                              timerElement.textContent = language === "zh" ? "完成!" : "Done!";
+                                              timerElement.classList.add("text-green-500");
+                                              startBtn!.style.display = "none";
+                                              pauseBtn!.style.display = "none";
+                                              timerElement.dataset.running = "false";
+                                              
+                                              // 移除当前步骤的高亮
+                                              setActiveStepIndex(null);
+                                              
+                                              // 如果有下一个步骤，自动开始下一个步骤
+                                              const nextStepIndex = index + 1;
+                                              setTimeout(() => {
+                                                const nextStartBtn = document.getElementById(`start-${nextStepIndex}`);
+                                                if (nextStartBtn) {
+                                                  nextStartBtn.click();
+                                                }
+                                              }, 1000);
+                                            } else {
+                                              const remainingSecs = Math.ceil(remainingMs / 1000);
+                                              timerElement.dataset.remaining = String(remainingSecs);
+                                              const minutes = Math.floor(remainingSecs / 60);
+                                              const seconds = remainingSecs % 60;
+                                              timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                                            }
+                                          }
+                                        }, 500);
+                                        
+                                        timerElement.dataset.intervalId = String(timerInterval);
+                                      }
+                                    } else if (timerElement?.dataset.running === "paused") {
+                                      // 继续计时
+                                      timerElement.dataset.running = "true";
+                                      timerElement.dataset.endTime = String(Date.now() + (parseInt(timerElement.dataset.remaining || "0") * 1000));
+                                      startBtn!.textContent = language === "zh" ? "继续" : "Resume";
+                                      
+                                      // 设置新的活动步骤
+                                      setActiveStepIndex(index);
+                                    }
+                                  }}
+                                >
+                                  {language === "zh" ? "开始" : "Start"} {step.time}
+                                </button>
+                                <button 
+                                  id={`pause-${index}`}
+                                  className="bg-gray-500 text-white px-3 py-1 rounded-r-md text-xs hover:bg-gray-600 transition-colors hidden"
+                      onClick={() => {
+                                    const timerElement = document.getElementById(`timer-${index}`);
+                                    if (timerElement?.dataset.running === "true") {
+                                      // 暂停计时器
+                                      timerElement.dataset.running = "paused";
+                                      
+                                      // 清除通知计时器
+                                      if (timerElement.dataset.timeoutId) {
+                                        clearTimeout(parseInt(timerElement.dataset.timeoutId));
+                                      }
+                                      
+                                      // 更新UI
+                                      const startBtn = document.getElementById(`start-${index}`);
+                                      startBtn!.textContent = language === "zh" ? "继续" : "Resume";
+                                    }
+                                  }}
+                                >
+                                  {language === "zh" ? "暂停" : "Pause"}
+                                </button>
+                      </div>
+                              <span 
+                                id={`timer-${index}`} 
+                                className="text-sm font-mono"
+                                data-running="false"
+                                data-remaining={parseInt(step.time || "5") * 60}
+                              ></span>
+                              {/* 添加打印时显示的时间文本 */}
+                              <span className="hidden print:inline-block print:ml-2">
+                                {step.time} {language === "zh" ? "分钟" : "mins"}
+                              </span>
+                  </div>
+                          )}
+                </div>
+
+                        {/* 显示食材图标 */}
+                        {step.ingredients && step.ingredients.length > 0 && (
+                          <div className="flex flex-wrap gap-3 my-3 pb-3 border-b border-orange-100 dark:border-gray-700">
+                            {step.ingredients.map((ingredient: any, idx: number) => {
+                              const ingredientName = typeof ingredient === 'string' ? ingredient : ingredient.name || '';
+                              
+                              // 获取基于食材的样式
+                              const { bg, from, to } = getIngredientBgStyle(ingredientName, idx);
+                              
+                              return (
+                                <div key={idx} className={`flex flex-col items-center ${bg} p-2 rounded-lg shadow-sm hover:shadow-md transition-all border-[1.5px] border-gray-200 dark:border-gray-600`}>
+                                  <div className={`w-10 h-10 lg:w-14 lg:h-14 bg-gradient-to-br ${from} ${to} rounded-full flex items-center justify-center mb-1 shadow-sm`}>
+                                    <span className="text-2xl lg:text-3xl" role="img" aria-label={ingredientName}>
+                                      {getIngredientEmoji(ingredientName)}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col items-center w-full">
+                                    <span className="text-xs text-center font-medium text-gray-700 dark:text-gray-100 line-clamp-2 w-16 lg:w-20">{ingredientName}</span>
+                                    {typeof ingredient !== 'string' && ingredient.quantity && (
+                                      <span className="text-xs text-center text-gray-500 dark:text-gray-300 mt-1">{ingredient.quantity}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        
+                        {/* 步骤说明 */}
+                        <div className="text-gray-700 dark:text-gray-200 leading-relaxed">
+                          {typeof step === 'string' ? (
+                            <p>{step}</p>
+                          ) : (
+                            Array.isArray(step.instructions) ? (
+                              <ul className="list-disc list-inside ml-4 mt-3 space-y-2">
+                                {step.instructions.map((instruction: any, idx: number) => (
+                                  <li key={idx} className="text-sm my-1 text-gray-700 dark:text-gray-200">
+                                    {typeof instruction === 'string' ? instruction : instruction.text || ''}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>{step.description || step.text || step.content || `步骤 ${index + 1}`}</p>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : recipe.instructions?.map((instruction, index) => (
+                    <div key={index} className="flex gap-4 mb-6" id={`step-${index}`}>
                       <div className="w-8 h-8 bg-[#b94a2c] dark:bg-[#ff6b47] rounded-full flex items-center justify-center flex-shrink-0 text-white dark:text-black font-medium">
                         {index + 1}
                       </div>
@@ -595,74 +1302,14 @@ export default function RecipeDetails() {
                   ))}
                 </div>
 
-                {/* 互动按钮区域 */}
-                <div className="mt-8 flex flex-col md:flex-row gap-4">
-                  <div className="flex gap-4 flex-grow">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 h-14 text-lg gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
-                    >
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M9 15h6" /><path d="M8.5 11h7" /><path d="M9 7h6" /></svg>
-                        <span className="ml-2">{language === "zh" ? "评论" : "Reviews"}</span>
-                        <span className="ml-auto text-lg">62</span>
-                       </div>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className={`flex-1 h-14 text-lg gap-2 ${hasMade 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 dark:bg-blue-600 dark:text-white dark:border-blue-600 dark:hover:bg-blue-700'
-                        : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
-                      }`}
-                      onClick={() => {
-                        if (hasMade) {
-                          setMadeCounts(prev => prev - 1);
-                        } else {
-                          setMadeCounts(prev => prev + 1);
-                        }
-                        setHasMade(!hasMade);
-                      }}
-                    >
-                      <div className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill={hasMade ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" /><path d="M7 7h.01" /></svg>
-                        <span className="ml-2">{language === "zh" ? (hasMade ? "已完成" : "我做过了") : (hasMade ? "Done" : "I made this")}</span>
-                        <span className="ml-auto text-lg">{madeCounts.toLocaleString()}</span>
-                      </div>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* 圆形功能按钮 */}
-                <div className="mt-4 flex justify-center gap-6">
+                {/* 互动按钮区域 - 修改为居中对齐 */}
+                <div className="flex justify-center gap-6 mt-8">
                   <button 
                     className="w-14 h-14 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 shadow-sm"
                     onClick={() => window.print()}
                     title={language === "zh" ? "打印食谱" : "Print recipe"}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600 dark:text-gray-300"><polyline points="6 9 6 2 18 2 18 9"/><path d="M9 15h6" /><path d="M8.5 11h7" /><path d="M9 7h6" /></svg>
-                  </button>
-                  <button 
-                    className={`w-14 h-14 rounded-full border ${isFavorite 
-                      ? 'bg-red-50 hover:bg-red-100 text-red-500 border-red-200 dark:bg-red-900/20 dark:hover:bg-red-900/30 dark:text-red-400 dark:border-red-800/30' 
-                      : 'bg-white hover:bg-gray-50 border-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700'
-                    } flex items-center justify-center transition-colors shadow-sm`}
-                    onClick={() => setIsFavorite(!isFavorite)}
-                    title={language === "zh" ? "收藏食谱" : "Save recipe"}
-                  >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="22" 
-                      height="22" 
-                      viewBox="0 0 24 24" 
-                      fill={isFavorite ? "currentColor" : "none"} 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className={isFavorite ? "text-red-500 dark:text-red-400" : "text-gray-600 dark:text-gray-300"}
-                    >
-                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-                    </svg>
                   </button>
                   <button 
                     className="w-14 h-14 rounded-full bg-white hover:bg-gray-50 border border-gray-200 flex items-center justify-center dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 shadow-sm"
@@ -710,7 +1357,7 @@ export default function RecipeDetails() {
               <h2 className="text-2xl font-bold mb-6 dark:text-white">{t("video.nutritionInformation")}</h2>
 
               {/* 新的营养标签样式 */}
-              <div className="max-w-md mx-auto border border-gray-800 dark:border-gray-300 p-4 dark:text-white">
+              <div className="max-w-xl mx-auto border border-gray-800 dark:border-gray-300 p-4 dark:text-white">
                 {/* 标题 */}
                 <h3 className="text-4xl font-bold mb-2">Nutrition Facts</h3>
                 <div className="border-b-2 border-black dark:border-gray-300 my-1"></div>

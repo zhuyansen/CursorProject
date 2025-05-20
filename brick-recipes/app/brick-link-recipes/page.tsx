@@ -11,6 +11,7 @@ import { Search, ChevronDown, Clock, Flame, PlayCircle, ChefHat, X, Filter } fro
 import { Badge } from "@/components/ui/badge"
 import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
+import CaloriesDisplay from "@/components/calories-display"
 
 // 定义全局样式
 const globalStyles = {
@@ -27,6 +28,7 @@ interface Recipe {
   image: string;
   time: string;
   calories: string;
+  Energy?: string;
   difficulty: string;
   tags: string[];
   videoUrl: string;
@@ -717,7 +719,7 @@ export default function BrickLinkRecipes() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <Flame className="h-4 w-4" />
-                                <span>{recipe.calories}</span>
+                                <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
                               </div>
                               <div className="flex items-center gap-2">
                                 <ChefHat className="h-4 w-4 text-gray-400" />
@@ -830,7 +832,7 @@ export default function BrickLinkRecipes() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <Flame className="h-4 w-4" />
-                                      <span>{recipe.calories}</span>
+                                      <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <ChefHat className="h-4 w-4 text-gray-400" />
@@ -868,7 +870,9 @@ export default function BrickLinkRecipes() {
                                       <div className="grid grid-cols-2 gap-2 mt-2">
                                         <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
                                           <div className="text-xs text-gray-500 dark:text-gray-400">{t("recipe.calories")}</div>
-                                          <div className="font-medium dark:text-white">{recipe.calories}</div>
+                                          <div className="font-medium dark:text-white">
+                                            <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
+                                          </div>
                                         </div>
                                         <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded">
                                           <div className="text-xs text-gray-500 dark:text-gray-400">{t("recipe.protein")}</div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { PlayCircle, Clock, Flame, ChefHat } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
+import CaloriesDisplay from "@/components/calories-display"
 
 // 定义菜谱类型
 interface Recipe {
@@ -15,6 +16,7 @@ interface Recipe {
   image: string;
   time: string;
   calories: string;
+  Energy?: string;
   difficulty: string;
   tags: string[];
   videoUrl: string;
@@ -226,7 +228,7 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
       
       {recipes.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {recipes.map((recipe) => (
+          {recipes.map((recipe, index) => (
             <div key={recipe.id} className="group transform transition-all duration-300 hover:scale-[1.02]">
               <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow">
                 <div className="relative h-40">
@@ -261,7 +263,7 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                     </div>
                     <div className="flex items-center">
                       <Flame className="h-4 w-4 mr-1 text-[#b94a2c] dark:text-[#ff6b47]" />
-                      <span>{recipe.calories}</span>
+                      <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-4">

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlayCircle, Clock, Flame, ChevronLeft, ChevronRight, ChefHat } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
+import CaloriesDisplay from "@/components/calories-display"
 
 // 定义菜谱类型
 interface Recipe {
@@ -17,6 +18,7 @@ interface Recipe {
   image: string;
   time: string;
   calories: string;
+  Energy?: string;
   difficulty: string;
   tags: string[];
   videoUrl: string;
@@ -361,7 +363,7 @@ export default function CategoryPage() {
         ) : recipes.length > 0 ? (
           <>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {recipes.map((recipe) => (
+              {recipes.map((recipe, index) => (
                 <div key={recipe.id} className="group">
                 <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
 
@@ -394,6 +396,10 @@ export default function CategoryPage() {
                       <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
                         <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         <span>{recipe.time}</span>
+                      </span>
+                      <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
+                        <Flame className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
                       </span>
                       <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-sm">
                         <ChefHat className="h-4 w-4 text-gray-500 dark:text-gray-400" />

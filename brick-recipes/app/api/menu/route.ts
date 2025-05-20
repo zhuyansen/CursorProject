@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
             title: recipeData.strMeal || "",
             image: recipeData.strMealThumb || "",
             time: recipeData.time || "25 min", // 使用固定默认值
-            calories: recipeData.calories || "350 kcal", // 使用固定默认值
+            calories: recipeData.Energy || "0 kcal", // 直接使用Energy字段的值
             difficulty: recipeData.difficulty || "Easy", // 使用固定默认值
             tags: Array.isArray(recipeData.tags) ? recipeData.tags : 
                  (recipeData.strTags ? String(recipeData.strTags).split(',').map((t: string) => t.trim()).slice(0, 3) : []),
