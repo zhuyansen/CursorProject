@@ -3,15 +3,21 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { TranslatedText } from "@/components/main-nav"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { useLanguage } from "@/components/language-provider"
+import { TranslatedText } from "./main-nav"
 
 export function MainFooter() {
   const { resolvedTheme } = useTheme()
   const [logoSrc, setLogoSrc] = useState("/BrickRecipes.svg")
   const { t } = useLanguage()
+  
+  // 直接使用原始路径
+  const brickLinkRecipesLink = "/brick-link-recipes"
+  const menuLink = "/menu"
+  const videoToRecipesLink = "/videotorecipes"
+  const billingLink = "/billing"
   
   useEffect(() => {
     setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.svg" : "/BrickRecipes.svg")
@@ -38,13 +44,13 @@ export function MainFooter() {
               <Link href="/" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.home" />
               </Link>
-              <Link href="/brick-link-recipes" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
+              <Link href={brickLinkRecipesLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.brickLinkRecipes" />
               </Link>
-              <Link href="/menu" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
+              <Link href={menuLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.menu" />
               </Link>
-              <Link href="/videotorecipes" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
+              <Link href={videoToRecipesLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.videoToRecipes" />
               </Link>
             </div>
@@ -57,7 +63,7 @@ export function MainFooter() {
               <Link href="/faq" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.faq" />
               </Link>
-              <Link href="/billing" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
+              <Link href={billingLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.billing" />
               </Link>
               <Link href="/contact" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">

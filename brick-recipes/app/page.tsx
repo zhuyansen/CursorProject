@@ -4,9 +4,15 @@ import PricingPlans from "@/components/pricing-plans"
 import HeroSection from "@/components/hero-section"
 import { TranslatedText } from "@/components/main-nav"
 import { useLanguage } from "@/components/language-provider"
+import Link from "next/link"
 
 export default function Home() {
   const { t, language } = useLanguage()
+  
+  // 直接使用原始路径
+  const brickLinkRecipesLink = "/brick-link-recipes"
+  const menuLink = "/menu"
+  const videoToRecipesLink = "/videotorecipes"
   
   return (
     <>

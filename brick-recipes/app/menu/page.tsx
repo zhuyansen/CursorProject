@@ -38,143 +38,151 @@ interface CategorySectionProps {
 // 缓存键前缀
 const CACHE_PREFIX = 'brickRecipes_menu_';
 
+// 在文件顶部添加一个全局加载状态跟踪对象
+// 这将跟踪已经加载或正在加载的分类
+const LOADING_TRACKER = {
+  loadedCategories: new Set<string>(),
+  loadingCategories: new Set<string>(),
+  isLoading: false,
+  // 添加重置方法
+  reset: () => {
+    LOADING_TRACKER.loadedCategories.clear();
+    LOADING_TRACKER.loadingCategories.clear();
+    LOADING_TRACKER.isLoading = false;
+    console.log('[Menu] Reset tracking state');
+  }
+};
+
 const CategorySection = ({ category, language, t }: CategorySectionProps) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCached, setIsCached] = useState(false);
+  const [componentInitialized, setComponentInitialized] = useState(false);
 
+  // 组件初始化时清除该分类的加载状态
+  useEffect(() => {
+    setComponentInitialized(true);
+    return () => {
+      // 组件卸载时也清除
+      LOADING_TRACKER.loadingCategories.delete(category.id);
+    };
+  }, [category.id]);
+  
   // 生成缓存键
   const getCacheKey = (categoryId: string) => {
     return `${CACHE_PREFIX}${categoryId}`;
   }
 
-  useEffect(() => {
-    const fetchCategoryRecipes = async () => {
-      setIsLoading(true);
+  const fetchCategoryRecipes = async () => {
+    // 避免跳过首次加载
+    // 如果该分类已经加载过或正在加载中，则跳过
+    if ((componentInitialized && LOADING_TRACKER.loadedCategories.has(category.id)) || 
+        LOADING_TRACKER.loadingCategories.has(category.id)) {
+      console.log(`[Menu] Skipping duplicate load for category: ${category.id}`);
+      return;
+    }
 
-      // 尝试从缓存加载数据 - 使用异步方式
-      const loadCacheAsync = async () => {
-        const cacheKey = getCacheKey(category.id);
+    // 标记该分类正在加载中
+    LOADING_TRACKER.loadingCategories.add(category.id);
+    setIsLoading(true);
+
+    // 尝试从缓存加载数据
+    try {
+      const cacheKey = getCacheKey(category.id);
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (cachedData) {
         try {
-          const cachedData = localStorage.getItem(cacheKey);
+          const parsedData = JSON.parse(cachedData);
+          const { recipes: cachedRecipes, timestamp } = parsedData;
           
-          if (cachedData) {
-            // 使用Promise和setTimeout异步解析JSON，避免阻塞UI
-            return new Promise(resolve => {
-              setTimeout(() => {
-                try {
-                  const parsedData = JSON.parse(cachedData);
-                  resolve(parsedData);
-                } catch (e) {
-                  console.error(`[Menu] Error parsing cache for ${category.id}:`, e);
-                  resolve(null);
-                }
-              }, 0);
-            });
-          }
-        } catch (error) {
-          console.error(`[Menu] Cache error for ${category.id}:`, error);
-        }
-        return null;
-      };
-      
-      // 尝试异步加载缓存
-      const parsedData = await loadCacheAsync();
-      
-      if (parsedData) {
-        const { recipes: cachedRecipes, timestamp } = parsedData as any;
-        
-        // 检查缓存是否过期（24小时）
-        const now = Date.now();
-        const cacheAge = now - timestamp;
-        const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
-        
-        if (cacheAge < cacheExpiry) {
-          // 缓存有效，使用缓存数据
-          setRecipes(cachedRecipes);
-          setIsLoading(false);
-          setIsCached(true);
+          // 检查缓存是否过期（24小时）
+          const now = Date.now();
+          const cacheAge = now - timestamp;
+          const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
           
-          // 延迟预加载图片，避免阻塞UI
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              cachedRecipes.forEach((recipe: Recipe) => {
-                if (recipe.image && recipe.image !== "/placeholder.svg") {
-                  const img = new window.Image();
-                  img.src = recipe.image;
-                }
-              });
-            }, 100);
-          });
-          
-          console.log(`[Menu] Used cache: ${cachedRecipes.length} recipes loaded from cache for ${category.id}`);
-          
-          // 在后台刷新缓存
-          setTimeout(() => {
-            fetchFreshData(getCacheKey(category.id));
-          }, 3000); // 3秒后在后台刷新
-          
-          return;
-        } else {
-          console.log(`[Menu] Cache expired: ${getCacheKey(category.id)}`);
-        }
-      }
-      
-      // 缓存不存在或已过期，获取新数据
-      await fetchFreshData(getCacheKey(category.id));
-    };
-
-    // 从API获取新数据
-    const fetchFreshData = async (cacheKey: string) => {
-      try {
-        console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
-        const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
-        
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log(`[Menu] Loaded ${data.recipes.length} recipes for category: ${category.id}`);
-        
-        // 只有在未缓存数据时才更新UI，避免闪烁
-        if (!isCached) {
-          setRecipes(data.recipes);
-          setIsLoading(false);
-        }
-        
-        // 保存到本地缓存 - 使用异步方式
-        Promise.resolve().then(() => {
-          try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-              recipes: data.recipes,
-              timestamp: Date.now()
-            }));
-            console.log(`[Menu] Cached data with key: ${cacheKey}`);
+          if (cacheAge < cacheExpiry) {
+            // 缓存有效，使用缓存数据
+            console.log(`[Menu] Used cache: ${cachedRecipes.length} recipes from cache for ${category.id}`);
+            setRecipes(cachedRecipes);
+            setIsLoading(false);
+            setIsCached(true);
             
-            // 延迟预加载图片，避免阻塞UI
-            setTimeout(() => {
-              data.recipes.forEach((recipe: Recipe) => {
-                if (recipe.image && recipe.image !== "/placeholder.svg") {
-                  const img = new window.Image();
-                  img.src = recipe.image;
-                }
-              });
-            }, 300);
-          } catch (storageError) {
-            console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
+            // 标记该分类已加载完成
+            LOADING_TRACKER.loadedCategories.add(category.id);
+            LOADING_TRACKER.loadingCategories.delete(category.id);
+            
+            // 不再触发后台刷新，除非用户明确请求刷新
+            return;
+          } else {
+            console.log(`[Menu] Cache expired: ${cacheKey}`);
           }
-        });
-        
-      } catch (error) {
-        console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
-        if (!isCached) {
-          setRecipes([]);
-          setIsLoading(false);
+        } catch (e) {
+          console.error(`[Menu] Error parsing cache for ${category.id}:`, e);
         }
       }
-    };
+    } catch (error) {
+      console.error(`[Menu] Cache error for ${category.id}:`, error);
+    }
+    
+    // 缓存不存在或已过期，获取新数据
+    await fetchFreshData(getCacheKey(category.id));
+  };
 
+  const fetchFreshData = async (cacheKey: string) => {
+    // 如果全局已经在加载中，避免并发请求
+    if (LOADING_TRACKER.isLoading) {
+      console.log(`[Menu] Delaying fetch for ${category.id} - another fetch in progress`);
+      setTimeout(() => fetchCategoryRecipes(), 1000);
+      return;
+    }
+    
+    LOADING_TRACKER.isLoading = true;
+    
+    try {
+      console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
+      const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`[Menu] Loaded ${data.recipes.length} recipes for category: ${category.id}`);
+      
+      // 只有在未缓存数据时才更新UI，避免闪烁
+      if (!isCached) {
+        setRecipes(data.recipes);
+        setIsLoading(false);
+      }
+      
+      // 保存到本地缓存
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          recipes: data.recipes,
+          timestamp: Date.now()
+        }));
+        console.log(`[Menu] Cached data with key: ${cacheKey}`);
+      } catch (storageError) {
+        console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
+      }
+      
+      // 标记该分类已加载完成
+      LOADING_TRACKER.loadedCategories.add(category.id);
+      LOADING_TRACKER.loadingCategories.delete(category.id);
+    } catch (error) {
+      console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
+      if (!isCached) {
+        setRecipes([]);
+        setIsLoading(false);
+      }
+      LOADING_TRACKER.loadingCategories.delete(category.id);
+    } finally {
+      LOADING_TRACKER.isLoading = false;
+    }
+  };
+
+  useEffect(() => {
     // 使用requestAnimationFrame将缓存加载推迟到下一帧，避免阻塞当前帧渲染
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -303,11 +311,24 @@ export default function MenuPage() {
   const { t, language } = useLanguage()
   const [activeCategory, setActiveCategory] = useState<string>("breakfast")
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  const [pageInitialized, setPageInitialized] = useState(false);
 
   // 过滤掉不需要显示的分类
   const filteredCategories = categories.filter(category => 
     category.id !== "quickmeals" && category.id !== "holiday"
   )
+
+  // 组件初始化时重置加载跟踪状态
+  useEffect(() => {
+    // 重置全局跟踪器状态
+    LOADING_TRACKER.reset();
+    setPageInitialized(true);
+    
+    return () => {
+      // 组件卸载时也重置
+      LOADING_TRACKER.reset();
+    }
+  }, []);
 
   // 初始化时从localStorage加载上次选择的分类
   useEffect(() => {
@@ -347,52 +368,95 @@ export default function MenuPage() {
     }
   }
 
-  // 预加载所有分类的图片缓存
-  useEffect(() => {
-    // 在后台预加载其他分类的缓存 - 使用低优先级加载
-    const preloadAllCategories = async () => {
-      // 推迟执行，让主要UI先渲染完成
-      setTimeout(() => {
-        // 先加载激活的分类，然后是其他分类
-        const sortedCategories = [...filteredCategories].sort((a, b) => 
-          a.id === activeCategory ? -1 : b.id === activeCategory ? 1 : 0
-        );
-        
-        // 使用Promise.all和延迟执行，降低优先级
-        Promise.all(sortedCategories.map((category, index) => {
-          return new Promise<void>(resolve => {
-            // 为每个分类设置延迟，错开加载时间
-            setTimeout(async () => {
+  // 彻底修改预加载策略，只预加载首屏分类
+  const preloadQueue = async () => {
+    // 如果没有激活分类，则默认为第一个
+    const activeIndex = filteredCategories.findIndex(c => c.id === activeCategory);
+    const startIndex = activeIndex >= 0 ? activeIndex : 0;
+    
+    // 只预加载首屏(当前激活分类)
+    const categoryToLoad = filteredCategories[startIndex];
+    
+    if (categoryToLoad && !LOADING_TRACKER.loadedCategories.has(categoryToLoad.id)) {
+      console.log(`[Menu] Preloading initial category: ${categoryToLoad.id}`);
+      // 找到对应的CategorySection实例并调用加载
+      // 由于组件已经有防止重复加载的逻辑，这里直接调用
+      const cacheKey = `${CACHE_PREFIX}${categoryToLoad.id}`;
+      
+      // 检查是否有缓存
+      try {
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+          const { recipes } = JSON.parse(cachedData);
+          // 只预加载首个图片
+          if (recipes && recipes.length > 0) {
+            const firstRecipe = recipes[0];
+            if (firstRecipe.image && firstRecipe.image !== "/placeholder.svg") {
+              const img = new window.Image();
+              img.src = firstRecipe.image;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[Menu] Error preloading cache for ${categoryToLoad.id}:`, error);
+      }
+    }
+    
+    // 使用IntersectionObserver进行按需加载
+    if ('IntersectionObserver' in window && Object.keys(categoryRefs.current).length > 0) {
+      // 创建观察者实例
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const categoryId = entry.target.id;
+            if (categoryId && !LOADING_TRACKER.loadedCategories.has(categoryId) && 
+                !LOADING_TRACKER.loadingCategories.has(categoryId)) {
+              // 当分类进入视口时才加载
+              console.log(`[Menu] Lazy loading category: ${categoryId}`);
+              
+              // 停止观察已进入视口的元素
+              observer.unobserve(entry.target);
+              
+              // 使用简化的加载方式，只获取缓存，不请求新数据
               try {
-                const cacheKey = `${CACHE_PREFIX}${category.id}`;
+                const cacheKey = `${CACHE_PREFIX}${categoryId}`;
                 const cachedData = localStorage.getItem(cacheKey);
                 
                 if (cachedData) {
-                  const { recipes } = JSON.parse(cachedData);
-                  console.log(`[Menu] Preloading images for ${category.id}`);
-                  
-                  // 每5张图片加载一次，降低同时加载的数量
-                  for (let i = 0; i < recipes.length; i++) {
-                    const recipe = recipes[i];
-                    if (recipe.image && recipe.image !== "/placeholder.svg") {
-                      setTimeout(() => {
-                        const img = new window.Image();
-                        img.src = recipe.image;
-                      }, i * 200); // 每张图片间隔200ms加载
-                    }
-                  }
+                  // 已有缓存，标记为已加载
+                  LOADING_TRACKER.loadedCategories.add(categoryId);
                 }
-              } catch (error) {
-                console.error(`[Menu] Error preloading cache for ${category.id}:`, error);
+              } catch (e) {
+                console.error(`[Menu] Error checking cache for ${categoryId}:`, e);
               }
-              resolve();
-            }, index * 500); // 每个分类之间间隔500ms
-          });
-        }));
-      }, 1000); // 页面加载后等待1秒再开始预加载
-    };
+            }
+          }
+        });
+      }, {
+        rootMargin: '200px', // 提前200px开始加载
+        threshold: 0.1
+      });
+      
+      // 为每个分类元素添加观察，除了已加载的
+      Object.entries(categoryRefs.current).forEach(([id, el]) => {
+        if (el && !LOADING_TRACKER.loadedCategories.has(id)) {
+          observer.observe(el);
+        }
+      });
+      
+      // 返回清理函数
+      return () => observer.disconnect();
+    }
+  };
+
+  // 优化 MenuPage 组件的预加载调用
+  useEffect(() => {
+    // 页面加载后推迟执行预加载
+    const timer = setTimeout(() => {
+      preloadQueue();
+    }, 1000);
     
-    preloadAllCategories();
+    return () => clearTimeout(timer);
   }, [activeCategory, filteredCategories]);
 
   return (

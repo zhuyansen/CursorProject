@@ -5,7 +5,7 @@ import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
 import { TranslatedText } from "@/components/main-nav"
 import { useLanguage } from "@/components/language-provider"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { ChefHat, Utensils, Video } from "lucide-react"
 
 export default function HeroSection() {
@@ -13,6 +13,7 @@ export default function HeroSection() {
   const [logoSrc, setLogoSrc] = useState("/BrickRecipes.svg")
   const { t, language } = useLanguage()
   const router = useRouter()
+  const pathname = usePathname()
   
   // 默认选中第一个按钮
   const [activeButton, setActiveButton] = useState("ingredients")
@@ -32,6 +33,11 @@ export default function HeroSection() {
   const secondaryButtonClass = "bg-white hover:bg-gray-100 text-[#b94a2c] border border-[#b94a2c] dark:bg-gray-800 dark:text-[#ff6b47] dark:border-[#ff6b47] dark:hover:bg-gray-700"
   const baseButtonClass = "px-6 py-5 rounded-md text-base md:text-lg"
 
+  // 直接使用原始路径
+  const brickLinkRecipesLink = "/brick-link-recipes"
+  const menuLink = "/menu"
+  const videoToRecipesLink = "/videotorecipes"
+
   // 功能特性数据
   const features = [
     {
@@ -39,7 +45,7 @@ export default function HeroSection() {
       title: language === "zh" ? "按食材查找" : "Search by Ingredients",
       description: language === "zh" ? "选择您已有的食材，获取个性化食谱推荐" : "Select ingredients you have, get personalized recipe recommendations",
       buttonText: "findByIngredients",
-      path: "/brick-link-recipes",
+      path: brickLinkRecipesLink,
       type: "ingredients"
     },
     {
@@ -47,7 +53,7 @@ export default function HeroSection() {
       title: language === "zh" ? "精选菜单" : "Curated Menu",
       description: language === "zh" ? "探索我们精心准备的带有视频教程的食谱合集" : "Explore our carefully curated recipe collections with video tutorials",
       buttonText: "browseMenu",
-      path: "/menu",
+      path: menuLink,
       type: "menu"
     },
     {
@@ -55,7 +61,7 @@ export default function HeroSection() {
       title: language === "zh" ? "视频转食谱" : "Video to Recipes",
       description: language === "zh" ? "将任何烹饪视频转换为详细的食谱指南" : "Turn any cooking video into a detailed recipe guide",
       buttonText: "videoToRecipes",
-      path: "/videotorecipes",
+      path: videoToRecipesLink,
       type: "video"
     }
   ]
@@ -143,13 +149,13 @@ export default function HeroSection() {
           
           {/* 主行动按钮 */}
           <div className="mt-8">
-            <Button 
-              className={`${baseButtonClass} ${primaryButtonClass} text-lg font-bold shadow-lg shadow-[#b94a2c]/30 dark:shadow-[#ff6b47]/30 px-8 py-6 relative overflow-hidden group`}
-              onClick={() => handleButtonClick("ingredients", "/brick-link-recipes")}
+            <Link 
+              href={brickLinkRecipesLink}
+              className={`${baseButtonClass} ${primaryButtonClass} text-lg font-bold shadow-lg shadow-[#b94a2c]/30 dark:shadow-[#ff6b47]/30 px-8 py-6 relative overflow-hidden group inline-flex items-center`}
             >
               <span className="absolute top-0 left-0 w-full h-full bg-white opacity-20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
               <TranslatedText textKey="tryNow" /> →
-            </Button>
+            </Link>
           </div>
         </div>
         
@@ -164,12 +170,12 @@ export default function HeroSection() {
                 {feature.icon}
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{feature.title}</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4 h-16">{feature.description}</p>
-                <Button 
-                  className={`${baseButtonClass} ${activeButton === feature.type ? primaryButtonClass : secondaryButtonClass} w-full`}
-                  onClick={() => handleButtonClick(feature.type, feature.path)}
+                <Link 
+                  href={feature.path}
+                  className={`${baseButtonClass} ${activeButton === feature.type ? primaryButtonClass : secondaryButtonClass} w-full inline-block text-center`}
                 >
                   <TranslatedText textKey={feature.buttonText} />
-                </Button>
+                </Link>
               </div>
             </div>
           ))}

@@ -25,6 +25,102 @@ export const translations = {
     }
   },
   
+  // 认证相关
+  auth: {
+    en: {
+      signIn: "Sign In",
+      signUp: "Sign Up",
+      signOut: "Sign Out",
+      email: "Email",
+      password: "Password",
+      forgotPassword: "Forgot Password?",
+      resetPassword: "Reset Password",
+      confirmPassword: "Confirm Password",
+      noAccount: "Don't have an account?",
+      hasAccount: "Already have an account?",
+      backToSignIn: "Back to Sign In",
+      updateSupabaseConfig: "Please update Supabase config in .env.local file",
+      passwordPlaceholder: "Your password",
+      signingIn: "Signing in...",
+      signingUp: "Signing up...",
+      sendResetLink: "Send Reset Link",
+      sendingResetLink: "Sending reset link...",
+      resetInstructions: "Enter your email and we'll send you a reset link.",
+      newPassword: "New password",
+      confirmNewPassword: "Confirm new password",
+      updatePassword: "Update Password",
+      updatingPassword: "Updating password...",
+      enterNewPassword: "Please enter your new password.",
+      userInformation: "User Information",
+      userDetails: "Your User Details",
+      protectedPageDescription: "This is a protected page that you can only see as an authenticated user",
+      hello: "Hello",
+      // New translation keys for success/error messages
+      signUpSuccess: "Thanks for signing up! Please check your email for a verification link.",
+      resetLinkSent: "Check your email for a link to reset your password.",
+      passwordUpdated: "Password updated",
+      emailRequired: "Email is required",
+      passwordRequired: "Password and confirm password are required",
+      passwordsDoNotMatch: "Passwords do not match",
+      passwordUpdateFailed: "Password update failed",
+      resetPasswordError: "Could not reset password",
+      invalidCredentials: "Invalid login credentials",
+      redirectingIn: "Redirecting to sign in page in {seconds} seconds...",
+      continueWithGoogle: "Continue with Google"
+    },
+    zh: {
+      signIn: "登录",
+      signUp: "注册",
+      signOut: "退出",
+      email: "邮箱",
+      password: "密码",
+      forgotPassword: "忘记密码?",
+      resetPassword: "重置密码",
+      confirmPassword: "确认密码",
+      noAccount: "还没有账号？",
+      hasAccount: "已有账号？",
+      backToSignIn: "返回登录",
+      updateSupabaseConfig: "请在.env.local文件中更新Supabase配置",
+      passwordPlaceholder: "您的密码",
+      signingIn: "登录中...",
+      signingUp: "注册中...",
+      sendResetLink: "发送重置链接",
+      sendingResetLink: "发送重置链接...",
+      resetInstructions: "输入您的电子邮件，我们将发送一个重置链接给您。",
+      newPassword: "新密码",
+      confirmNewPassword: "确认新密码",
+      updatePassword: "更新密码",
+      updatingPassword: "更新密码...",
+      enterNewPassword: "请输入您的新密码。",
+      userInformation: "用户信息",
+      userDetails: "您的用户详情",
+      protectedPageDescription: "这是一个受保护的页面，只有登录的用户才能查看",
+      hello: "您好",
+      // New translation keys for success/error messages
+      signUpSuccess: "感谢您的注册！请检查您的邮箱以获取验证链接。",
+      resetLinkSent: "请检查您的邮箱以获取重置密码的链接。",
+      passwordUpdated: "密码已更新",
+      emailRequired: "需要提供邮箱",
+      passwordRequired: "密码和确认密码是必填项",
+      passwordsDoNotMatch: "密码不匹配",
+      passwordUpdateFailed: "密码更新失败",
+      resetPasswordError: "无法重置密码",
+      invalidCredentials: "登录凭据无效",
+      redirectingIn: "{seconds}秒后将跳转到登录页面...",
+      continueWithGoogle: "使用谷歌账号继续"
+    }
+  },
+  
+  // 常用文本
+  common: {
+    en: {
+      loading: "Loading..."
+    },
+    zh: {
+      loading: "加载中..."
+    }
+  },
+  
   // 按钮相关
   button: {
     en: {
@@ -487,6 +583,8 @@ export const translations = {
       howDoISaveRecipes: "How do I save recipes to my collection?",
       howDoISaveRecipesAnswer: "When viewing a recipe, simply click the 'Save' button with the heart icon. Free users can save up to 10 recipes, while premium subscribers enjoy unlimited recipe saves.",
       
+      accountAndBilling: "Account & Billing",
+      
       howToCreateAccount: "How do I create an account?",
       howToCreateAccountAnswer: "Click the 'Sign Up' button in the top right corner of the page. You can create an account using your email address, or sign up with Google or Facebook for quicker access.",
       
@@ -530,6 +628,8 @@ export const translations = {
       
       howDoISaveRecipes: "如何将食谱保存到我的收藏中？",
       howDoISaveRecipesAnswer: "查看食谱时，只需点击带有心形图标的\"保存\"按钮。免费用户最多可以保存10个食谱，而高级订阅用户可以享受无限的食谱保存。",
+      
+      accountAndBilling: "账户与账单",
       
       howToCreateAccount: "如何创建账户？",
       howToCreateAccountAnswer: "点击页面右上角的\"注册\"按钮。您可以使用电子邮件地址创建账户，或使用Google或Facebook账户注册以便更快访问。",

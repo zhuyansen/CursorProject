@@ -98,6 +98,9 @@ importers:
       '@supabase/ssr':
         specifier: ^0.6.1
         version: 0.6.1(@supabase/supabase-js@2.49.5)
+      '@supabase/supabase-js':
+        specifier: ^2.49.5
+        version: 2.49.5
       '@types/luxon':
         specifier: ^3.6.2
         version: 3.6.2

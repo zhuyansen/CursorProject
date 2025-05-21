@@ -2,9 +2,14 @@ import { Button } from "@/components/ui/button"
 import { Check } from "lucide-react"
 import { TranslatedText } from "@/components/main-nav"
 import { useLanguage } from "@/components/language-provider"
+import Link from "next/link"
 
 export default function PricingPlans() {
   const { t, language } = useLanguage()
+  
+  // 直接使用原始路径
+  const recipesLink = "/brick-link-recipes"
+  const billingLink = "/billing"
   
   return (
     <section className="py-16 dark:bg-gray-900">
@@ -25,9 +30,12 @@ export default function PricingPlans() {
                 <span className="text-4xl font-bold dark:text-white">$0</span>
                 <span className="text-gray-600 dark:text-gray-300">{language === "zh" ? "/月" : "/month"}</span>
               </div>
-              <Button className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600">
+              <Link 
+                href={recipesLink}
+                className="inline-flex justify-center w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium"
+              >
                 <TranslatedText textKey="button.findRecipes" />
-              </Button>
+              </Link>
             </div>
             <div className="border-t dark:border-gray-700 p-6">
               <ul className="space-y-3 dark:text-gray-300">
@@ -57,9 +65,12 @@ export default function PricingPlans() {
                 <span className="text-4xl font-bold dark:text-white">$9.99</span>
                 <span className="text-gray-600 dark:text-gray-300">{language === "zh" ? "/月" : "/month"}</span>
               </div>
-              <Button className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
+              <Link 
+                href={billingLink}
+                className="inline-flex justify-center w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white px-4 py-2 rounded-md font-medium"
+              >
                 <TranslatedText textKey="button.subscribe" />
-              </Button>
+              </Link>
             </div>
             <div className="border-t dark:border-gray-700 p-6">
               <ul className="space-y-3 dark:text-gray-300">
@@ -99,9 +110,12 @@ export default function PricingPlans() {
               <div className="mb-4 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 text-sm px-3 py-1 rounded-full inline-block">
                 {language === "zh" ? "节省 $29.89" : "Save $29.89"}
               </div>
-              <Button className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600">
+              <Link 
+                href={billingLink}
+                className="inline-flex justify-center w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium"
+              >
                 <TranslatedText textKey="button.subscribe" />
-              </Button>
+              </Link>
             </div>
             <div className="border-t dark:border-gray-700 p-6">
               <ul className="space-y-3 dark:text-gray-300">
