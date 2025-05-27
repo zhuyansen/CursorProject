@@ -172,7 +172,7 @@ export default function HeroSection() {
                 <p className="text-gray-600 dark:text-gray-300 mb-4 h-16">{feature.description}</p>
                 <Link 
                   href={feature.path}
-                  className={`${baseButtonClass} ${activeButton === feature.type ? primaryButtonClass : secondaryButtonClass} w-full inline-block text-center`}
+                  className={`${baseButtonClass} ${primaryButtonClass} w-full inline-block text-center`}
                 >
                   <TranslatedText textKey={feature.buttonText} />
                 </Link>

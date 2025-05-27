@@ -197,6 +197,18 @@ export const translations = {
     }
   },
   
+  // 定价页面相关
+  pricing: {
+    en: {
+      title: "Choose Your Plan",
+      subtitle: "Select the perfect plan for your cooking journey and unlock powerful recipe features"
+    },
+    zh: {
+      title: "选择您的计划",
+      subtitle: "为您的烹饪之旅选择完美的计划，解锁强大的食谱功能"
+    }
+  },
+  
   // 账单相关
   billing: {
     en: {

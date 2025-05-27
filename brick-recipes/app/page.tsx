@@ -5,9 +5,33 @@ import HeroSection from "@/components/hero-section"
 import { TranslatedText } from "@/components/main-nav"
 import { useLanguage } from "@/components/language-provider"
 import Link from "next/link"
+import { useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function Home() {
   const { t, language } = useLanguage()
+  const searchParams = useSearchParams()
+  
+  // 处理认证成功后的支付链接重定向
+  useEffect(() => {
+    const success = searchParams.get('success')
+    
+    if (success === 'true') {
+      try {
+        const pendingPaymentLink = localStorage.getItem('pendingPaymentLink')
+        if (pendingPaymentLink) {
+          // 清除存储的支付链接
+          localStorage.removeItem('pendingPaymentLink')
+          localStorage.removeItem('pendingPlanType')
+          
+          // 打开支付页面
+          window.open(pendingPaymentLink, '_blank')
+        }
+      } catch (error) {
+        console.error('Error handling payment redirect:', error)
+      }
+    }
+  }, [searchParams])
   
   // 直接使用原始路径
   const brickLinkRecipesLink = "/brick-link-recipes"

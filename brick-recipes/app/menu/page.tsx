@@ -8,6 +8,7 @@ import { PlayCircle, Clock, Flame, ChefHat } from "lucide-react"
 import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
 import CaloriesDisplay from "@/components/calories-display"
+import { useAuthGuard } from "@/hooks/useAuthGuard"
 
 // 定义菜谱类型
 interface Recipe {
@@ -54,6 +55,7 @@ const LOADING_TRACKER = {
 };
 
 const CategorySection = ({ category, language, t }: CategorySectionProps) => {
+  const { checkAuthWithMessage } = useAuthGuard()
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCached, setIsCached] = useState(false);
@@ -67,13 +69,13 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
       LOADING_TRACKER.loadingCategories.delete(category.id);
     };
   }, [category.id]);
-  
+
   // 生成缓存键
   const getCacheKey = (categoryId: string) => {
     return `${CACHE_PREFIX}${categoryId}`;
   }
 
-  const fetchCategoryRecipes = async () => {
+    const fetchCategoryRecipes = async () => {
     // 避免跳过首次加载
     // 如果该分类已经加载过或正在加载中，则跳过
     if ((componentInitialized && LOADING_TRACKER.loadedCategories.has(category.id)) || 
@@ -84,37 +86,37 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
 
     // 标记该分类正在加载中
     LOADING_TRACKER.loadingCategories.add(category.id);
-    setIsLoading(true);
+      setIsLoading(true);
 
     // 尝试从缓存加载数据
     try {
-      const cacheKey = getCacheKey(category.id);
-      const cachedData = localStorage.getItem(cacheKey);
-      
-      if (cachedData) {
-        try {
-          const parsedData = JSON.parse(cachedData);
+        const cacheKey = getCacheKey(category.id);
+          const cachedData = localStorage.getItem(cacheKey);
+          
+          if (cachedData) {
+                try {
+                  const parsedData = JSON.parse(cachedData);
           const { recipes: cachedRecipes, timestamp } = parsedData;
-          
-          // 检查缓存是否过期（24小时）
-          const now = Date.now();
-          const cacheAge = now - timestamp;
-          const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
-          
-          if (cacheAge < cacheExpiry) {
-            // 缓存有效，使用缓存数据
+        
+        // 检查缓存是否过期（24小时）
+        const now = Date.now();
+        const cacheAge = now - timestamp;
+        const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
+        
+        if (cacheAge < cacheExpiry) {
+          // 缓存有效，使用缓存数据
             console.log(`[Menu] Used cache: ${cachedRecipes.length} recipes from cache for ${category.id}`);
-            setRecipes(cachedRecipes);
-            setIsLoading(false);
-            setIsCached(true);
-            
+          setRecipes(cachedRecipes);
+          setIsLoading(false);
+          setIsCached(true);
+          
             // 标记该分类已加载完成
             LOADING_TRACKER.loadedCategories.add(category.id);
             LOADING_TRACKER.loadingCategories.delete(category.id);
             
             // 不再触发后台刷新，除非用户明确请求刷新
-            return;
-          } else {
+          return;
+        } else {
             console.log(`[Menu] Cache expired: ${cacheKey}`);
           }
         } catch (e) {
@@ -123,13 +125,13 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
       }
     } catch (error) {
       console.error(`[Menu] Cache error for ${category.id}:`, error);
-    }
-    
-    // 缓存不存在或已过期，获取新数据
-    await fetchFreshData(getCacheKey(category.id));
-  };
+      }
+      
+      // 缓存不存在或已过期，获取新数据
+      await fetchFreshData(getCacheKey(category.id));
+    };
 
-  const fetchFreshData = async (cacheKey: string) => {
+    const fetchFreshData = async (cacheKey: string) => {
     // 如果全局已经在加载中，避免并发请求
     if (LOADING_TRACKER.isLoading) {
       console.log(`[Menu] Delaying fetch for ${category.id} - another fetch in progress`);
@@ -139,48 +141,48 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
     
     LOADING_TRACKER.isLoading = true;
     
-    try {
-      console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
-      const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
-      
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log(`[Menu] Loaded ${data.recipes.length} recipes for category: ${category.id}`);
-      
-      // 只有在未缓存数据时才更新UI，避免闪烁
-      if (!isCached) {
-        setRecipes(data.recipes);
-        setIsLoading(false);
-      }
-      
-      // 保存到本地缓存
       try {
-        localStorage.setItem(cacheKey, JSON.stringify({
-          recipes: data.recipes,
-          timestamp: Date.now()
-        }));
-        console.log(`[Menu] Cached data with key: ${cacheKey}`);
-      } catch (storageError) {
-        console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
-      }
-      
+        console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
+        const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
+        
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[Menu] Loaded ${data.recipes.length} recipes for category: ${category.id}`);
+        
+        // 只有在未缓存数据时才更新UI，避免闪烁
+        if (!isCached) {
+          setRecipes(data.recipes);
+          setIsLoading(false);
+        }
+        
+      // 保存到本地缓存
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+              recipes: data.recipes,
+              timestamp: Date.now()
+            }));
+            console.log(`[Menu] Cached data with key: ${cacheKey}`);
+          } catch (storageError) {
+            console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
+          }
+        
       // 标记该分类已加载完成
       LOADING_TRACKER.loadedCategories.add(category.id);
       LOADING_TRACKER.loadingCategories.delete(category.id);
-    } catch (error) {
-      console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
-      if (!isCached) {
-        setRecipes([]);
-        setIsLoading(false);
-      }
+      } catch (error) {
+        console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
+        if (!isCached) {
+          setRecipes([]);
+          setIsLoading(false);
+        }
       LOADING_TRACKER.loadingCategories.delete(category.id);
     } finally {
       LOADING_TRACKER.isLoading = false;
-    }
-  };
+      }
+    };
 
   useEffect(() => {
     // 使用requestAnimationFrame将缓存加载推迟到下一帧，避免阻塞当前帧渲染
@@ -191,16 +193,23 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
     });
   }, [category.id, isCached]);
 
+  // 添加认证检查的View All处理函数
+  const handleViewAll = () => {
+    checkAuthWithMessage(() => {
+      window.location.href = `/menu/${category.id}`;
+    }, language === "zh" ? "查看全部功能" : "view all");
+  };
+
   if (isLoading) {
     return (
       <div>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold dark:text-white">{t(category.nameKey)}</h2>
-          <Link href={`/menu/${category.id}`}>
-            <Button className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white">
+          <Button 
+            onClick={handleViewAll}
+            className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white">
               {t("menu.viewAll")}
             </Button>
-          </Link>
         </div>
         <p className="text-gray-600 dark:text-gray-300 mb-8">{t(`menu.description.${category.id}`)}</p>
         
@@ -223,12 +232,11 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
           </div>
           <h2 className="text-2xl font-bold dark:text-white">{t(category.nameKey)}</h2>
         </div>
-        <Link href={`/menu/${category.id}`}>
           <Button 
+          onClick={handleViewAll}
             className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white mt-3 md:mt-0">
             {t("menu.viewAll")} <span className="ml-1">→</span>
           </Button>
-        </Link>
       </div>
       <p className="text-gray-600 dark:text-gray-300 mb-8 border-l-4 border-[#b94a2c] pl-4 italic dark:border-[#ff6b47]">
         {t(`menu.description.${category.id}`)}

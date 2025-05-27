@@ -38,8 +38,29 @@ export default function Login() {
     // 检查搜索参数中的错误或成功消息
     const success = searchParams.get('success');
     const error = searchParams.get('error');
+    const auth = searchParams.get('auth');
     
-    if (success) {
+    // 如果是认证要求的重定向，显示相应消息
+    if (auth === 'required') {
+      try {
+        const authMessage = localStorage.getItem('authMessage');
+        if (authMessage) {
+          setMessage({ 
+            error: authMessage
+          });
+          localStorage.removeItem('authMessage');
+        } else {
+          setMessage({ 
+            error: language === "zh" ? "请登录以继续使用该功能" : "Please login to continue using this feature"
+          });
+        }
+      } catch (error) {
+        console.error('Error reading auth message:', error);
+        setMessage({ 
+          error: language === "zh" ? "请登录以继续使用该功能" : "Please login to continue using this feature"
+        });
+      }
+    } else if (success) {
       setMessage({ success: decodeURIComponent(success) });
     } else if (error) {
       // 处理常见错误消息和翻译
@@ -95,8 +116,46 @@ export default function Login() {
       // 登录成功
       console.log("Login successful! Session:", !!data.session);
       
-      // 不等待其他状态更新，立即强制跳转到首页
-      window.location.href = '/';
+      // 检查是否有认证重定向路径
+      let finalRedirectPath = redirectTo;
+      try {
+        const authRedirectPath = localStorage.getItem('authRedirectPath');
+        if (authRedirectPath) {
+          finalRedirectPath = authRedirectPath;
+          localStorage.removeItem('authRedirectPath');
+          console.log("Found auth redirect path:", finalRedirectPath);
+        }
+      } catch (error) {
+        console.error('Error checking auth redirect path:', error);
+      }
+      
+      // 检查是否有待处理的支付链接
+      try {
+        const pendingPaymentLink = localStorage.getItem('pendingPaymentLink');
+        const pendingPlanType = localStorage.getItem('pendingPlanType');
+        
+        if (pendingPaymentLink && pendingPlanType) {
+          console.log(`Found pending payment for ${pendingPlanType}, redirecting to:`, pendingPaymentLink);
+          
+          // 清除localStorage中的待处理链接
+          localStorage.removeItem('pendingPaymentLink');
+          localStorage.removeItem('pendingPlanType');
+          
+          // 延迟一下确保登录状态已更新，然后重定向到支付页面
+          setTimeout(() => {
+            window.open(pendingPaymentLink, '_blank', 'noopener,noreferrer');
+            // 同时重定向到最终路径
+            window.location.href = finalRedirectPath;
+          }, 1000);
+          
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking pending payment link:', error);
+      }
+      
+      // 没有待处理的支付链接，重定向到最终路径
+      window.location.href = finalRedirectPath;
       
     } catch (err) {
       console.error("Unexpected error during login:", err);
@@ -107,34 +166,42 @@ export default function Login() {
 
   // Google登录处理函数
   const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+    setIsLoading(true);
     
     try {
+      // 检查是否有认证重定向路径
+      let finalRedirectPath = redirectTo;
+      try {
+        const authRedirectPath = localStorage.getItem('authRedirectPath');
+        if (authRedirectPath) {
+          finalRedirectPath = authRedirectPath;
+          console.log("Found auth redirect path for Google login:", finalRedirectPath);
+        }
+      } catch (error) {
+        console.error('Error checking auth redirect path:', error);
+      }
+      
       const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect_to=${redirectTo}`
+          redirectTo: `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent(finalRedirectPath)}`
         }
       });
       
       if (error) {
         console.error("Google login error:", error.message);
         setMessage({ error: error.message });
+        setIsLoading(false);
       }
-      
-      // 成功启动OAuth流程后，用户将被重定向到Google登录页面
-      // 不需要处理重定向，因为Supabase会自动处理
-      
     } catch (err) {
       console.error("Unexpected error during Google login:", err);
-      setMessage({ error: "谷歌登录过程中发生意外错误" });
-    } finally {
-      setIsGoogleLoading(false);
+      setMessage({ error: "Google登录过程中发生意外错误" });
+      setIsLoading(false);
     }
   };
 

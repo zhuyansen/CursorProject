@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
 import CaloriesDisplay from "@/components/calories-display"
+import { useAuthGuard } from "@/hooks/useAuthGuard"
 
 // 定义全局样式
 const globalStyles = {
@@ -95,6 +96,7 @@ export default function BrickLinkRecipes() {
   const { t, language } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { checkAuthWithMessage } = useAuthGuard()
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -520,6 +522,13 @@ export default function BrickLinkRecipes() {
     return () => clearTimeout(timer);
   }, [isMounted, apiRecipes]);
 
+  // 在handleSearch函数之前添加认证检查的包装函数
+  const handleApplyFilters = () => {
+    checkAuthWithMessage(() => {
+      handleSearch();
+    }, language === "zh" ? "筛选功能" : "filtering");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-12">
       {/* 顶部主题图和引导文本 */}
@@ -663,7 +672,7 @@ export default function BrickLinkRecipes() {
               </Button>
               <Button
                 className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]"
-                  onClick={() => handleSearch()}
+                onClick={handleApplyFilters}
               >
                 {t("button.applyFilters")}
               </Button>

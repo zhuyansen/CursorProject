@@ -14,6 +14,10 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
+  // 构建重定向URL，添加成功参数以便前端处理支付链接
+  const redirectUrl = new URL(redirectTo, requestUrl.origin);
+  redirectUrl.searchParams.set('success', 'true');
+
   // URL to redirect to after sign up process completes
-  return NextResponse.redirect(`${requestUrl.origin}${redirectTo}`);
+  return NextResponse.redirect(redirectUrl.toString());
 } 

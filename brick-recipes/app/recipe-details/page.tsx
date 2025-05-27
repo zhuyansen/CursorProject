@@ -465,10 +465,36 @@ export default function RecipeDetails() {
             if (!data.instructions || !Array.isArray(data.instructions)) {
               // 如果有strInstructions字段（MealDB API格式），按段落分割
               if (data.strInstructions) {
-                data.instructions = data.strInstructions
+                const paragraphs = data.strInstructions
                   .split(/\r?\n\r?\n/) // 按空行分段
                   .filter(para => para.trim().length > 0) // 过滤空段落
                   .map(para => para.trim());
+                
+                // 进一步处理，合并单独的数字行和后续内容
+                const processedInstructions: string[] = [];
+                let i = 0;
+                
+                while (i < paragraphs.length) {
+                  const current = paragraphs[i];
+                  
+                  // 检查当前段落是否只是一个数字（可能包含句号）
+                  if (/^\d+\.?\s*$/.test(current) && i + 1 < paragraphs.length) {
+                    // 如果当前是数字且有下一段，将它们合并
+                    const nextPara = paragraphs[i + 1];
+                    const combined = `${current.replace(/\.$/, '')}. ${nextPara}`;
+                    processedInstructions.push(combined);
+                    i += 2; // 跳过下一段，因为已经合并了
+                  } else if (!/^\d+\.?\s*$/.test(current)) {
+                    // 如果不是单独的数字，直接添加
+                    processedInstructions.push(current);
+                    i++;
+                  } else {
+                    // 如果是单独的数字但没有后续内容，跳过
+                    i++;
+                  }
+                }
+                
+                data.instructions = processedInstructions;
               } else {
                 // 创建默认说明
                 data.instructions = [
@@ -482,8 +508,8 @@ export default function RecipeDetails() {
                     ? "装盘并享用美食！" 
                     : "Plate and enjoy your meal!"
                 ];
-                }
               }
+            }
             }
             
             return data;

@@ -17,9 +17,11 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog"
+import { useAuthGuard } from "@/hooks/useAuthGuard"
 
 export default function VideoToRecipes() {
   const { t, language } = useLanguage()
+  const { checkAuthWithMessage } = useAuthGuard()
   const [videoUrl, setVideoUrl] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisComplete, setAnalysisComplete] = useState(false)
@@ -871,6 +873,13 @@ export default function VideoToRecipes() {
     );
   };
 
+  // 添加认证检查的包装函数
+  const handleAnalyzeVideoWithAuth = () => {
+    checkAuthWithMessage(() => {
+      handleAnalyzeVideo();
+    }, language === "zh" ? "视频分析功能" : "video analysis");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -905,7 +914,7 @@ export default function VideoToRecipes() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Button
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]"
-                onClick={handleAnalyzeVideo}
+                onClick={handleAnalyzeVideoWithAuth}
                 disabled={isAnalyzing || !videoUrl}
               >
                 {isAnalyzing ? (

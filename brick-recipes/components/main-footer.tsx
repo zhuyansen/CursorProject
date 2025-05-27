@@ -17,7 +17,6 @@ export function MainFooter() {
   const brickLinkRecipesLink = "/brick-link-recipes"
   const menuLink = "/menu"
   const videoToRecipesLink = "/videotorecipes"
-  const billingLink = "/billing"
   
   useEffect(() => {
     setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.svg" : "/BrickRecipes.svg")
@@ -62,9 +61,6 @@ export function MainFooter() {
             <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
               <Link href="/faq" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.faq" />
-              </Link>
-              <Link href={billingLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
-                <TranslatedText textKey="nav.billing" />
               </Link>
               <Link href="/contact" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.contactUs" />

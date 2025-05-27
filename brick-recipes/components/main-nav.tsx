@@ -89,7 +89,6 @@ export function MainNav() {
   const brickLinkRecipesLink = "/brick-link-recipes"
   const menuLink = "/menu"
   const videoToRecipesLink = "/videotorecipes"
-  const billingLink = "/billing"
   
   useEffect(() => {
     setLogoSrc(resolvedTheme === "dark" ? "/BrickRecipes_dark.svg" : "/BrickRecipes.svg")
@@ -121,12 +120,6 @@ export function MainNav() {
               className="text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] transition-colors dark:text-gray-200"
             >
               <TranslatedText textKey="nav.videoToRecipes" />
-            </NavLink>
-            <NavLink
-              href={billingLink}
-              className="text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] transition-colors dark:text-gray-200"
-            >
-              <TranslatedText textKey="nav.billing" />
             </NavLink>
             <NavLink
               href="/faq"
@@ -179,13 +172,6 @@ export function MainNav() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <TranslatedText textKey="nav.videoToRecipes" />
-            </NavLink>
-            <NavLink
-              href={billingLink}
-              className="block py-2 text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] dark:text-gray-200"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <TranslatedText textKey="nav.billing" />
             </NavLink>
             <NavLink
               href="/faq"
