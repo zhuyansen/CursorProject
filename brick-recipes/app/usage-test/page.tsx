@@ -196,8 +196,12 @@ export default function UsageTestPage() {
                       {isCurrent && <Badge>当前计划</Badge>}
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <p>Brick限制: {config.brick_limit === -1 ? '无限制' : config.brick_limit}</p>
-                      <p>Video限制: {config.video_limit === -1 ? '无限制' : config.video_limit}</p>
+                      <div>
+                        <p>Brick限制: {config.brick_limit === -1 ? '无限制' : config.brick_limit}</p>
+                      </div>
+                      <div>
+                        <p>Video限制: {config.video_limit === -1 ? '无限制' : config.video_limit}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -211,7 +215,7 @@ export default function UsageTestPage() {
       <Card>
         <CardHeader>
           <CardTitle>功能测试</CardTitle>
-          <CardDescription>测试使用量检查和增加功能</CardDescription>
+          <CardDescription>测试各种使用量管理功能</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -222,7 +226,7 @@ export default function UsageTestPage() {
                 disabled={isTestingBrick}
                 className="w-full"
               >
-                {isTestingBrick ? '测试中...' : '测试Brick使用量'}
+                {isTestingBrick ? '测试中...' : '测试Brick使用'}
               </Button>
               <Button 
                 onClick={testBrickWithHandler} 
@@ -239,7 +243,7 @@ export default function UsageTestPage() {
                 disabled={isTestingVideo}
                 className="w-full"
               >
-                {isTestingVideo ? '测试中...' : '测试Video使用量'}
+                {isTestingVideo ? '测试中...' : '测试Video使用'}
               </Button>
               <Button 
                 onClick={testVideoWithHandler} 
@@ -250,50 +254,51 @@ export default function UsageTestPage() {
               </Button>
               <Button 
                 onClick={addVideoUsageBulk} 
-                variant="outline"
+                variant="destructive"
                 className="w-full"
               >
-                批量增加Video使用量(+50)
+                批量增加Video使用量
               </Button>
             </div>
           </div>
-          <Separator className="my-4" />
-          <Button onClick={clearTestResults} variant="outline" className="w-full">
-            清除测试结果
-          </Button>
         </CardContent>
       </Card>
 
       {/* 测试结果 */}
-      {testResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>测试结果</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            测试结果
+            <Button onClick={clearTestResults} variant="outline" size="sm">
+              清除结果
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {testResults.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">暂无测试结果</p>
+          ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {testResults.map((result, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 border rounded-lg">
-                  {result.success ? (
-                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{result.test}</span>
-                      <span className="text-xs text-gray-500">{result.timestamp}</span>
-                    </div>
-                    <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
-                      {JSON.stringify(result.result, null, 2)}
-                    </pre>
+                <div key={index} className="border rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    {result.success ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className="font-medium">{result.test}</span>
+                    <span className="text-sm text-gray-500">{result.timestamp}</span>
                   </div>
+                  <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto">
+                    {JSON.stringify(result.result, null, 2)}
+                  </pre>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 } 

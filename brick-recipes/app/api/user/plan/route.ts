@@ -7,17 +7,20 @@ export async function POST(request: NextRequest) {
     const { userId } = await request.json();
 
     if (!userId) {
+      console.warn('[/api/user/plan POST] Received request without userId');
       return NextResponse.json(
         { error: '缺少用户ID' },
         { status: 400 }
       );
     }
+    console.log(`[/api/user/plan POST] Received request for userId: ${userId}`);
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    console.log(`[/api/user/plan POST] Attempting to fetch user plan from Supabase for userId: ${userId}`);
     // 获取用户计划信息
     const { data: user, error } = await supabase
       .from('users')
@@ -26,28 +29,35 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('获取用户计划错误:', error);
+      console.error('[/api/user/plan POST] Error fetching user plan from Supabase:', error); // Log the full error object
       return NextResponse.json(
-        { error: '获取用户计划失败', details: error.message },
+        { error: '获取用户计划失败', details: error.message, code: (error as any).code || 'UNKNOWN_DB_ERROR' },
         { status: 500 }
       );
     }
 
     if (!user) {
+      console.warn(`[/api/user/plan POST] User not found in Supabase for userId: ${userId}`);
       return NextResponse.json(
         { error: '用户不存在' },
         { status: 404 }
       );
     }
-
+    console.log(`[/api/user/plan POST] Successfully fetched user plan for userId: ${userId}`, user);
     return NextResponse.json({
       success: true,
       user,
     });
-  } catch (error) {
-    console.error('获取用户计划错误:', error);
+  } catch (error: any) {
+    console.error('[/api/user/plan POST] Unhandled exception in POST handler:', error); // Log the full error object
+    let errorMessage = '服务器内部错误';
+    if (error && typeof error.message === 'string') {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
     return NextResponse.json(
-      { error: '服务器内部错误', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: '服务器内部错误', details: errorMessage, fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)) },
       { status: 500 }
     );
   }

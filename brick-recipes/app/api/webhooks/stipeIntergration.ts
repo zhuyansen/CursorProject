@@ -1,6 +1,6 @@
 // lib/stripeIntegration.ts
 import Stripe from 'stripe';
-import { UserService, PlanType, SubscriptionPeriod } from '../../../lib/userService';
+import { UserService, PlanType, SubscriptionPeriod, SubscriptionStatus, Subscription as UserSubscription } from '../../../lib/userService';
 import { createUserIfNotExists } from './userCreationHelper';
 
 export interface PriceConfig {
@@ -182,8 +182,11 @@ export class StripeIntegration {
       }
       console.log('用户检查通过:', user.id);
 
-      // 设置语言，默认为英文
-      const locale = data.locale === 'zh' ? 'zh' : 'en';
+      // 设置语言，Stripe支持的中文locale
+      let locale: Stripe.Checkout.SessionCreateParams.Locale = 'en';
+      if (data.locale === 'zh') {
+        locale = 'zh';
+      }
 
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
@@ -196,7 +199,7 @@ export class StripeIntegration {
         ],
         success_url: data.successUrl,
         cancel_url: data.cancelUrl,
-        locale: locale as Stripe.Checkout.SessionCreateParams.Locale,
+        locale: locale,
         metadata: {
           userId: actualUserId, // 使用实际的用户ID
           plan: data.plan,
@@ -468,55 +471,160 @@ export class StripeIntegration {
 
   // 处理订阅创建
   private async handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
+    console.log('[handleSubscriptionCreated] Received subscription object from webhook:', JSON.stringify(subscription, null, 2));
     const userId = subscription.metadata?.userId;
-    const plan = subscription.metadata?.plan as PlanType;
-    const period = subscription.metadata?.period as SubscriptionPeriod;
+    let plan = subscription.metadata?.plan as PlanType;
+    let period = subscription.metadata?.period as SubscriptionPeriod;
 
-    if (!userId || !plan || !period) {
-      console.error('Missing metadata in subscription');
+    console.log(`[handleSubscriptionCreated] Extracted metadata - userId: ${userId}, plan: ${plan}, period: ${period}`);
+
+    if (!userId) {
+      console.error('[handleSubscriptionCreated] CRITICAL: Missing userId in subscription metadata. Cannot proceed.', JSON.stringify(subscription.metadata, null, 2));
       return;
     }
 
     try {
+      // 如果没有plan信息，从价格ID推断
+      if (!plan || !period) {
+        const priceId = subscription.items.data[0]?.price.id;
+        console.log(`[handleSubscriptionCreated] Plan/period missing from metadata. Attempting to infer from priceId: ${priceId}`);
+        const planInfo = this.getPlanFromPriceId(priceId || '');
+        if (planInfo) {
+          plan = planInfo.plan;
+          period = planInfo.period;
+          console.log(`[handleSubscriptionCreated] Inferred plan: ${plan}, period: ${period} from priceId: ${priceId}`);
+        } else {
+          console.error(`[handleSubscriptionCreated] CRITICAL: Could not infer plan/period from priceId ${priceId}. Cannot proceed.`);
+          return;
+        }
+      }
+
       // 更新用户计划
-      await this.userService.updateUserPlan(userId, plan);
-
-      // 验证日期值
-      const startTimestamp = (subscription as any).current_period_start;
-      const endTimestamp = (subscription as any).current_period_end;
-      
-      if (!startTimestamp || !endTimestamp) {
-        console.error('Invalid timestamp values in subscription:', subscription.id);
-        return;
+      console.log(`[handleSubscriptionCreated] Updating user plan for userId: ${userId} to plan: ${plan}`);
+      const planUpdateResult = await this.userService.updateUserPlan(userId, plan);
+      console.log(`[handleSubscriptionCreated] User plan update result for ${userId}: ${planUpdateResult}`);
+      if (!planUpdateResult) {
+        console.error(`[handleSubscriptionCreated] WARNING: Failed to update user plan for ${userId} to ${plan}`);
       }
 
-      // 安全地转换时间戳
-      const startDate = new Date(startTimestamp * 1000);
-      const endDate = new Date(endTimestamp * 1000);
-      
-      // 验证日期对象是否有效
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        console.error('Invalid dates calculated for subscription:', subscription.id);
-        console.error('Start timestamp:', startTimestamp, 'End timestamp:', endTimestamp);
-        return;
-      }
+      // 使用简单的方式处理订阅时间，参考lifetime的成功实现
+      await this.handlePremiumSubscription(userId, plan, period, subscription);
 
-      // 创建订阅记录
-      const priceId = subscription.items.data[0]?.price.id;
-      await this.userService.createSubscription({
-        user_id: userId,
-        plan: plan,
-        period: period,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        stripe_subscription_id: subscription.id,
-        stripe_price_id: priceId,
-        status: 'active',
-      });
-
-      console.log(`Subscription created for user: ${userId}, plan: ${plan}`);
     } catch (error) {
-      console.error('Error handling subscription creation:', error);
+      console.error(`[handleSubscriptionCreated] General error in subscription creation process for userId: ${userId}, subscriptionId: ${subscription.id}:`, error);
+    }
+  }
+
+  // 处理Premium订阅（参考lifetime的简单实现）
+  private async handlePremiumSubscription(
+    userId: string, 
+    plan: PlanType, 
+    period: SubscriptionPeriod, 
+    subscription: Stripe.Subscription
+  ): Promise<void> {
+    try {
+      console.log(`[handlePremiumSubscription] Processing premium subscription for userId: ${userId}, plan: ${plan}, period: ${period}`);
+      
+      // 计算开始和结束日期，使用当前时间作为开始时间
+      const startDate = new Date();
+      const endDate = new Date();
+      
+      if (period === 'monthly') {
+        endDate.setMonth(endDate.getMonth() + 1);
+      } else if (period === 'yearly') {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      }
+
+      console.log(`[handlePremiumSubscription] Calculated dates - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+
+      // 检查是否已存在该订阅记录
+      const existingSubscription = await this.userService.getSubscriptionByStripeId(subscription.id);
+      
+      if (existingSubscription) {
+        console.log(`[handlePremiumSubscription] Updating existing subscription for userId: ${userId}, stripe_subscription_id: ${subscription.id}`);
+        const updateResult = await this.userService.updateSubscription(existingSubscription.id, {
+          plan: plan,
+          period: period,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          stripe_price_id: subscription.items.data[0]?.price.id,
+          status: 'active'
+        });
+        
+        if (updateResult) {
+          console.log(`[handlePremiumSubscription] Successfully updated subscription for user: ${userId}`);
+        } else {
+          console.error(`[handlePremiumSubscription] CRITICAL: Failed to update subscription for user: ${userId}`);
+        }
+      } else {
+        console.log(`[handlePremiumSubscription] Creating new subscription record for userId: ${userId}`);
+        // 创建新的订阅记录，使用简单直接的方式（类似lifetime）
+        const subscriptionRecord = await this.userService.createSubscription({
+          user_id: userId,
+          plan: plan,
+          period: period,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          stripe_subscription_id: subscription.id,
+          stripe_price_id: subscription.items.data[0]?.price.id || '',
+          status: 'active',
+        });
+
+        if (subscriptionRecord) {
+          console.log(`[handlePremiumSubscription] Successfully created subscription for user: ${userId}, plan: ${plan}`);
+        } else {
+          console.error(`[handlePremiumSubscription] CRITICAL: Failed to create subscription for user: ${userId}, plan: ${plan}`);
+        }
+      }
+    } catch (error) {
+      console.error(`[handlePremiumSubscription] Error handling premium subscription for user: ${userId}:`, error);
+    }
+  }
+
+  // Helper function to create/update subscription entry (refactored)
+  private async createSubscriptionEntry(
+    userId: string, 
+    plan: PlanType, 
+    period: SubscriptionPeriod, 
+    startDate: Date, 
+    endDate: Date, 
+    stripeSubscription: Stripe.Subscription, 
+    priceIdFromItems?: string
+  ): Promise<void> {
+    const subscriptionRecordData: Partial<Omit<UserSubscription, 'id' | 'created_at' | 'updated_at'>> & { user_id: string } = {
+      user_id: userId,
+      plan: plan, 
+      period: period,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+      stripe_subscription_id: stripeSubscription.id,
+      stripe_price_id: priceIdFromItems || stripeSubscription.items.data[0]?.price.id || undefined,
+      status: 'active' as SubscriptionStatus,
+    };
+
+    console.log(`[createSubscriptionEntry] Attempting to create/update subscription record for userId: ${userId}. Data:`, JSON.stringify(subscriptionRecordData, null, 2));
+    
+    const existingSubscription = await this.userService.getSubscriptionByStripeId(stripeSubscription.id);
+
+    if (existingSubscription && existingSubscription.id) {
+      console.log(`[createSubscriptionEntry] Existing subscription found for ${stripeSubscription.id}. Updating it. DB ID: ${existingSubscription.id}`);
+      const { user_id, ...updateData } = subscriptionRecordData; 
+      const updateResult = await this.userService.updateSubscription(existingSubscription.id, updateData);
+      if (updateResult) {
+        console.log(`[createSubscriptionEntry] Subscription record successfully updated for user: ${userId}, plan: ${plan}.`);
+      } else {
+        console.error(`[createSubscriptionEntry] CRITICAL: Failed to update existing subscription record for user: ${userId}, stripe_subscription_id: ${stripeSubscription.id}.`);
+      }
+    } else {
+      console.log(`[createSubscriptionEntry] No existing subscription found for ${stripeSubscription.id}. Creating new one.`);
+      const createdSubscription = await this.userService.createSubscription(
+        subscriptionRecordData as Omit<UserSubscription, 'id' | 'created_at' | 'updated_at'>
+      );
+      if (createdSubscription) {
+        console.log(`[createSubscriptionEntry] Subscription record successfully created for user: ${userId}, plan: ${plan}. Result:`, JSON.stringify(createdSubscription, null, 2));
+      } else {
+        console.error(`[createSubscriptionEntry] CRITICAL: Failed to create new subscription record for user: ${userId}, plan: ${plan}.`);
+      }
     }
   }
 

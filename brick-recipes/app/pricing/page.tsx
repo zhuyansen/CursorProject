@@ -3,33 +3,69 @@
 import PricingPlans from "@/components/pricing-plans";
 import { TranslatedText } from "@/components/main-nav";
 import { useLanguage } from "@/components/language-provider";
+import { useAuth } from "@/components/auth-wrapper";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function PricingPage() {
   const { language } = useLanguage();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   
-  // 处理认证成功后的支付链接重定向
+  // 处理认证成功后的支付流程
   useEffect(() => {
     const success = searchParams.get('success');
+    const payment = searchParams.get('payment');
     
-    if (success === 'true') {
+    if (success === 'true' && payment === 'pending' && user) {
       try {
-        const pendingPaymentLink = localStorage.getItem('pendingPaymentLink');
-        if (pendingPaymentLink) {
-          // 清除存储的支付链接
-          localStorage.removeItem('pendingPaymentLink');
+        const pendingPlanType = localStorage.getItem('pendingPlanType');
+        const pendingPlanPeriod = localStorage.getItem('pendingPlanPeriod');
+        
+        if (pendingPlanType && pendingPlanPeriod) {
+          // 清除存储的支付信息
           localStorage.removeItem('pendingPlanType');
+          localStorage.removeItem('pendingPlanPeriod');
           
-          // 打开支付页面
-          window.open(pendingPaymentLink, '_blank');
+          // 创建checkout session
+          const createCheckoutSession = async () => {
+            try {
+              const response = await fetch('/api/payment/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  userId: user.id,
+                  plan: pendingPlanType === 'lifetime' ? 'lifetime' : 'premium',
+                  period: pendingPlanPeriod,
+                  email: user.email,
+                  locale: language === 'zh' ? 'zh' : 'en',
+                }),
+              });
+
+              const result = await response.json();
+              
+              if (response.ok && result.url) {
+                // 重定向到Stripe Checkout
+                window.location.href = result.url;
+              } else {
+                console.error('Failed to create checkout session:', result.error);
+                alert(language === 'zh' ? '创建支付会话失败，请重试' : 'Failed to create payment session, please try again');
+              }
+            } catch (error) {
+              console.error('Error creating checkout session:', error);
+              alert(language === 'zh' ? '网络错误，请重试' : 'Network error, please try again');
+            }
+          };
+
+          createCheckoutSession();
         }
       } catch (error) {
         console.error('Error handling payment redirect:', error);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, user, language]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

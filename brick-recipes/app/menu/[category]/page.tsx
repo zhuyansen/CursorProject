@@ -477,9 +477,9 @@ export default function CategoryPage() {
         )}
           </>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center">
-            <div className="text-5xl mb-6">🍽️</div>
-            <h2 className="text-xl font-bold mb-2 dark:text-white">{t("recipe.noRecipesFound")}</h2>
+          <div className="text-center py-12">
+            <div className="text-5xl mb-4">🔍</div>
+            <h3 className="text-xl font-bold mb-2 dark:text-white">{t("menu.noRecipesFound")}</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto">
               {language === "zh" 
                 ? `抱歉，我们没有找到${t(categoryInfo.nameKey)}分类下的菜谱。` 

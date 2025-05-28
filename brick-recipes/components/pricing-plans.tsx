@@ -1,30 +1,26 @@
 import { Button } from "@/components/ui/button"
-import { Check, Minus, Construction } from "lucide-react"
-import { TranslatedText } from "@/components/main-nav"
-import { useLanguage } from "@/components/language-provider"
-import { useAuth } from "@/components/auth-wrapper"
+import { Check, Minus } from "lucide-react"
+import { TranslatedText } from "./main-nav"
+import { useLanguage } from "./language-provider"
+import { useAuth } from "./auth-wrapper"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 
 // 添加一个开发中的功能标签组件
 const DevBadge = ({ children }: { children: React.ReactNode }) => {
-  const { language } = useLanguage();
   return (
-    <div className="flex items-center">
-      {children}
-      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-        <Construction className="w-3 h-3 mr-1" />
-        {language === "zh" ? "开发中" : "Dev"}
-      </span>
-    </div>
-  );
-};
+    <span className="ml-2 inline-flex items-center rounded-full bg-orange-100 dark:bg-orange-900 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-200">
+      开发中
+    </span>
+  )
+}
 
 export default function PricingPlans() {
   const { t, language } = useLanguage()
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
   
   // 直接使用原始路径
   const recipesLink = "/brick-link-recipes"
@@ -35,28 +31,60 @@ export default function PricingPlans() {
   const lifetimePlanLink = process.env.STRIPE_LIFETIME_MEMBER_PLAN_LINK || "#"
 
   // 处理购买按钮点击
-  const handlePurchaseClick = useCallback((paymentLink: string, planType: string) => {
-    if (isLoading) return; // 如果正在加载，不做任何操作
+  const handlePurchaseClick = useCallback(async (planType: 'monthly' | 'yearly' | 'lifetime', planPeriod: 'monthly' | 'yearly' | 'one_time_purchase') => {
+    if (isLoading || loadingPlan) return; // 如果正在加载，不做任何操作
 
-    if (user) {
-      // 用户已登录，直接跳转到Stripe支付页面
-      window.open(paymentLink, '_blank', 'noopener,noreferrer');
-    } else {
-      // 用户未登录，保存支付链接并重定向到登录页面
+    if (!user) {
+      // 用户未登录，保存支付信息并重定向到登录页面
       try {
-        localStorage.setItem('pendingPaymentLink', paymentLink);
         localStorage.setItem('pendingPlanType', planType);
-        console.log(`Saving payment link for ${planType}:`, paymentLink);
+        localStorage.setItem('pendingPlanPeriod', planPeriod);
+        console.log(`Saving plan info for ${planType}:`, { planType, planPeriod });
         
         // 重定向到登录页面，包含返回当前页面的参数
         router.push('/sign-in?redirect=/pricing&payment=pending');
       } catch (error) {
-        console.error('Error saving payment link to localStorage:', error);
+        console.error('Error saving plan info to localStorage:', error);
         // 如果localStorage不可用，直接跳转到登录页面
         router.push('/sign-in');
       }
+      return;
     }
-  }, [user, isLoading, router]);
+
+    // 用户已登录，创建checkout session
+    setLoadingPlan(planType);
+    
+    try {
+      const response = await fetch('/api/payment/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          plan: planType === 'lifetime' ? 'lifetime' : 'premium',
+          period: planPeriod,
+          email: user.email,
+          locale: language === 'zh' ? 'zh' : 'en',
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.url) {
+        // 重定向到Stripe Checkout
+        window.location.href = result.url;
+      } else {
+        console.error('Failed to create checkout session:', result.error);
+        alert(language === 'zh' ? '创建支付会话失败，请重试' : 'Failed to create payment session, please try again');
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert(language === 'zh' ? '网络错误，请重试' : 'Network error, please try again');
+    } finally {
+      setLoadingPlan(null);
+    }
+  }, [user, isLoading, router, language, loadingPlan]);
 
   // 处理免费计划的点击（不需要登录验证）
   const handleFreeClick = useCallback(() => {
@@ -125,11 +153,11 @@ export default function PricingPlans() {
                 <span className="text-gray-600 dark:text-gray-300">{language === "zh" ? "/月" : "/month"}</span>
               </div>
               <Button
-                onClick={() => handlePurchaseClick(monthlyPlanLink, 'monthly')}
-                disabled={isLoading}
+                onClick={() => handlePurchaseClick('monthly', 'monthly')}
+                disabled={isLoading || loadingPlan === 'monthly'}
                 className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
               >
-                {isLoading ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
+                {loadingPlan === 'monthly' ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
               </Button>
             </div>
             <div className="border-t dark:border-gray-700 p-6">
@@ -191,11 +219,11 @@ export default function PricingPlans() {
                 {language === "zh" ? "节省 25%" : "Save 25%"}
               </div>
               <Button
-                onClick={() => handlePurchaseClick(yearlyPlanLink, 'yearly')}
-                disabled={isLoading}
+                onClick={() => handlePurchaseClick('yearly', 'yearly')}
+                disabled={isLoading || loadingPlan === 'yearly'}
                 className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
               >
-                {isLoading ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
+                {loadingPlan === 'yearly' ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
               </Button>
             </div>
             <div className="border-t dark:border-gray-700 p-6">
@@ -253,11 +281,11 @@ export default function PricingPlans() {
                 <span className="text-gray-600 dark:text-gray-300">{language === "zh" ? "/终身" : "/lifetime"}</span>
               </div>
               <Button
-                onClick={() => handlePurchaseClick(lifetimePlanLink, 'lifetime')}
-                disabled={isLoading}
+                onClick={() => handlePurchaseClick('lifetime', 'one_time_purchase')}
+                disabled={isLoading || loadingPlan === 'lifetime'}
                 className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-white"
               >
-                {isLoading ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
+                {loadingPlan === 'lifetime' ? (language === "zh" ? "加载中..." : "Loading...") : (language === "zh" ? "立即购买" : "Buy Now")}
               </Button>
             </div>
             <div className="border-t dark:border-gray-700 p-6">

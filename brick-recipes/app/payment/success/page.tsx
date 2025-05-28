@@ -1,107 +1,98 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle, ArrowRight, Clock } from 'lucide-react';
 import { useLanguage } from '@/components/language-provider';
+import { useAuth } from '@/components/auth-wrapper';
+import { Check, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function PaymentSuccessPage() {
-  const searchParams = useSearchParams();
+  const { language } = useLanguage();
+  const { user } = useAuth();
   const router = useRouter();
-  const { t, language } = useLanguage();
-  const [countdown, setCountdown] = useState(5);
-
-  const sessionId = searchParams.get('session_id');
-
-  // 使用useCallback避免在渲染期间调用router.push
-  const navigateToHome = useCallback(() => {
-    router.push('/');
-  }, [router]);
+  const searchParams = useSearchParams();
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    // 倒计时自动跳转
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // 延迟导航，避免在渲染期间调用
-          setTimeout(navigateToHome, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const sessionIdParam = searchParams.get('session_id');
+    if (sessionIdParam) {
+      setSessionId(sessionIdParam);
+    }
 
-    return () => clearInterval(timer);
-  }, [navigateToHome]);
+    // 等待一段时间让webhook处理完成
+    const timer = setTimeout(() => {
+      setIsProcessing(false);
+    }, 3000);
 
-  const handleGoToPricing = () => {
+    return () => clearTimeout(timer);
+  }, [searchParams]);
+
+  useEffect(() => {
+    // 5秒后自动跳转到首页
+    const redirectTimer = setTimeout(() => {
+      router.push('/');
+    }, 5000);
+
+    return () => clearTimeout(redirectTimer);
+  }, [router]);
+
+  const handleGoHome = () => {
     router.push('/');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          {/* 成功图标 */}
-          <div className="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-12 h-12 text-green-600" />
-          </div>
-
-          {/* 标题 */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            {language === 'zh' ? '支付成功！' : 'Payment Successful!'}
+    <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="max-w-md mx-auto text-center p-8">
+        <div className="mb-8">
+          {isProcessing ? (
+            <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+              <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
+            </div>
+          ) : (
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
+              <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+          )}
+          
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            {isProcessing 
+              ? (language === 'zh' ? '正在处理您的付款...' : 'Processing your payment...')
+              : (language === 'zh' ? '付款成功！' : 'Payment Successful!')
+            }
           </h1>
-
-          {/* 描述 */}
-          <p className="text-gray-600 mb-6">
-            {language === 'zh' 
-              ? '感谢您的购买！您的订阅已经激活，现在可以享受所有高级功能了。'
-              : 'Thank you for your purchase! Your subscription has been activated and you can now enjoy all premium features.'
+          
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            {isProcessing 
+              ? (language === 'zh' ? '请稍候，我们正在激活您的会员权益' : 'Please wait while we activate your membership benefits')
+              : (language === 'zh' ? '感谢您的购买！您的会员权益已生效。' : 'Thank you for your purchase! Your membership benefits are now active.')
             }
           </p>
 
-          {/* 会话ID（如果存在） */}
           {sessionId && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-500 mb-1">
-                {language === 'zh' ? '订单ID:' : 'Order ID:'}
-              </p>
-              <p className="text-sm font-mono text-gray-800 break-all">
-                {sessionId}
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              {language === 'zh' ? '交易ID: ' : 'Transaction ID: '}
+              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-xs">
+                {sessionId.substring(0, 20)}...
+              </code>
+            </p>
+          )}
+
+          {!isProcessing && (
+            <div className="space-y-4">
+              <Button 
+                onClick={handleGoHome}
+                className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
+              >
+                {language === 'zh' ? '返回首页' : 'Go to Homepage'}
+              </Button>
+              
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {language === 'zh' ? '5秒后将自动跳转到首页...' : 'Automatically redirecting to homepage in 5 seconds...'}
               </p>
             </div>
           )}
-
-          {/* 自动跳转提示 */}
-          <div className="flex items-center justify-center text-gray-500 text-sm mb-6">
-            <Clock className="w-4 h-4 mr-2" />
-            <span>
-              {language === 'zh' 
-                ? `${countdown} 秒后自动跳转到首页页面`
-                : `Redirecting to home page in ${countdown} seconds`
-              }
-            </span>
-          </div>
-
-          {/* 立即跳转按钮 */}
-          <button
-            onClick={handleGoToPricing}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center group"
-          >
-            <span>
-              {language === 'zh' ? '立即查看会员权益' : 'View Member Benefits Now'}
-            </span>
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </button>
-
-          {/* 额外提示 */}
-          <p className="text-xs text-gray-400 mt-4">
-            {language === 'zh' 
-              ? '如有任何问题，请联系我们的客服团队'
-              : 'If you have any questions, please contact our customer service team'
-            }
-          </p>
         </div>
       </div>
     </div>

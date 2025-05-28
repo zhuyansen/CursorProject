@@ -47,7 +47,7 @@ export default function ProtectedPage() {
 
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
         <h2 className="font-bold text-2xl mb-4"><TranslatedText textKey="auth.userDetails" /></h2>
-        <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded overflow-auto">
+        <pre className="bg-gray-100 p-4 rounded">
           {JSON.stringify(user, null, 2)}
         </pre>
       </div>

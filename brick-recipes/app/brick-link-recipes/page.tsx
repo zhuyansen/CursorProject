@@ -1035,20 +1035,20 @@ export default function BrickLinkRecipes() {
               </>
             ) : (
               !isLoading && (
-                  <div className="text-center py-12">
-                    <div className="text-5xl mb-4">🔍</div>
-                    <h3 className="text-xl font-bold mb-2 dark:text-white">{t("recipe.noRecipesFound")}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 mb-6">{t("recipe.trySelecting")}</p>
-                    <Button
-                      variant="outline"
-                    onClick={clearAllFilters}
-                      className="dark:text-gray-300 dark:border-gray-600"
-                    >
-                      {t("button.clearAll")}
-                    </Button>
-                  </div>
+                    <div className="text-center py-12">
+                      <div className="text-5xl mb-4">🔍</div>
+                      <h3 className="text-xl font-bold mb-2 dark:text-white">{t("recipe.noRecipesFound")}</h3>
+                      <p className="text-gray-600 dark:text-gray-300 mb-6">{t("recipe.trySelecting")}</p>
+                      <Button
+                        variant="outline"
+                        onClick={clearAllFilters}
+                        className="dark:text-gray-300 dark:border-gray-600"
+                      >
+                        {t("button.clearAll")}
+                      </Button>
+                    </div>
               )
-                )}
+            )}
           </div>
         </div>
       </div>
