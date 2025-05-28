@@ -1,6 +1,7 @@
 // lib/stripeIntegration.ts
 import Stripe from 'stripe';
 import { UserService, PlanType, SubscriptionPeriod } from '../../../lib/userService';
+import { createUserIfNotExists } from './userCreationHelper';
 
 export interface PriceConfig {
   monthly: string;
@@ -21,6 +22,7 @@ export interface CheckoutSessionData {
   email: string;
   successUrl: string;
   cancelUrl: string;
+  locale?: string;
 }
 
 export interface SubscriptionUpdateData {
@@ -58,6 +60,48 @@ export class StripeIntegration {
   // 创建Stripe客户
   async createCustomer(userId: string, email: string, name?: string): Promise<string | null> {
     try {
+      console.log('开始创建Stripe客户，userId:', userId, 'email:', email);
+
+      // 先检查用户是否存在，如果不存在则创建
+      let user = await this.userService.getUser(userId);
+      if (!user) {
+        console.log('用户不存在，需要创建用户记录');
+        // 创建用户记录
+        const userCreated = await createUserIfNotExists(userId, email);
+        if (!userCreated) {
+          console.error('Failed to create user record for:', userId);
+          return null;
+        }
+        console.log('用户记录创建成功');
+        
+        // 等待一下确保用户记录已创建
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        user = await this.userService.getUser(userId);
+        console.log('重新获取用户信息:', user ? '成功' : '失败');
+        
+        // 如果仍然没有找到用户，可能需要使用Auth用户ID
+        if (!user) {
+          console.log('使用传入的userId未找到用户，可能需要查找Auth用户ID');
+          // 这里我们假设createUserIfNotExists已经创建了正确的用户记录
+          // 我们需要通过email查找用户
+          const userByEmail = await this.userService.getUserByEmail(email);
+          if (userByEmail) {
+            console.log('通过email找到用户:', userByEmail.id);
+            user = userByEmail;
+            userId = userByEmail.id; // 更新userId为实际的Auth用户ID
+          }
+        }
+        
+        if (!user) {
+          console.error('创建用户后仍然无法找到用户记录');
+          return null;
+        }
+      } else {
+        console.log('用户已存在:', user.id);
+      }
+
+      console.log('开始创建Stripe客户...');
       const customer = await this.stripe.customers.create({
         email,
         name,
@@ -65,9 +109,12 @@ export class StripeIntegration {
           userId: userId,
         },
       });
+      console.log('Stripe客户创建成功:', customer.id);
 
       // 更新用户的customer_id
-      await this.userService.updateUserCustomerId(userId, customer.id);
+      console.log('更新用户的customer_id...');
+      const updateResult = await this.userService.updateUserCustomerId(userId, customer.id);
+      console.log('更新customer_id结果:', updateResult);
       
       return customer.id;
     } catch (error) {
@@ -78,12 +125,16 @@ export class StripeIntegration {
 
   // 获取或创建Stripe客户
   async getOrCreateCustomer(userId: string, email: string, name?: string): Promise<string | null> {
+    console.log('开始获取或创建客户，userId:', userId, 'email:', email);
+    
     // 首先尝试从数据库获取
     const user = await this.userService.getUser(userId);
     if (user?.customer_id) {
+      console.log('找到现有客户ID:', user.customer_id);
       return user.customer_id;
     }
 
+    console.log('没有找到现有客户，需要创建新客户');
     // 如果没有，创建新客户
     return await this.createCustomer(userId, email, name);
   }
@@ -91,22 +142,48 @@ export class StripeIntegration {
   // 创建结账会话
   async createCheckoutSession(data: CheckoutSessionData): Promise<Stripe.Checkout.Session | null> {
     try {
-      const user = await this.userService.getUser(data.userId);
-      if (!user) {
-        throw new Error('User not found');
-      }
+      console.log('开始创建checkout session，参数:', data);
 
       // 获取价格ID
       const priceId = this.getPriceId(data.plan, data.period);
       if (!priceId) {
+        console.error('获取价格ID失败，plan:', data.plan, 'period:', data.period);
         throw new Error('Invalid plan or period');
       }
+      console.log('获取价格ID成功:', priceId);
 
-      // 获取或创建客户
+      // 获取或创建客户（这里会自动创建用户记录如果不存在）
+      console.log('开始获取或创建客户...');
       const customerId = await this.getOrCreateCustomer(data.userId, data.email);
       if (!customerId) {
+        console.error('获取或创建客户失败');
         throw new Error('Failed to create customer');
       }
+      console.log('获取或创建客户成功:', customerId);
+
+      // 现在检查用户是否存在，如果不存在则通过email查找
+      console.log('检查用户是否存在...');
+      let user = await this.userService.getUser(data.userId);
+      let actualUserId = data.userId;
+      
+      if (!user) {
+        console.log('使用传入的userId未找到用户，尝试通过email查找...');
+        const userByEmail = await this.userService.getUserByEmail(data.email);
+        if (userByEmail) {
+          console.log('通过email找到用户:', userByEmail.id);
+          user = userByEmail;
+          actualUserId = userByEmail.id;
+        }
+      }
+      
+      if (!user) {
+        console.error('用户记录不存在，userId:', data.userId, 'email:', data.email);
+        throw new Error('User not found after customer creation');
+      }
+      console.log('用户检查通过:', user.id);
+
+      // 设置语言，默认为英文
+      const locale = data.locale === 'zh' ? 'zh' : 'en';
 
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
@@ -119,8 +196,9 @@ export class StripeIntegration {
         ],
         success_url: data.successUrl,
         cancel_url: data.cancelUrl,
+        locale: locale as Stripe.Checkout.SessionCreateParams.Locale,
         metadata: {
-          userId: data.userId,
+          userId: actualUserId, // 使用实际的用户ID
           plan: data.plan,
           period: data.period,
         },
@@ -133,14 +211,16 @@ export class StripeIntegration {
         sessionConfig.mode = 'subscription';
         sessionConfig.subscription_data = {
           metadata: {
-            userId: data.userId,
+            userId: actualUserId, // 使用实际的用户ID
             plan: data.plan,
             period: data.period,
           },
         };
       }
 
+      console.log('开始创建Stripe checkout session...');
       const session = await this.stripe.checkout.sessions.create(sessionConfig);
+      console.log('Stripe checkout session创建成功:', session.id);
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -245,19 +325,55 @@ export class StripeIntegration {
       const foundUserId = await this.userService.getUserByStripeCustomerId(customerId);
       if (foundUserId) {
         userId = foundUserId;
+        console.log(`Found userId from customer ID: ${userId}`);
+      } else {
+        console.warn(`No user found for customer ID: ${customerId}`);
+        
+        // 尝试从Stripe客户信息获取email和userId
+        try {
+          const customer = await this.stripe.customers.retrieve(customerId);
+          if (customer && !customer.deleted && customer.metadata?.userId) {
+            userId = customer.metadata.userId;
+            console.log(`Retrieved userId from Stripe customer metadata: ${userId}`);
+            
+            // 尝试创建用户记录并更新customer_id
+            if (userId && customer.email) {
+              const userCreated = await createUserIfNotExists(userId, customer.email);
+              if (userCreated) {
+                await this.userService.updateUserCustomerId(userId, customerId);
+                console.log(`Created user record and linked customer: ${userId}`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error retrieving customer from Stripe:', error);
+        }
       }
     }
 
-    // 如果仍然没有userId，记录警告但继续处理
+    // 如果仍然没有userId，记录错误并返回
     if (!userId) {
-      console.warn('No userId found for checkout session:', session.id);
-      console.warn('Customer:', session.customer);
+      console.error('No userId found for checkout session:', session.id);
+      console.error('Customer:', session.customer);
+      console.error('Metadata:', session.metadata);
       return;
     }
 
     // 如果没有plan信息，尝试从price ID推断
     if (!plan || !period) {
-      const lineItems = session.line_items?.data || [];
+      // 从session中获取line items
+      let sessionWithLineItems = session;
+      if (!session.line_items) {
+        try {
+          sessionWithLineItems = await this.stripe.checkout.sessions.retrieve(session.id, {
+            expand: ['line_items']
+          });
+        } catch (error) {
+          console.error('Error retrieving session with line items:', error);
+        }
+      }
+
+      const lineItems = sessionWithLineItems.line_items?.data || [];
       if (lineItems.length > 0) {
         const priceId = lineItems[0].price?.id;
         const planInfo = this.getPlanFromPriceId(priceId || '');
@@ -272,13 +388,17 @@ export class StripeIntegration {
     // 如果还是没有plan信息，尝试从subscription获取
     if ((!plan || !period) && session.subscription) {
       const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription.id;
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-      const priceId = subscription.items.data[0]?.price.id;
-      const planInfo = this.getPlanFromPriceId(priceId || '');
-      if (planInfo) {
-        plan = planInfo.plan;
-        period = planInfo.period;
-        console.log(`Inferred plan from subscription ${subscriptionId}: ${plan} (${period})`);
+      try {
+        const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+        const priceId = subscription.items.data[0]?.price.id;
+        const planInfo = this.getPlanFromPriceId(priceId || '');
+        if (planInfo) {
+          plan = planInfo.plan;
+          period = planInfo.period;
+          console.log(`Inferred plan from subscription ${subscriptionId}: ${plan} (${period})`);
+        }
+      } catch (error) {
+        console.error('Error retrieving subscription:', error);
       }
     }
 
@@ -288,6 +408,13 @@ export class StripeIntegration {
     }
 
     console.log(`Processing checkout for user ${userId}, plan: ${plan}, period: ${period}`);
+
+    // 确保用户存在
+    const user = await this.userService.getUser(userId);
+    if (!user) {
+      console.error(`User not found in database: ${userId}`);
+      return;
+    }
 
     if (plan === 'lifetime') {
       // 终身会员处理

@@ -5,7 +5,7 @@ import { PlanType, SubscriptionPeriod } from '../../../../lib/userService';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, plan, period, email } = body;
+    const { userId, plan, period, email, locale } = body;
 
     // 验证必需参数
     if (!userId || !plan || !period || !email) {
@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
       plan,
       period,
       email,
+      locale,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=true`,
     });

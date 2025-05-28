@@ -10,6 +10,8 @@ import { PlayCircle, Clock, Flame, ChevronLeft, ChevronRight, ChefHat } from "lu
 import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
 import CaloriesDisplay from "@/components/calories-display"
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useUserPlan } from '@/hooks/useUserPlan'
 
 // 定义菜谱类型
 interface Recipe {
@@ -45,6 +47,8 @@ export default function CategoryPage() {
   const params = useParams()
   const router = useRouter()
   const category = params.category as string
+  const { checkAuthWithMessage } = useAuthGuard()
+  const { checkAndHandleUsage } = useUserPlan()
   
   const [recipes, setRecipes] = useState<Recipe[]>([])
   const [pagination, setPagination] = useState<Pagination>({
@@ -277,6 +281,20 @@ export default function CategoryPage() {
     loadRecipes(1, newPageSize);
   }
 
+  const handleViewRecipe = (recipeId: string) => {
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
+    checkAuthWithMessage(async () => {
+      // 用户已登录，进行使用量检查和跟踪
+      const success = await checkAndHandleUsage(
+        'brick', 
+        language === "zh" ? "查看食谱" : "view recipe",
+        () => {
+          window.location.href = `/recipe-details?id=${recipeId}`;
+        }
+      );
+    }, language === "zh" ? "查看食谱" : "view recipe");
+  };
+
   // 初始加载
   useEffect(() => {
     if (category) {
@@ -413,13 +431,12 @@ export default function CategoryPage() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-4 mb-3">
-                      <Link href={`/recipe-details?id=${recipe.id}`} className="w-full block">
-                        <Button
-                          className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
-                        >
-                          {t("button.viewRecipe")}
-                        </Button>
-                      </Link>
+                      <Button
+                        onClick={() => handleViewRecipe(recipe.id)}
+                        className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
+                      >
+                        {t("button.viewRecipe")}
+                      </Button>
                     </div>
                   </div>
                 </div>

@@ -13,6 +13,8 @@ import { useLanguage } from "@/components/language-provider"
 import { cn } from "@/lib/utils"
 import CaloriesDisplay from "@/components/calories-display"
 import { useAuthGuard } from "@/hooks/useAuthGuard"
+import { useUserPlan } from "@/hooks/useUserPlan"
+import { UsageLimitDialog } from "@/components/ui/usage-limit-dialog"
 
 // 定义全局样式
 const globalStyles = {
@@ -97,6 +99,7 @@ export default function BrickLinkRecipes() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { checkAuthWithMessage } = useAuthGuard()
+  const { checkAndHandleUsage, limitDialog, closeLimitDialog, userPlan, incrementUsage } = useUserPlan()
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -524,9 +527,23 @@ export default function BrickLinkRecipes() {
 
   // 在handleSearch函数之前添加认证检查的包装函数
   const handleApplyFilters = () => {
-    checkAuthWithMessage(() => {
-      handleSearch();
-    }, language === "zh" ? "筛选功能" : "filtering");
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
+    checkAuthWithMessage(async () => {
+      // 用户已登录，进行使用量检查和跟踪
+      const success = await checkAndHandleUsage(
+        'brick',
+        language === "zh" ? "食谱筛选" : "recipe filtering",
+        async () => {
+          try {
+            // 执行搜索
+            await handleSearch();
+            console.log('食谱筛选功能使用成功');
+          } catch (error) {
+            console.error('处理筛选失败:', error);
+          }
+        }
+      );
+    }, language === "zh" ? "食谱筛选" : "recipe filtering");
   };
 
   return (
@@ -688,7 +705,7 @@ export default function BrickLinkRecipes() {
               <h2 className="text-xl font-bold dark:text-white">{t("recipe.recipeResults")}</h2>
             </div>
 
-            {isLoading && <p className="text-center dark:text-white">{t("recipe.loading") || "Loading recipes..."}</p>}
+            {isLoading && <p className="text-center dark:text-white">{t("common.loading")}</p>}
             {!isLoading && apiRecipes.length > 0 ? (
               <>
                 <div className="grid sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 px-2 md:px-4">
@@ -1035,6 +1052,18 @@ export default function BrickLinkRecipes() {
           </div>
         </div>
       </div>
+
+      {/* 在页面末尾添加限制对话框 */}
+      <UsageLimitDialog
+        isOpen={limitDialog.isOpen}
+        onClose={closeLimitDialog}
+        usageType={limitDialog.usageType}
+        featureName={limitDialog.featureName}
+        currentPlan={userPlan?.plan || 'free'}
+        current={limitDialog.current}
+        limit={limitDialog.limit}
+        language={language}
+      />
     </div>
   )
 }

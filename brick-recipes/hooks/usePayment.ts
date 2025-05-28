@@ -9,6 +9,7 @@ interface PaymentHookResult {
     plan: PlanType;
     period: SubscriptionPeriod;
     email: string;
+    locale?: string;
   }) => Promise<{ url: string } | null>;
   createPortalSession: (userId: string) => Promise<{ url: string } | null>;
   getUserStatus: (userId: string) => Promise<any>;
@@ -28,6 +29,7 @@ export const usePayment = (): PaymentHookResult => {
     plan: PlanType;
     period: SubscriptionPeriod;
     email: string;
+    locale?: string;
   }) => {
     setLoading(true);
     setError(null);

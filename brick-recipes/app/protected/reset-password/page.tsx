@@ -14,6 +14,7 @@ import { TranslatedText } from "@/components/main-nav";
 import Link from "next/link";
 
 export default function ResetPassword() {
+  const [mounted, setMounted] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -22,6 +23,7 @@ export default function ResetPassword() {
   const { t, language } = useLanguage();
 
   useEffect(() => {
+    setMounted(true);
     // Check for error or success messages in the search params
     const success = searchParams.get('success');
     const error = searchParams.get('error');
@@ -49,12 +51,16 @@ export default function ResetPassword() {
     }
   }, [user, isLoading, router, searchParams, t, language]);
 
+  if (!mounted) {
+    return null;
+  }
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="flex flex-col items-center">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-[#b94a2c] dark:border-gray-700 dark:border-t-[#ff6b47]"></div>
-          <span className="mt-4 text-sm text-gray-600 dark:text-gray-400">加载中...</span>
+          <span className="mt-4 text-sm text-gray-600 dark:text-gray-400">{t("common.loading")}</span>
         </div>
       </div>
     );

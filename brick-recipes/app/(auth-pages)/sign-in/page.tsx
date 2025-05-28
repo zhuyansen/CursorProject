@@ -186,10 +186,13 @@ export default function Login() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
       
+      // 使用环境变量中的APP_URL而不是window.location.origin
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent(finalRedirectPath)}`
+          redirectTo: `${baseUrl}/auth/callback?redirect_to=${encodeURIComponent(finalRedirectPath)}`
         }
       });
       

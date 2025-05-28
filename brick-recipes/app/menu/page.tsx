@@ -9,6 +9,7 @@ import { useLanguage } from "@/components/language-provider"
 import { categories } from "@/data/recipes"
 import CaloriesDisplay from "@/components/calories-display"
 import { useAuthGuard } from "@/hooks/useAuthGuard"
+import { useUserPlan } from '@/hooks/useUserPlan'
 
 // 定义菜谱类型
 interface Recipe {
@@ -56,6 +57,7 @@ const LOADING_TRACKER = {
 
 const CategorySection = ({ category, language, t }: CategorySectionProps) => {
   const { checkAuthWithMessage } = useAuthGuard()
+  const { checkAndHandleUsage } = useUserPlan()
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCached, setIsCached] = useState(false);
@@ -195,9 +197,24 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
 
   // 添加认证检查的View All处理函数
   const handleViewAll = () => {
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
     checkAuthWithMessage(() => {
       window.location.href = `/menu/${category.id}`;
-    }, language === "zh" ? "查看全部功能" : "view all");
+    }, language === "zh" ? "查看全部" : "view all");
+  };
+
+  const handleViewRecipe = (recipeId: string) => {
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
+    checkAuthWithMessage(async () => {
+      // 用户已登录，进行使用量检查和跟踪
+      const success = await checkAndHandleUsage(
+        'brick', 
+        language === "zh" ? "查看食谱" : "view recipe",
+        () => {
+          window.location.href = `/recipe-details?id=${recipeId}`;
+        }
+      );
+    }, language === "zh" ? "查看食谱" : "view recipe");
   };
 
   if (isLoading) {
@@ -293,13 +310,12 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                           recipe.difficulty}
                       </span>
                     </div>
-                    <Link href={`/recipe-details?id=${recipe.id}`}>
-                      <Button 
-                        className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
-                      >
-                        {t("button.viewRecipe")}
-                      </Button>
-                    </Link>
+                    <Button 
+                      onClick={() => handleViewRecipe(recipe.id)}
+                      className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
+                    >
+                      {t("button.viewRecipe")}
+                    </Button>
                   </div>
                 </div>
               </div>

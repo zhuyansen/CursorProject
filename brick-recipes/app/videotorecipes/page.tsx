@@ -18,10 +18,13 @@ import {
   DialogDescription
 } from "@/components/ui/dialog"
 import { useAuthGuard } from "@/hooks/useAuthGuard"
+import { useUserPlan } from "@/hooks/useUserPlan"
+import { UsageLimitDialog } from "@/components/ui/usage-limit-dialog"
 
 export default function VideoToRecipes() {
   const { t, language } = useLanguage()
   const { checkAuthWithMessage } = useAuthGuard()
+  const { checkAndHandleUsage, limitDialog, closeLimitDialog, userPlan } = useUserPlan()
   const [videoUrl, setVideoUrl] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisComplete, setAnalysisComplete] = useState(false)
@@ -875,9 +878,17 @@ export default function VideoToRecipes() {
 
   // 添加认证检查的包装函数
   const handleAnalyzeVideoWithAuth = () => {
-    checkAuthWithMessage(() => {
-      handleAnalyzeVideo();
-    }, language === "zh" ? "视频分析功能" : "video analysis");
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
+    checkAuthWithMessage(async () => {
+      // 用户已登录，进行使用量检查和跟踪
+      const success = await checkAndHandleUsage(
+        'video',
+        language === "zh" ? "视频分析" : "video analysis",
+        () => {
+          handleAnalyzeVideo();
+        }
+      );
+    }, language === "zh" ? "视频分析" : "video analysis");
   };
 
   return (
@@ -1504,7 +1515,7 @@ export default function VideoToRecipes() {
                           // 如果都没有找到可用的配料信息，显示加载中
                           return (
                             <li className="col-span-full flex items-center justify-center p-4 text-gray-500 dark:text-gray-400">
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> 加载中...
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t("common.loading")}
                             </li>
                           );
                         })()}
@@ -1978,7 +1989,7 @@ export default function VideoToRecipes() {
                             </li>
                           ))
                         ) : (
-                          <li>加载中...</li>
+                          <li>{t("common.loading")}</li>
                         )}
                       </ol>
                     </div>
@@ -2208,6 +2219,18 @@ export default function VideoToRecipes() {
           </details>
         </div>
       )} */}
+
+      {/* 在页面末尾添加限制对话框 */}
+      <UsageLimitDialog
+        isOpen={limitDialog.isOpen}
+        onClose={closeLimitDialog}
+        usageType={limitDialog.usageType}
+        featureName={limitDialog.featureName}
+        currentPlan={userPlan?.plan || 'free'}
+        current={limitDialog.current}
+        limit={limitDialog.limit}
+        language={language}
+      />
     </div>
   )
 } 

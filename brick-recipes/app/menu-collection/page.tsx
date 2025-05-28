@@ -10,6 +10,8 @@ import { Search, Clock, Flame, PlayCircle, ChefHat } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useLanguage } from "@/components/language-provider"
 import { useSearchParams } from "next/navigation"
+import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useUserPlan } from '@/hooks/useUserPlan'
 
 // Mock data for recipe results
 const mockRecipes = {
@@ -426,6 +428,8 @@ const mockRecipes = {
 export default function MenuCollection() {
   const { t, language } = useLanguage()
   const searchParams = useSearchParams()
+  const { checkAuthWithMessage } = useAuthGuard()
+  const { checkAndHandleUsage } = useUserPlan()
   const [searchQuery, setSearchQuery] = useState("")
   const [activeCategory, setActiveCategory] = useState("breakfast")
   
@@ -441,6 +445,20 @@ export default function MenuCollection() {
   const filteredRecipes = mockRecipes[activeCategory as keyof typeof mockRecipes].filter((recipe) => {
     return recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
   })
+
+  const handleViewRecipe = (recipeId: string) => {
+    // 首先检查用户是否登录，未登录直接重定向到登录页面
+    checkAuthWithMessage(async () => {
+      // 用户已登录，进行使用量检查和跟踪
+      const success = await checkAndHandleUsage(
+        'brick', 
+        language === "zh" ? "查看食谱" : "view recipe",
+        () => {
+          window.location.href = `/recipe-details?id=${recipeId}`;
+        }
+      );
+    }, language === "zh" ? "查看食谱" : "view recipe");
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -553,15 +571,14 @@ export default function MenuCollection() {
                               </div>
                             </div>
                             <div className="flex justify-between mt-4">
-                              <Link href={`/recipe-details?id=${recipe.id}`}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-[#b94a2c] dark:text-[#ff6b47] dark:border-gray-600 w-full"
-                                >
-                                  {t("button.viewRecipe")}
-                                </Button>
-                              </Link>
+                              <Button
+                                onClick={() => handleViewRecipe(recipe.id.toString())}
+                                variant="outline"
+                                size="sm"
+                                className="text-[#b94a2c] dark:text-[#ff6b47] dark:border-gray-600 w-full"
+                              >
+                                {t("button.viewRecipe")}
+                              </Button>
                             </div>
                           </div>
                         </div>

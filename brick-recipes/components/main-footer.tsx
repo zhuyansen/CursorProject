@@ -52,6 +52,9 @@ export function MainFooter() {
               <Link href={videoToRecipesLink} className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
                 <TranslatedText textKey="nav.videoToRecipes" />
               </Link>
+              <Link href="/pricing" className="text-gray-600 hover:text-gray-900 hover:underline dark:text-gray-400 dark:hover:text-white transition-colors border-b border-transparent hover:border-gray-300 dark:hover:border-gray-400">
+                <TranslatedText textKey="nav.billing" />
+              </Link>
             </div>
           </div>
           <div>

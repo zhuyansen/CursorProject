@@ -1,28 +1,34 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/auth-wrapper";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { TranslatedText } from "@/components/main-nav";
 
 export default function ProtectedPage() {
+  const [mounted, setMounted] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { t } = useLanguage();
 
   useEffect(() => {
+    setMounted(true);
     if (!isLoading && !user) {
       router.push("/sign-in");
     }
   }, [user, isLoading, router]);
+
+  if (!mounted) {
+    return null;
+  }
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <div className="flex flex-col items-center">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-[#b94a2c] dark:border-gray-700 dark:border-t-[#ff6b47]"></div>
-          <span className="mt-4 text-sm text-gray-600 dark:text-gray-400">加载中...</span>
+          <span className="mt-4 text-sm text-gray-600 dark:text-gray-400">{t("common.loading")}</span>
         </div>
       </div>
     );

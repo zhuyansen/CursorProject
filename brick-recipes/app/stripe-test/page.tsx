@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { usePayment } from '../../hooks/usePayment';
+import { useLanguage } from '@/components/language-provider';
 import { PlanType, SubscriptionPeriod } from '../../lib/userService';
 
 interface TestResults {
@@ -11,10 +12,12 @@ interface TestResults {
   cronTest?: any;
   usageLimitTest?: any;
   usageIncrementTest?: any;
+  realPaymentTest?: any;
 }
 
 export default function StripeTestPage() {
   const { createCheckoutSession, getUserStatus, loading, error } = usePayment();
+  const { language } = useLanguage();
   const [testResults, setTestResults] = useState<TestResults>({});
   const [userId, setUserId] = useState('b791b5a5-f22d-4929-a928-710e6de2d143');
   const [userEmail, setUserEmail] = useState('test@example.com');
@@ -64,6 +67,7 @@ export default function StripeTestPage() {
       plan,
       period,
       email: userEmail,
+      locale: language,
     });
 
     setTestResults((prev: TestResults) => ({
@@ -182,6 +186,42 @@ export default function StripeTestPage() {
     }
   };
 
+  // 真实支付流程测试（不预先创建用户）
+  const handleRealPaymentTest = async (plan: PlanType, period: SubscriptionPeriod) => {
+    try {
+      const response = await fetch('/api/test-real-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan,
+          period,
+          email: userEmail,
+          locale: language,
+        }),
+      });
+
+      const result = await response.json();
+      setTestResults((prev: TestResults) => ({
+        ...prev,
+        realPaymentTest: result,
+      }));
+
+      if (result.url) {
+        // 更新userId为返回的实际userId
+        setUserId(result.userId);
+        window.open(result.url, '_blank');
+        alert(`真实支付测试开始！\n用户ID: ${result.userId}\n${result.message}`);
+      } else {
+        alert(`真实支付测试失败: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('真实支付测试错误:', error);
+      alert('真实支付测试失败');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
@@ -254,32 +294,69 @@ export default function StripeTestPage() {
 
         {/* 支付测试 */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">真实支付测试</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h2 className="text-xl font-semibold mb-4">💳 支付测试</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <button
               onClick={() => handleCheckout('premium', 'monthly')}
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
             >
-              月度订阅 $9.99/月
+              Premium 月付 ($9.99)
             </button>
             <button
               onClick={() => handleCheckout('premium', 'yearly')}
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
             >
-              年度订阅 $89.99/年
+              Premium 年付 ($89.99)
             </button>
             <button
               onClick={() => handleCheckout('lifetime', 'one_time_purchase')}
               disabled={loading}
               className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
             >
-              终身会员 $249.00
+              终身会员 ($249.00)
             </button>
           </div>
-          <p className="text-sm text-gray-600 mt-4">
-            ⚠️ 点击按钮后会打开真实的Stripe结账页面。使用测试卡号完成支付，然后回到这里检查用户状态更新。
+          <p className="text-sm text-gray-600">
+            💡 这些测试需要先创建用户记录，模拟已登录用户的支付流程。
+          </p>
+        </div>
+
+        {/* 真实支付流程测试 */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">🚀 真实支付流程测试</h2>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p className="text-yellow-800 text-sm">
+              <strong>⚠️ 重要说明：</strong>这个测试模拟真实用户支付场景，不会预先创建用户记录。
+              用户记录将在支付成功后由webhook自动创建。这正是我们要修复的场景！
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <button
+              onClick={() => handleRealPaymentTest('premium', 'monthly')}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
+            >
+              真实测试: Premium 月付
+            </button>
+            <button
+              onClick={() => handleRealPaymentTest('premium', 'yearly')}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
+            >
+              真实测试: Premium 年付
+            </button>
+            <button
+              onClick={() => handleRealPaymentTest('lifetime', 'one_time_purchase')}
+              disabled={loading}
+              className="bg-green-800 hover:bg-green-900 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50"
+            >
+              真实测试: 终身会员
+            </button>
+          </div>
+          <p className="text-sm text-gray-600">
+            💡 这些测试会生成新的用户ID，不预先创建数据库记录，完全模拟真实支付场景。
           </p>
         </div>
 
@@ -419,6 +496,191 @@ export default function StripeTestPage() {
             </div>
           </div>
         )}
+
+        {/* JWT认证错误诊断 */}
+        <div className="border-t pt-8 mt-8">
+          <h2 className="text-2xl font-bold mb-4 text-orange-600">🔐 JWT认证错误诊断</h2>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-orange-800 mb-3">错误描述</h3>
+            <p className="text-orange-700 mb-4">
+              <strong>AuthApiError: User from sub claim in JWT does not exist</strong>
+            </p>
+            <p className="text-orange-700 mb-4">
+              这个错误表示JWT令牌中的用户ID在Supabase认证数据库中找不到对应的用户记录。
+              通常是由于认证状态不同步或邮箱确认问题导致的。
+            </p>
+            
+            <div className="bg-white rounded-md p-4 border border-orange-300">
+              <h4 className="font-semibold text-orange-800 mb-2">常见原因：</h4>
+              <ul className="list-disc list-inside text-sm text-orange-700 space-y-1">
+                <li>用户记录已被删除但JWT令牌仍然有效</li>
+                <li>邮箱确认过程中出现问题导致用户状态不一致</li>
+                <li>浏览器中存在过期或无效的认证cookies</li>
+                <li>Supabase项目配置变更导致的状态不同步</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">诊断工具</h3>
+            <p className="text-blue-700 mb-4">
+              使用以下工具来诊断和修复认证状态问题：
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <a 
+                href="/api/debug-auth-state"
+                target="_blank"
+                className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors text-center"
+              >
+                🔍 检查认证状态
+              </a>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/clear-auth-session', { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                      alert('认证状态已清理！请刷新页面后重新登录。');
+                      window.location.reload();
+                    } else {
+                      alert('清理失败: ' + result.error);
+                    }
+                  } catch (error) {
+                    alert('清理过程中出现错误');
+                  }
+                }}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+              >
+                🧹 清理认证状态
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-green-800 mb-3">修复步骤</h3>
+            <ol className="list-decimal list-inside space-y-2 text-green-700">
+              <li>
+                <strong>点击 "检查认证状态"</strong> - 查看详细的诊断信息
+              </li>
+              <li>
+                <strong>点击 "清理认证状态"</strong> - 清除所有无效的认证cookies和session
+              </li>
+              <li>
+                <strong>刷新页面</strong> - 确保清理生效
+              </li>
+              <li>
+                <strong>重新登录</strong> - 访问 /sign-in 页面重新登录
+              </li>
+              <li>
+                <strong>确认邮箱</strong> - 如果收到确认邮件，点击链接确认邮箱
+              </li>
+            </ol>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-3">⚠️ 如果问题持续存在</h3>
+            <ul className="list-disc list-inside space-y-2 text-yellow-700">
+              <li>清理浏览器的所有站点数据 (Chrome: 设置 → 隐私和安全 → 清除浏览数据)</li>
+              <li>在无痕模式下尝试登录</li>
+              <li>检查邮箱确认链接是否指向正确的域名</li>
+              <li>确保Supabase项目的URL配置正确</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* 在现有的测试部分之后添加认证配置诊断部分 */}
+        <div className="border-t pt-8 mt-8">
+          <h2 className="text-2xl font-bold mb-4 text-red-600">🚨 认证配置问题诊断</h2>
+          
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-red-800 mb-3">问题描述</h3>
+            <p className="text-red-700 mb-4">
+              邮箱确认链接指向错误的域名 (http://localhost:3000)，导致用户无法正确确认邮箱。
+            </p>
+            
+            <div className="bg-white rounded-md p-4 border border-red-300">
+              <h4 className="font-semibold text-red-800 mb-2">错误链接示例：</h4>
+              <code className="text-sm text-red-600 bg-red-100 p-2 rounded block">
+                http://localhost:3000/?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired
+              </code>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">解决方案</h3>
+            <p className="text-blue-700 mb-4">
+              需要在 Supabase 控制台中更新认证配置：
+            </p>
+            
+            <ol className="list-decimal list-inside space-y-3 text-blue-700">
+              <li>
+                <strong>访问 Supabase 控制台：</strong>
+                <a 
+                  href="https://supabase.com/dashboard/project/bqkzeajvxcsrlmxxizye/auth/url-configuration" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-600 underline hover:text-blue-800"
+                >
+                  点击这里直接打开 URL 配置页面 →
+                </a>
+              </li>
+              <li>
+                <strong>更新站点 URL (Site URL)：</strong>
+                <div className="mt-2 bg-white rounded-md p-3 border border-blue-300">
+                  <code className="text-sm text-blue-600">
+                    https://666e-122-238-128-243.ngrok-free.app/
+                  </code>
+                </div>
+              </li>
+              <li>
+                <strong>添加重定向 URLs (Redirect URLs)：</strong>
+                <div className="mt-2 bg-white rounded-md p-3 border border-blue-300 space-y-2">
+                  <div>
+                    <span className="text-sm font-medium">生产环境：</span>
+                    <code className="block text-sm text-blue-600">
+                      https://666e-122-238-128-243.ngrok-free.app/**
+                    </code>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium">开发环境：</span>
+                    <code className="block text-sm text-blue-600">
+                      http://localhost:3007/**
+                    </code>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <strong>保存配置</strong> - 点击 "Save" 按钮保存更改
+              </li>
+            </ol>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-3">⚠️ 重要提醒</h3>
+            <ul className="list-disc list-inside space-y-2 text-yellow-700">
+              <li>配置更改后可能需要几分钟才能生效</li>
+              <li>现有的邮箱确认链接仍然会失效，需要重新发送</li>
+              <li>确保在 Supabase 项目设置中设置的 URL 与环境变量中的完全一致</li>
+              <li>开发时使用 localhost:3007，生产时使用 ngrok URL</li>
+            </ul>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-green-800 mb-3">✅ 验证配置</h3>
+            <p className="text-green-700 mb-3">
+              完成上述配置后，可以访问以下链接验证设置是否正确：
+            </p>
+            <a 
+              href="/api/debug-auth-config"
+              target="_blank"
+              className="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
+            >
+              检查认证配置状态
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

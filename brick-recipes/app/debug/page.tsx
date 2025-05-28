@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/components/language-provider"
 
 interface TagData {
   tags: string[]
@@ -17,6 +18,7 @@ export default function DebugPage() {
   const [tagData, setTagData] = useState<TagData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   const loadTags = async () => {
     setLoading(true)
@@ -55,7 +57,7 @@ export default function DebugPage() {
           disabled={loading}
           className="mr-2"
         >
-          {loading ? "加载中..." : "刷新数据"}
+          {loading ? t("common.loading") : "刷新数据"}
         </Button>
       </div>
       

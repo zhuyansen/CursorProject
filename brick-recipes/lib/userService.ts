@@ -212,6 +212,36 @@ export class UserService {
     return data?.id || null;
   }
 
+  // 根据邮箱查找用户
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      // 首先通过Auth查找用户
+      const { data: authUsers } = await this.supabase.auth.admin.listUsers();
+      const authUser = authUsers.users.find(user => user.email === email);
+      
+      if (!authUser) {
+        return null;
+      }
+
+      // 然后查找用户记录
+      const { data, error } = await this.supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error finding user by email:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
   // 更新用户Stripe客户ID
   async updateUserCustomerId(userId: string, customerId: string): Promise<boolean> {
     const { error } = await this.supabase

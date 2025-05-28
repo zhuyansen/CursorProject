@@ -14,8 +14,11 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
+  // 使用环境变量中的APP_URL而不是requestUrl.origin
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || requestUrl.origin;
+  
   // 构建重定向URL，添加成功参数以便前端处理支付链接
-  const redirectUrl = new URL(redirectTo, requestUrl.origin);
+  const redirectUrl = new URL(redirectTo, baseUrl);
   redirectUrl.searchParams.set('success', 'true');
 
   // URL to redirect to after sign up process completes

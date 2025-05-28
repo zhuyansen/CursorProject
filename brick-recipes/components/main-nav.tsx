@@ -122,6 +122,12 @@ export function MainNav() {
               <TranslatedText textKey="nav.videoToRecipes" />
             </NavLink>
             <NavLink
+              href="/pricing"
+              className="text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] transition-colors dark:text-gray-200"
+            >
+              <TranslatedText textKey="nav.billing" />
+            </NavLink>
+            <NavLink
               href="/faq"
               className="text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] transition-colors dark:text-gray-200"
             >
@@ -172,6 +178,13 @@ export function MainNav() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <TranslatedText textKey="nav.videoToRecipes" />
+            </NavLink>
+            <NavLink
+              href="/pricing"
+              className="block py-2 text-sm font-medium hover:text-[#b94a2c] dark:hover:text-[#ff6b47] dark:text-gray-200"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <TranslatedText textKey="nav.billing" />
             </NavLink>
             <NavLink
               href="/faq"
