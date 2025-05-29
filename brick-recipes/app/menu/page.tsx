@@ -62,10 +62,15 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCached, setIsCached] = useState(false);
   const [componentInitialized, setComponentInitialized] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(false);
 
   // 组件初始化时清除该分类的加载状态
   useEffect(() => {
     setComponentInitialized(true);
+    // 只有breakfast分类在组件初始化时标记为需要加载
+    if (category.id === "breakfast") {
+      setShouldLoad(true);
+    }
     return () => {
       // 组件卸载时也清除
       LOADING_TRACKER.loadingCategories.delete(category.id);
@@ -187,13 +192,32 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
     };
 
   useEffect(() => {
-    // 使用requestAnimationFrame将缓存加载推迟到下一帧，避免阻塞当前帧渲染
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        fetchCategoryRecipes();
-      }, 0);
-    });
-  }, [category.id, isCached]);
+    // 只有在shouldLoad为true时才加载数据
+    if (shouldLoad) {
+      // 使用requestAnimationFrame将缓存加载推迟到下一帧，避免阻塞当前帧渲染
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          fetchCategoryRecipes();
+        }, 0);
+      });
+    }
+  }, [shouldLoad]);
+
+  // 监听lazy loading触发事件
+  useEffect(() => {
+    const handleTriggerLoad = (event: CustomEvent) => {
+      if (event.detail.categoryId === category.id) {
+        console.log(`[Menu] Triggering load for category: ${category.id}`);
+        setShouldLoad(true);
+      }
+    };
+
+    window.addEventListener('triggerCategoryLoad', handleTriggerLoad as EventListener);
+    
+    return () => {
+      window.removeEventListener('triggerCategoryLoad', handleTriggerLoad as EventListener);
+    };
+  }, [category.id]);
 
   // 添加认证检查的View All处理函数
   const handleViewAll = () => {
@@ -262,9 +286,13 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
       {recipes.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {recipes.map((recipe, index) => (
-            <div key={recipe.id} className="group transform transition-all duration-300 hover:scale-[1.02]">
-              <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-shadow">
-                <div className="relative h-40">
+            <div
+              key={recipe.id || `recipe-${index}`}
+              className="group cursor-pointer"
+              onClick={() => handleViewRecipe(recipe.id)}
+            >
+              <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-gray-700 h-full flex flex-col">
+                <div className="relative aspect-[4/3] bg-gray-100 dark:bg-gray-700 overflow-hidden">
                   <Image 
                     src={recipe.image || "/placeholder.svg"} 
                     alt={recipe.title} 
@@ -285,7 +313,7 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                     </div>
                   )}
                 </div>
-                <div className="p-4">
+                <div className="p-4 flex-1 flex flex-col">
                   <h3 className="font-medium text-lg mb-2 group-hover:text-[#b94a2c] dark:text-white dark:group-hover:text-[#ff6b47] transition-colors line-clamp-2">
                     {recipe.title}
                   </h3>
@@ -299,20 +327,24 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
                       <CaloriesDisplay energy={recipe.Energy} calories={recipe.calories} />
                     </div>
                   </div>
-                  <div className="flex justify-between items-center mt-4">
-                    <div className="flex items-center">
-                      <ChefHat className="h-4 w-4 mr-1 text-[#b94a2c] dark:text-[#ff6b47]" />
-                      <span className="text-sm">
-                        {language === "zh" ? 
-                          (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
-                           recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
-                           recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
-                          recipe.difficulty}
-                      </span>
-                    </div>
+                  
+                  {/* 难度标签区域 */}
+                  <div className="flex items-center mb-4">
+                    <ChefHat className="h-4 w-4 mr-2 text-[#b94a2c] dark:text-[#ff6b47]" />
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f8e3c5] dark:bg-[#3a2e1e] text-[#b94a2c] dark:text-[#ff6b47] border border-[#b94a2c]/20 dark:border-[#ff6b47]/20">
+                      {language === "zh" ? 
+                        (recipe.difficulty?.toLowerCase() === "easy" ? "简单" : 
+                         recipe.difficulty?.toLowerCase() === "medium" ? "中等" : 
+                         recipe.difficulty?.toLowerCase() === "hard" ? "困难" : recipe.difficulty) : 
+                        recipe.difficulty}
+                    </span>
+                  </div>
+                  
+                  {/* 按钮区域 */}
+                  <div className="mt-auto">
                     <Button 
                       onClick={() => handleViewRecipe(recipe.id)}
-                      className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white"
+                      className="w-full bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a] text-white shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       {t("button.viewRecipe")}
                     </Button>
@@ -392,41 +424,8 @@ export default function MenuPage() {
     }
   }
 
-  // 彻底修改预加载策略，只预加载首屏分类
-  const preloadQueue = async () => {
-    // 如果没有激活分类，则默认为第一个
-    const activeIndex = filteredCategories.findIndex(c => c.id === activeCategory);
-    const startIndex = activeIndex >= 0 ? activeIndex : 0;
-    
-    // 只预加载首屏(当前激活分类)
-    const categoryToLoad = filteredCategories[startIndex];
-    
-    if (categoryToLoad && !LOADING_TRACKER.loadedCategories.has(categoryToLoad.id)) {
-      console.log(`[Menu] Preloading initial category: ${categoryToLoad.id}`);
-      // 找到对应的CategorySection实例并调用加载
-      // 由于组件已经有防止重复加载的逻辑，这里直接调用
-      const cacheKey = `${CACHE_PREFIX}${categoryToLoad.id}`;
-      
-      // 检查是否有缓存
-      try {
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-          const { recipes } = JSON.parse(cachedData);
-          // 只预加载首个图片
-          if (recipes && recipes.length > 0) {
-            const firstRecipe = recipes[0];
-            if (firstRecipe.image && firstRecipe.image !== "/placeholder.svg") {
-              const img = new window.Image();
-              img.src = firstRecipe.image;
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`[Menu] Error preloading cache for ${categoryToLoad.id}:`, error);
-      }
-    }
-    
-    // 使用IntersectionObserver进行按需加载
+  // 使用IntersectionObserver进行按需加载
+  useEffect(() => {
     if ('IntersectionObserver' in window && Object.keys(categoryRefs.current).length > 0) {
       // 创建观察者实例
       const observer = new IntersectionObserver((entries) => {
@@ -435,24 +434,18 @@ export default function MenuPage() {
             const categoryId = entry.target.id;
             if (categoryId && !LOADING_TRACKER.loadedCategories.has(categoryId) && 
                 !LOADING_TRACKER.loadingCategories.has(categoryId)) {
-              // 当分类进入视口时才加载
+              // 当分类进入视口时触发加载
               console.log(`[Menu] Lazy loading category: ${categoryId}`);
               
               // 停止观察已进入视口的元素
               observer.unobserve(entry.target);
               
-              // 使用简化的加载方式，只获取缓存，不请求新数据
-              try {
-                const cacheKey = `${CACHE_PREFIX}${categoryId}`;
-                const cachedData = localStorage.getItem(cacheKey);
-                
-                if (cachedData) {
-                  // 已有缓存，标记为已加载
-                  LOADING_TRACKER.loadedCategories.add(categoryId);
-                }
-              } catch (e) {
-                console.error(`[Menu] Error checking cache for ${categoryId}:`, e);
-              }
+              // 触发该分类的数据加载 - 这里是关键修复
+              // 通过设置一个trigger来让对应的CategorySection组件重新加载
+              const event = new CustomEvent('triggerCategoryLoad', { 
+                detail: { categoryId } 
+              });
+              window.dispatchEvent(event);
             }
           }
         });
@@ -468,20 +461,10 @@ export default function MenuPage() {
         }
       });
       
-      // 返回清理函数
+      // 清理函数
       return () => observer.disconnect();
     }
-  };
-
-  // 优化 MenuPage 组件的预加载调用
-  useEffect(() => {
-    // 页面加载后推迟执行预加载
-    const timer = setTimeout(() => {
-      preloadQueue();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [activeCategory, filteredCategories]);
+  }, [filteredCategories, pageInitialized]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

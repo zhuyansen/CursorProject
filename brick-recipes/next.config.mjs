@@ -1,14 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
     ignoreBuildErrors: true,
   },
+  env: {
+    // 确保Stripe支付链接环境变量可用
+    STRIPE_MONTHLY_PLAN_LINK: process.env.STRIPE_MONTHLY_PLAN_LINK,
+    STRIPE_YEARLY_PLAN_LINK: process.env.STRIPE_YEARLY_PLAN_LINK,
+    STRIPE_LIFETIME_MEMBER_PLAN_LINK: process.env.STRIPE_LIFETIME_MEMBER_PLAN_LINK,
+  },
   images: {
     unoptimized: false,
-    domains: ['s3.us-east-1.amazonaws.com'],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: 'https',
