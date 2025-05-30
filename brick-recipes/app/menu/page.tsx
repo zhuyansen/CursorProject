@@ -40,18 +40,14 @@ interface CategorySectionProps {
 // 缓存键前缀
 const CACHE_PREFIX = 'brickRecipes_menu_';
 
-// 在文件顶部添加一个全局加载状态跟踪对象
-// 这将跟踪已经加载或正在加载的分类
+// 简化的全局加载状态跟踪对象
 const LOADING_TRACKER = {
-  loadedCategories: new Set<string>(),
   loadingCategories: new Set<string>(),
-  isLoading: false,
+  // 移除loadedCategories，允许重新加载
   // 添加重置方法
   reset: () => {
-    LOADING_TRACKER.loadedCategories.clear();
     LOADING_TRACKER.loadingCategories.clear();
-    LOADING_TRACKER.isLoading = false;
-    console.log('[Menu] Reset tracking state');
+    // console.log('[Menu] Reset loading tracker');
   }
 };
 
@@ -61,70 +57,58 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCached, setIsCached] = useState(false);
-  const [componentInitialized, setComponentInitialized] = useState(false);
-  const [shouldLoad, setShouldLoad] = useState(false);
-
-  // 组件初始化时清除该分类的加载状态
-  useEffect(() => {
-    setComponentInitialized(true);
-    // 只有breakfast分类在组件初始化时标记为需要加载
-    if (category.id === "breakfast") {
-      setShouldLoad(true);
-    }
-    return () => {
-      // 组件卸载时也清除
-      LOADING_TRACKER.loadingCategories.delete(category.id);
-    };
-  }, [category.id]);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // 生成缓存键
   const getCacheKey = (categoryId: string) => {
     return `${CACHE_PREFIX}${categoryId}`;
   }
 
-    const fetchCategoryRecipes = async () => {
-    // 避免跳过首次加载
-    // 如果该分类已经加载过或正在加载中，则跳过
-    if ((componentInitialized && LOADING_TRACKER.loadedCategories.has(category.id)) || 
-        LOADING_TRACKER.loadingCategories.has(category.id)) {
-      console.log(`[Menu] Skipping duplicate load for category: ${category.id}`);
+  const fetchCategoryRecipes = async () => {
+    // 简化重复加载检测：只检查是否正在加载中
+    if (LOADING_TRACKER.loadingCategories.has(category.id)) {
+      // console.log(`[Menu] Category ${category.id} is already loading, skipping...`);
+      return;
+    }
+
+    // 如果已经有数据且是从缓存加载的，不需要重新加载
+    if (hasLoadedOnce && recipes.length > 0) {
+      // console.log(`[Menu] Category ${category.id} already has data, skipping...`);
       return;
     }
 
     // 标记该分类正在加载中
     LOADING_TRACKER.loadingCategories.add(category.id);
-      setIsLoading(true);
+    setIsLoading(true);
 
     // 尝试从缓存加载数据
     try {
-        const cacheKey = getCacheKey(category.id);
-          const cachedData = localStorage.getItem(cacheKey);
-          
-          if (cachedData) {
-                try {
-                  const parsedData = JSON.parse(cachedData);
+      const cacheKey = getCacheKey(category.id);
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        try {
+          const parsedData = JSON.parse(cachedData);
           const { recipes: cachedRecipes, timestamp } = parsedData;
         
-        // 检查缓存是否过期（24小时）
-        const now = Date.now();
-        const cacheAge = now - timestamp;
-        const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
-        
-        if (cacheAge < cacheExpiry) {
-          // 缓存有效，使用缓存数据
-            console.log(`[Menu] Used cache: ${cachedRecipes.length} recipes from cache for ${category.id}`);
-          setRecipes(cachedRecipes);
-          setIsLoading(false);
-          setIsCached(true);
+          // 检查缓存是否过期（24小时）
+          const now = Date.now();
+          const cacheAge = now - timestamp;
+          const cacheExpiry = 24 * 60 * 60 * 1000; // 24小时
           
-            // 标记该分类已加载完成
-            LOADING_TRACKER.loadedCategories.add(category.id);
-            LOADING_TRACKER.loadingCategories.delete(category.id);
+          if (cacheAge < cacheExpiry && cachedRecipes && cachedRecipes.length > 0) {
+            // 缓存有效，使用缓存数据
+            // console.log(`[Menu] Using cached data: ${cachedRecipes.length} recipes for ${category.id}`);
+            setRecipes(cachedRecipes);
+            setIsLoading(false);
+            setIsCached(true);
+            setHasLoadedOnce(true);
             
-            // 不再触发后台刷新，除非用户明确请求刷新
-          return;
-        } else {
-            console.log(`[Menu] Cache expired: ${cacheKey}`);
+            // 标记该分类加载完成
+            LOADING_TRACKER.loadingCategories.delete(category.id);
+            return;
+          } else {
+            // console.log(`[Menu] Cache expired or empty for: ${category.id}`);
           }
         } catch (e) {
           console.error(`[Menu] Error parsing cache for ${category.id}:`, e);
@@ -132,83 +116,76 @@ const CategorySection = ({ category, language, t }: CategorySectionProps) => {
       }
     } catch (error) {
       console.error(`[Menu] Cache error for ${category.id}:`, error);
+    }
+    
+    // 缓存不存在或已过期，获取新数据
+    await fetchFreshData(getCacheKey(category.id));
+  };
+
+  const fetchFreshData = async (cacheKey: string) => {
+    try {
+      // console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
+      const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
       }
       
-      // 缓存不存在或已过期，获取新数据
-      await fetchFreshData(getCacheKey(category.id));
-    };
-
-    const fetchFreshData = async (cacheKey: string) => {
-    // 如果全局已经在加载中，避免并发请求
-    if (LOADING_TRACKER.isLoading) {
-      console.log(`[Menu] Delaying fetch for ${category.id} - another fetch in progress`);
-      setTimeout(() => fetchCategoryRecipes(), 1000);
-      return;
-    }
-    
-    LOADING_TRACKER.isLoading = true;
-    
-      try {
-        console.log(`[Menu] Fetching fresh data for category: ${category.id}`);
-        const response = await fetch(`/api/menu?category=${category.id}&limit=4`);
+      const data = await response.json();
+      // console.log(`[Menu] Fetched ${data.recipes?.length || 0} recipes for category: ${category.id}`);
+      
+      if (data.recipes && data.recipes.length > 0) {
+        setRecipes(data.recipes);
+        setHasLoadedOnce(true);
         
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+        // 保存到本地缓存
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            recipes: data.recipes,
+            timestamp: Date.now()
+          }));
+          // console.log(`[Menu] Cached data for: ${category.id}`);
+        } catch (storageError) {
+          console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
         }
-        
-        const data = await response.json();
-        console.log(`[Menu] Loaded ${data.recipes.length} recipes for category: ${category.id}`);
-        
-        // 只有在未缓存数据时才更新UI，避免闪烁
-        if (!isCached) {
-          setRecipes(data.recipes);
-          setIsLoading(false);
-        }
-        
-      // 保存到本地缓存
-          try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-              recipes: data.recipes,
-              timestamp: Date.now()
-            }));
-            console.log(`[Menu] Cached data with key: ${cacheKey}`);
-          } catch (storageError) {
-            console.error(`[Menu] Failed to cache data for ${category.id}:`, storageError);
-          }
-        
-      // 标记该分类已加载完成
-      LOADING_TRACKER.loadedCategories.add(category.id);
-      LOADING_TRACKER.loadingCategories.delete(category.id);
-      } catch (error) {
-        console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
-        if (!isCached) {
-          setRecipes([]);
-          setIsLoading(false);
-        }
-      LOADING_TRACKER.loadingCategories.delete(category.id);
-    } finally {
-      LOADING_TRACKER.isLoading = false;
+      } else {
+        // console.warn(`[Menu] No recipes returned for category: ${category.id}`);
+        setRecipes([]);
       }
-    };
-
-  useEffect(() => {
-    // 只有在shouldLoad为true时才加载数据
-    if (shouldLoad) {
-      // 使用requestAnimationFrame将缓存加载推迟到下一帧，避免阻塞当前帧渲染
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          fetchCategoryRecipes();
-        }, 0);
-      });
+      
+      setIsLoading(false);
+      
+    } catch (error) {
+      console.error(`[Menu] Failed to fetch recipes for category ${category.id}:`, error);
+      setRecipes([]);
+      setIsLoading(false);
+    } finally {
+      // 总是清除加载状态
+      LOADING_TRACKER.loadingCategories.delete(category.id);
     }
-  }, [shouldLoad]);
+  };
+
+  // 组件挂载时自动加载数据
+  useEffect(() => {
+    // 延迟加载以避免同时发起过多请求
+    const delay = category.id === "breakfast" ? 0 : Math.random() * 1000;
+    
+    const timeoutId = setTimeout(() => {
+      fetchCategoryRecipes();
+    }, delay);
+
+    return () => {
+      clearTimeout(timeoutId);
+      LOADING_TRACKER.loadingCategories.delete(category.id);
+    };
+  }, [category.id]);
 
   // 监听lazy loading触发事件
   useEffect(() => {
     const handleTriggerLoad = (event: CustomEvent) => {
       if (event.detail.categoryId === category.id) {
-        console.log(`[Menu] Triggering load for category: ${category.id}`);
-        setShouldLoad(true);
+        // console.log(`[Menu] Manual trigger load for category: ${category.id}`);
+        fetchCategoryRecipes();
       }
     };
 
@@ -367,7 +344,6 @@ export default function MenuPage() {
   const { t, language } = useLanguage()
   const [activeCategory, setActiveCategory] = useState<string>("breakfast")
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-  const [pageInitialized, setPageInitialized] = useState(false);
 
   // 过滤掉不需要显示的分类
   const filteredCategories = categories.filter(category => 
@@ -378,7 +354,6 @@ export default function MenuPage() {
   useEffect(() => {
     // 重置全局跟踪器状态
     LOADING_TRACKER.reset();
-    setPageInitialized(true);
     
     return () => {
       // 组件卸载时也重置
@@ -424,7 +399,7 @@ export default function MenuPage() {
     }
   }
 
-  // 使用IntersectionObserver进行按需加载
+  // 使用IntersectionObserver进行按需加载（简化版本）
   useEffect(() => {
     if ('IntersectionObserver' in window && Object.keys(categoryRefs.current).length > 0) {
       // 创建观察者实例
@@ -432,16 +407,14 @@ export default function MenuPage() {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const categoryId = entry.target.id;
-            if (categoryId && !LOADING_TRACKER.loadedCategories.has(categoryId) && 
-                !LOADING_TRACKER.loadingCategories.has(categoryId)) {
+            if (categoryId && !LOADING_TRACKER.loadingCategories.has(categoryId)) {
               // 当分类进入视口时触发加载
-              console.log(`[Menu] Lazy loading category: ${categoryId}`);
+              // console.log(`[Menu] Lazy loading category: ${categoryId}`);
               
               // 停止观察已进入视口的元素
               observer.unobserve(entry.target);
               
-              // 触发该分类的数据加载 - 这里是关键修复
-              // 通过设置一个trigger来让对应的CategorySection组件重新加载
+              // 触发该分类的数据加载
               const event = new CustomEvent('triggerCategoryLoad', { 
                 detail: { categoryId } 
               });
@@ -454,9 +427,9 @@ export default function MenuPage() {
         threshold: 0.1
       });
       
-      // 为每个分类元素添加观察，除了已加载的
+      // 为每个分类元素添加观察
       Object.entries(categoryRefs.current).forEach(([id, el]) => {
-        if (el && !LOADING_TRACKER.loadedCategories.has(id)) {
+        if (el && !LOADING_TRACKER.loadingCategories.has(id)) {
           observer.observe(el);
         }
       });
@@ -464,7 +437,7 @@ export default function MenuPage() {
       // 清理函数
       return () => observer.disconnect();
     }
-  }, [filteredCategories, pageInitialized]);
+  }, [filteredCategories]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

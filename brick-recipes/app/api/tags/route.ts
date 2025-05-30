@@ -3,7 +3,7 @@ import redis from '@/config/redis';
 
 export async function GET() {
   try {
-    console.log('[API Tags] Getting all available index keys from Redis');
+    // console.log('[API Tags] Getting all available index keys from Redis');
     
     // 获取所有以index:开头的键
     const allKeys = await redis.keys('index:*');
@@ -42,8 +42,8 @@ export async function GET() {
       tagCounts[tag] = count;
     }
     
-    console.log('[API Tags] Found tags:', result.tags);
-    console.log('[API Tags] Tag counts:', tagCounts);
+    // console.log('[API Tags] Found tags:', result.tags);
+    // console.log('[API Tags] Tag counts:', tagCounts);
     
     return NextResponse.json({
       ...result,

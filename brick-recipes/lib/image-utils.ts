@@ -113,13 +113,13 @@ export function processImageUrl(url: string): string {
     if (url.includes('s3.us-east-1.amazonaws.com/brickrecipes.ai/')) {
       // 检查是否为已知问题图片
       if (isProblematicImage(url)) {
-        console.log(`[ImageUtils] Using alternative image for known problematic image: ${url}`);
+        // console.log(`[ImageUtils] Using alternative image for known problematic image: ${url}`);
         return getAlternativeImage(url);
       }
       
       // 检查URL长度，非常长的URL可能会导致超时
       if (url.length > 500) {
-        console.log(`[ImageUtils] URL too long, using food placeholder: ${url}`);
+        // console.log(`[ImageUtils] URL too long, using food placeholder: ${url}`);
         return getFoodPlaceholderByKeyword(url);
       }
     }

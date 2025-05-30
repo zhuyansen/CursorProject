@@ -43,7 +43,7 @@ export default function ContactPage() {
     
     try {
       // 模拟发送表单数据
-      console.log("Sending form data:", formData)
+      // console.log("Sending form data:", formData)
       
       // 创建邮件链接并打开
       const subject = encodeURIComponent(`${formData.type} - Contact Form`)

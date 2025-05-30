@@ -3,12 +3,12 @@ import { connectToDatabase } from '@/lib/mongodb';
 import { Document } from 'mongodb';
 
 export async function GET() {
-  console.log("开始测试视频分析流程...");
+  // console.log("开始测试视频分析流程...");
   try {
     // 1. 连接MongoDB
-    console.log("尝试连接MongoDB...");
+    // console.log("尝试连接MongoDB...");
     const { db } = await connectToDatabase();
-    console.log("MongoDB连接成功");
+    // console.log("MongoDB连接成功");
 
     // 2. 查询已有视频数据
     const videos = await db.collection('videotorecipe')
@@ -16,7 +16,7 @@ export async function GET() {
       .limit(5)
       .toArray();
     
-    console.log(`找到 ${videos.length} 条视频记录`);
+    // console.log(`找到 ${videos.length} 条视频记录`);
     
     // 构造返回的简化数据
     const simplifiedVideos = videos.map((video: Document) => ({

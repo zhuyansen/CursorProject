@@ -39,7 +39,7 @@
 - [ ] **添加图片alt标签优化**
 - [ ] **实施延迟加载**  
 
-### 3. 搜索引擎验证
+### 3. 搜索引擎验证（12_SEARCH_ENGINE_SETUP.md内包括了！）
 - [ ] **Google Search Console验证**
   ```html
   <!-- 替换验证码 -->
@@ -92,7 +92,7 @@ description: "根据现有食材找到完美食谱。智能食材匹配系统。
    - 索引状态
    - 移动可用性
 
-2. **Google Analytics 4**
+2. **Google Analytics 4**（12_SEARCH_ENGINE_SETUP内包括了，还添加了13_BAIDU_ANALYTICS_SETUP.md）
    - 用户行为分析
    - 转化跟踪
    - 页面性能

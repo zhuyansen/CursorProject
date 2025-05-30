@@ -50,11 +50,11 @@ export async function GET(request: NextRequest) {
     if (cuisine) {
       // 确保 Eastern 和 Western 的正确匹配
       const cuisineValue = cuisine.trim();
-      console.log(`[API Recipes] Processing cuisine: "${cuisineValue}"`);
+      // console.log(`[API Recipes] Processing cuisine: "${cuisineValue}"`);
       filterKeys.push(`index:mealStyle:${cuisineValue}`);
     }
     tags.forEach(tag => filterKeys.push(`index:tag:${tag.trim()}`));
-    console.log('[API Recipes] Filter Keys:', filterKeys);
+    // console.log('[API Recipes] Filter Keys:', filterKeys);
 
     // 变量用于存储分页信息
     let totalMatchingRecipes = 0;
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     // 步骤1: 执行 sinter 获取所有匹配的食谱ID
     if (filterKeys.length > 0) {
       const sinterStartTime = Date.now();
-      console.log('[API Recipes] About to call redis.sinter');
+      // console.log('[API Recipes] About to call redis.sinter');
       const rawRecipeIds = await redis.sinter(filterKeys);
       sinterDuration = Date.now() - sinterStartTime;
       
@@ -73,11 +73,11 @@ export async function GET(request: NextRequest) {
       totalMatchingRecipes = allMatchingIds.length;
       totalPages = Math.ceil(totalMatchingRecipes / limitedPageSize);
       
-      console.log(`[API Recipes] redis.sinter finished in ${sinterDuration}ms. Found ${totalMatchingRecipes} matching recipe IDs (${totalPages} pages)`);
+      // console.log(`[API Recipes] redis.sinter finished in ${sinterDuration}ms. Found ${totalMatchingRecipes} matching recipe IDs (${totalPages} pages)`);
       
       // 如果没有匹配的ID，直接返回空结果
       if (totalMatchingRecipes === 0) {
-        console.log('[API Recipes] No recipe IDs found after sinter');
+        // console.log('[API Recipes] No recipe IDs found after sinter');
         return NextResponse.json({
           recipes: [],
           pagination: {
@@ -93,13 +93,13 @@ export async function GET(request: NextRequest) {
     } else if (searchQuery) {
       // 如果只有搜索词，尝试获取所有食谱ID
       try {
-        console.log('[API Recipes] No filter keys provided but search query exists, getting all recipes');
+        // console.log('[API Recipes] No filter keys provided but search query exists, getting all recipes');
         const allRecipesIds = await redis.smembers("all_recipes");
         allMatchingIds = allRecipesIds.map(id => String(id)).sort();
         totalMatchingRecipes = allMatchingIds.length;
         totalPages = Math.ceil(totalMatchingRecipes / limitedPageSize);
         
-        console.log(`[API Recipes] Found ${totalMatchingRecipes} total recipes for search`);
+        // console.log(`[API Recipes] Found ${totalMatchingRecipes} total recipes for search`);
       } catch (error) {
         console.error('[API Recipes] Error getting all recipes:', error);
         return NextResponse.json({
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
         });
       }
     } else {
-      console.log('[API Recipes] No filter keys or search query provided');
+      // console.log('[API Recipes] No filter keys or search query provided');
       // 返回空结果
       return NextResponse.json({
         recipes: [],
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
     const endIndex = Math.min(startIndex + limitedPageSize, totalMatchingRecipes);
     let currentPageIds = allMatchingIds.slice(startIndex, endIndex);
     
-    console.log(`[API Recipes] Processing page ${page}/${totalPages}: showing IDs ${startIndex + 1}-${endIndex} of ${totalMatchingRecipes}`);
+    // console.log(`[API Recipes] Processing page ${page}/${totalPages}: showing IDs ${startIndex + 1}-${endIndex} of ${totalMatchingRecipes}`);
 
     // 步骤3: 批处理获取当前页食谱的详细信息
     const recipes: Recipe[] = [];
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       const recipeDataStrings = await redis.mget(recipeKeys);
       const mgetDuration = Date.now() - mgetStart;
       
-      console.log(`[API Recipes] MGET Batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(currentPageIds.length/batchSize)} (${recipeKeys.length} keys) finished in ${mgetDuration}ms`);
+      // console.log(`[API Recipes] MGET Batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(currentPageIds.length/batchSize)} (${recipeKeys.length} keys) finished in ${mgetDuration}ms`);
       
       recipeDataStrings.forEach((recipeDataStr, index) => {
         const id = batchIds[index];
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
     const actualTotalRecipes = searchQuery ? recipes.length + (page - 1) * limitedPageSize : totalMatchingRecipes;
     const actualTotalPages = Math.ceil(actualTotalRecipes / limitedPageSize);
 
-    console.log(`[API Recipes] Returning ${recipes.length} recipes for page ${page}/${actualTotalPages} (total recipes: ${actualTotalRecipes})`);
+    // console.log(`[API Recipes] Returning ${recipes.length} recipes for page ${page}/${actualTotalPages} (total recipes: ${actualTotalRecipes})`);
     
     // 返回当前页数据和分页信息
     return NextResponse.json({

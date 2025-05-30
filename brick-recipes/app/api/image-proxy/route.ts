@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    console.log(`图片代理请求: ${imageUrl}`);
+    // console.log(`图片代理请求: ${imageUrl}`);
     
     const response = await fetch(imageUrl, {
       headers: {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     headers.set('Content-Type', contentType);
     headers.set('Cache-Control', 'public, max-age=86400'); // 缓存1天
     
-    console.log(`图片代理成功: ${imageUrl}, 类型: ${contentType}, 大小: ${imageData.byteLength} bytes`);
+    // console.log(`图片代理成功: ${imageUrl}, 类型: ${contentType}, 大小: ${imageData.byteLength} bytes`);
     
     return new NextResponse(imageData, {
       headers,

@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
     const signature = headersList.get('stripe-signature');
     
     // 添加调试信息
-    console.log('=== Webhook调试信息 ===');
-    console.log('Body length:', body.length);
-    console.log('Signature:', signature);
-    console.log('Webhook secret from env:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 20) + '...');
-    console.log('Headers:', Object.fromEntries(headersList.entries()));
+    // console.log('=== Webhook调试信息 ===');
+    // console.log('Body length:', body.length);
+    // console.log('Signature:', signature);
+    // console.log('Webhook secret from env:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 20) + '...');
+    // console.log('Headers:', Object.fromEntries(headersList.entries()));
     
     if (!signature) {
       console.error('Missing stripe-signature header');

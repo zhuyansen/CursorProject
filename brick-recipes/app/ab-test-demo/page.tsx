@@ -9,6 +9,11 @@ export default function ABTestDemoPage() {
   const [showDashboard, setShowDashboard] = useState(false)
   const { trackConversion } = useABTest('homepage_cta_button')
 
+  const handleButtonClick = (variant: string) => {
+    // console.log(`按钮被点击，变体: ${variant}`)
+    alert(`你点击了变体 ${variant} 的按钮！`)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
@@ -134,10 +139,7 @@ export default function ABTestDemoPage() {
                   className: 'bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg border-2 border-orange-300 transition-all hover:border-orange-400'
                 }
               }}
-              onClick={(variant) => {
-                console.log(`按钮被点击，变体: ${variant}`)
-                alert(`您点击了变体: ${variant}`)
-              }}
+              onClick={handleButtonClick}
             />
           </div>
         </div>

@@ -79,7 +79,7 @@ export default function CategoryPage() {
     const requestedPage = page;
     
     // 记录当前请求信息
-    console.log(`[CategoryPage] 请求加载第${requestedPage}页，每页${pageSize}个菜谱，分类：${category}`);
+    // console.log(`[CategoryPage] 请求加载第${requestedPage}页，每页${pageSize}个菜谱，分类：${category}`);
     
     // 尝试从缓存获取数据
     const cacheKey = getCacheKey(category, page, pageSize);
@@ -90,7 +90,7 @@ export default function CategoryPage() {
         const cachedData = localStorage.getItem(cacheKey);
         
         if (cachedData) {
-          console.log(`[CategoryPage] Loading from cache: ${cacheKey}`);
+          // console.log(`[CategoryPage] Loading from cache: ${cacheKey}`);
           
           // 使用setTimeout异步解析JSON，避免阻塞UI
           return new Promise(resolve => {
@@ -124,13 +124,13 @@ export default function CategoryPage() {
         }
         
         // 记录缓存的分页信息
-        console.log(`[CategoryPage] 缓存的分页信息:`, {
-          page: cachedPagination.page,
-          totalPages: cachedPagination.totalPages,
-          totalRecipes: cachedPagination.totalRecipes,
-          hasNextPage: cachedPagination.hasNextPage,
-          hasPrevPage: cachedPagination.hasPrevPage
-        });
+        // console.log(`[CategoryPage] 缓存的分页信息:`, {
+        //   page: cachedPagination.page,
+        //   totalPages: cachedPagination.totalPages,
+        //   totalRecipes: cachedPagination.totalRecipes,
+        //   hasNextPage: cachedPagination.hasNextPage,
+        //   hasPrevPage: cachedPagination.hasPrevPage
+        // });
         
         // 检查缓存是否过期（24小时）
         const now = Date.now();
@@ -162,7 +162,7 @@ export default function CategoryPage() {
             }, 100);
           });
           
-          console.log(`[CategoryPage] Used cache: ${cachedRecipes.length} recipes loaded from cache`);
+          // console.log(`[CategoryPage] Used cache: ${cachedRecipes.length} recipes loaded from cache`);
           
           // 后台刷新缓存
           setTimeout(() => {
@@ -171,7 +171,7 @@ export default function CategoryPage() {
           
           return;
         } else {
-          console.log(`[CategoryPage] Cache expired: ${cacheKey}`);
+          // console.log(`[CategoryPage] Cache expired: ${cacheKey}`);
         }
       }
       
@@ -183,7 +183,7 @@ export default function CategoryPage() {
   // 从API获取新数据
   const fetchFreshData = async (page: number, pageSize: number, cacheKey: string) => {
     try {
-      console.log(`[CategoryPage] Fetching fresh data for page ${page}, category: ${category}, pageSize: ${pageSize}`);
+      // console.log(`[CategoryPage] Fetching fresh data for page ${page}, category: ${category}, pageSize: ${pageSize}`);
       const response = await fetch(`/api/menu?category=${category}&page=${page}&pageSize=${pageSize}`);
       
       if (!response.ok) {
@@ -191,7 +191,7 @@ export default function CategoryPage() {
       }
       
       const data = await response.json();
-      console.log(`[CategoryPage] Loaded ${data.recipes.length} recipes, total: ${data.pagination.totalRecipes}`);
+      // console.log(`[CategoryPage] Loaded ${data.recipes.length} recipes, total: ${data.pagination.totalRecipes}`);
       
       // 检查API返回的数据完整性
       if (!data.recipes || !Array.isArray(data.recipes)) {
@@ -213,13 +213,13 @@ export default function CategoryPage() {
       }
       
       // 记录API返回的分页信息
-      console.log(`[CategoryPage] API返回的分页信息:`, {
-        page: data.pagination.page,
-        totalPages: data.pagination.totalPages,
-        totalRecipes: data.pagination.totalRecipes,
-        hasNextPage: data.pagination.hasNextPage,
-        hasPrevPage: data.pagination.hasPrevPage
-      });
+      // console.log(`[CategoryPage] API返回的分页信息:`, {
+      //   page: data.pagination.page,
+      //   totalPages: data.pagination.totalPages,
+      //   totalRecipes: data.pagination.totalRecipes,
+      //   hasNextPage: data.pagination.hasNextPage,
+      //   hasPrevPage: data.pagination.hasPrevPage
+      // });
       
       // 确保分页信息正确
       const correctedPagination = {
@@ -244,7 +244,7 @@ export default function CategoryPage() {
             pagination: correctedPagination,
             timestamp: Date.now()
           }));
-          console.log(`[CategoryPage] Cached data with key: ${cacheKey}`);
+          // console.log(`[CategoryPage] Cached data with key: ${cacheKey}`);
           
           // 延迟预加载图片，避免阻塞UI
           setTimeout(() => {

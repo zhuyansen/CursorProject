@@ -31,6 +31,11 @@ export default function PricingPlans() {
   const yearlyPlanLink = process.env.STRIPE_YEARLY_PLAN_LINK || "#"
   const lifetimePlanLink = process.env.STRIPE_LIFETIME_MEMBER_PLAN_LINK || "#"
 
+  // 处理免费计划的点击（不需要登录验证）
+  const handleFreeClick = useCallback(() => {
+    router.push(recipesLink);
+  }, [router, recipesLink]);
+
   // 处理购买按钮点击
   const handlePurchaseClick = useCallback(async (planType: 'monthly' | 'yearly' | 'lifetime', planPeriod: 'monthly' | 'yearly' | 'one_time_purchase') => {
     if (isLoading || loadingPlan) return; // 如果正在加载，不做任何操作
@@ -40,7 +45,7 @@ export default function PricingPlans() {
       try {
         localStorage.setItem('pendingPlanType', planType);
         localStorage.setItem('pendingPlanPeriod', planPeriod);
-        console.log(`Saving plan info for ${planType}:`, { planType, planPeriod });
+        // console.log(`Saving plan info for ${planType}:`, { planType, planPeriod });
         
         // 重定向到登录页面，包含返回当前页面的参数
         router.push('/sign-in?redirect=/pricing&payment=pending');
@@ -86,11 +91,6 @@ export default function PricingPlans() {
       setLoadingPlan(null);
     }
   }, [user, isLoading, router, language, loadingPlan]);
-
-  // 处理免费计划的点击（不需要登录验证）
-  const handleFreeClick = useCallback(() => {
-    router.push(recipesLink);
-  }, [router, recipesLink]);
 
   return (
     <section className="py-16 dark:bg-gray-900">

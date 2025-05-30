@@ -29,7 +29,7 @@ export default function Login() {
   // 如果用户已登录，自动重定向
   useEffect(() => {
     if (user) {
-      console.log("User already logged in, redirecting to:", redirectTo);
+      // console.log("User already logged in, redirecting to:", redirectTo);
       router.push(redirectTo);
     }
   }, [user, redirectTo, router]);
@@ -88,7 +88,7 @@ export default function Login() {
         return;
       }
       
-      console.log("Attempting login with email:", email);
+      // console.log("Attempting login with email:", email);
       
       // 创建 Supabase 客户端
       const supabase = createBrowserClient(
@@ -114,7 +114,7 @@ export default function Login() {
       }
       
       // 登录成功
-      console.log("Login successful! Session:", !!data.session);
+      // console.log("Login successful! Session:", !!data.session);
       
       // 检查是否有认证重定向路径
       let finalRedirectPath = redirectTo;
@@ -123,7 +123,7 @@ export default function Login() {
         if (authRedirectPath) {
           finalRedirectPath = authRedirectPath;
           localStorage.removeItem('authRedirectPath');
-          console.log("Found auth redirect path:", finalRedirectPath);
+          // console.log("Found auth redirect path:", finalRedirectPath);
         }
       } catch (error) {
         console.error('Error checking auth redirect path:', error);
@@ -135,7 +135,7 @@ export default function Login() {
         const pendingPlanType = localStorage.getItem('pendingPlanType');
         
         if (pendingPaymentLink && pendingPlanType) {
-          console.log(`Found pending payment for ${pendingPlanType}, redirecting to:`, pendingPaymentLink);
+          // console.log(`Found pending payment for ${pendingPlanType}, redirecting to:`, pendingPaymentLink);
           
           // 清除localStorage中的待处理链接
           localStorage.removeItem('pendingPaymentLink');
@@ -175,7 +175,7 @@ export default function Login() {
         const authRedirectPath = localStorage.getItem('authRedirectPath');
         if (authRedirectPath) {
           finalRedirectPath = authRedirectPath;
-          console.log("Found auth redirect path for Google login:", finalRedirectPath);
+          // console.log("Found auth redirect path for Google login:", finalRedirectPath);
         }
       } catch (error) {
         console.error('Error checking auth redirect path:', error);

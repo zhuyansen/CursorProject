@@ -57,12 +57,14 @@ export function processBibiGPTResponse(data: any) {
         const parsedSummary = JSON.parse(jsonMatch[1]);
         // 替换原始summary字段
         data.summary = parsedSummary;
-        console.log('[BibiGPT] 成功解析summary字段为JSON对象');
+        // console.log('[BibiGPT] 成功解析summary字段为JSON对象');
       } else {
-        console.warn('[BibiGPT] 无法从summary中提取JSON字符串');
+        // console.warn('[BibiGPT] 无法从summary中提取JSON字符串');
+        return data;
       }
-    } catch (error) {
-      console.error('[BibiGPT] 解析summary JSON时出错:', error);
+    } catch (parseError) {
+      // console.warn('[BibiGPT] 解析summary JSON时出错:', parseError);
+      return data;
     }
   }
   

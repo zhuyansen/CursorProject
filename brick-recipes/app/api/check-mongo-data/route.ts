@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 
 export async function GET(request: Request) {
-  console.log("开始检查MongoDB数据...");
+  // console.log("开始检查MongoDB数据...");
   try {
     // 1. 连接MongoDB
-    console.log("尝试连接MongoDB...");
+    // console.log("尝试连接MongoDB...");
     const { db } = await connectToDatabase();
-    console.log("MongoDB连接成功，数据库:", db.databaseName);
+    // console.log("MongoDB连接成功，数据库:", db.databaseName);
 
     // 2. 获取URL参数
     const { searchParams } = new URL(request.url);
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const service = searchParams.get('service');
     const limit = parseInt(searchParams.get('limit') || '10');
     
-    console.log("查询参数:", { videoId, service, limit });
+    // console.log("查询参数:", { videoId, service, limit });
 
     // 3. 构建查询条件
     let query = {};
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       })
       .toArray();
     
-    console.log(`查询结果: 找到${documents.length}条记录`);
+    // console.log(`查询结果: 找到${documents.length}条记录`);
     
     // 5. 如果没有指定查询条件，获取所有唯一的id和service组合
     let serviceIdPairs = [];

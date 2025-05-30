@@ -57,7 +57,7 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
     // 定义获取会话和用户的函数
     const getUserAndSession = async () => {
       try {
-        console.log('Fetching user session from client...');
+        // console.log('Fetching user session from client...');
         
         // 首先获取会话，这可以刷新 token
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -69,7 +69,7 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
           return;
         }
         
-        console.log('Session data:', sessionData ? 'Found' : 'Not found');
+        // console.log('Session data:', sessionData ? 'Found' : 'Not found');
         
         // 然后获取用户信息
         if (sessionData?.session) {
@@ -79,14 +79,14 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
             console.error('Error fetching user:', userError);
             setUser(null);
           } else if (userData?.user) {
-            console.log('User found:', userData.user.email);
+            // console.log('User found:', userData.user.email);
             setUser(userData.user);
           } else {
-            console.log('No user found despite having session');
+            // console.log('No user found despite having session');
             setUser(null);
           }
         } else {
-          console.log('No session found');
+          // console.log('No session found');
           setUser(null);
         }
       } catch (error) {
@@ -103,26 +103,26 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
     // 设置身份验证状态变化的监听器
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        // console.log('Auth state changed:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            console.log('User signed in or token refreshed:', session.user.email);
+            // console.log('User signed in or token refreshed:', session.user.email);
             setUser(session.user);
             router.refresh();
           } else {
             // 奇怪的情况：SIGNED_IN 事件但没有用户
-            console.log('Signed in event with no user - re-fetch session');
+            // console.log('Signed in event with no user - re-fetch session');
             getUserAndSession(); // 再次尝试获取会话和用户
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out');
+          // console.log('User signed out');
           setUser(null);
           router.push('/sign-in');
           router.refresh();
         } else {
           // 处理其他可能的事件
-          console.log('Other auth event:', event);
+          // console.log('Other auth event:', event);
           getUserAndSession(); // 重新获取会话和用户状态
         }
       }
@@ -130,7 +130,7 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
 
     // 防止会话丢失：每分钟检查一次会话状态
     const sessionCheckInterval = setInterval(() => {
-      console.log('Periodic session check...');
+      // console.log('Periodic session check...');
       getUserAndSession();
     }, 60000); // 每分钟检查一次
 
@@ -146,7 +146,7 @@ export default function AuthWrapper({ children }: { children: ReactNode }) {
     if (!supabaseUrl || !supabaseAnonKey) return;
     
     try {
-      console.log('Signing out...');
+      // console.log('Signing out...');
       const supabase = getSupabase();
       if (!supabase) return;
       

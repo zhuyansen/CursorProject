@@ -41,7 +41,7 @@ const logAvailableTags = async () => {
   try {
     // 获取所有以index:tag:开头的键
     const keys = await redis.keys("index:tag:*");
-    console.log("[API Menu] Available tag keys in Redis:", keys);
+    // console.log("[API Menu] Available tag keys in Redis:", keys);
     return keys;
   } catch (error) {
     console.error("[API Menu] Error getting tag keys:", error);
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')?.toLowerCase();
     
     // 记录当前请求的分类
-    console.log(`[API Menu] Requested category: ${category}`);
+    // console.log(`[API Menu] Requested category: ${category}`);
     
     // 分页参数
     const page = parseInt(searchParams.get('page') || '1', 10);
@@ -88,14 +88,14 @@ export async function GET(request: NextRequest) {
         const exists = await redis.exists(alternativeKey);
         if (exists) {
           categoryKey = alternativeKey;
-          console.log(`[API Menu] Found alternative key for ${category}: ${alternativeKey}`);
+          // console.log(`[API Menu] Found alternative key for ${category}: ${alternativeKey}`);
           break;
         }
       }
     }
     
     if (!categoryKey) {
-      console.log(`[API Menu] Category not supported: ${category}`);
+      // console.log(`[API Menu] Category not supported: ${category}`);
       return NextResponse.json({
         recipes: [],
         pagination: {
@@ -109,13 +109,13 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    console.log(`[API Menu] Getting recipes for category: ${category}, using key: ${categoryKey}`);
+    // console.log(`[API Menu] Getting recipes for category: ${category}, using key: ${categoryKey}`);
     
     // 获取分类下的所有食谱ID
     const recipeIds = await redis.smembers(categoryKey);
     
     if (!recipeIds || recipeIds.length === 0) {
-      console.log(`[API Menu] No recipes found for category: ${category}`);
+      // console.log(`[API Menu] No recipes found for category: ${category}`);
       return NextResponse.json({
         recipes: [],
         pagination: {
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
     // 排序食谱ID
     const sortedRecipeIds = recipeIds.sort();
     const totalRecipes = sortedRecipeIds.length;
-    console.log(`[API Menu] Found ${totalRecipes} recipes for category: ${category}`);
+    // console.log(`[API Menu] Found ${totalRecipes} recipes for category: ${category}`);
     
     // 计算总页数
     const totalPages = Math.ceil(totalRecipes / limitedPageSize);
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       currentPageIds = sortedRecipeIds.slice(startIndex, endIndex);
     }
     
-    console.log(`[API Menu] Processing ${currentPageIds.length} recipes for category: ${category}`);
+    // console.log(`[API Menu] Processing ${currentPageIds.length} recipes for category: ${category}`);
     
     // 批处理获取食谱详情
     const recipes: Recipe[] = [];
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
       const batchIds = currentPageIds.slice(i, i + batchSize);
       const recipeKeys = batchIds.map(id => `recipe:${id}`);
       
-      console.log(`[API Menu] Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(currentPageIds.length/batchSize)}`);
+      // console.log(`[API Menu] Fetching batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(currentPageIds.length/batchSize)}`);
       const recipeDataStrings = await redis.mget(recipeKeys);
       
       recipeDataStrings.forEach((recipeDataStr, index) => {

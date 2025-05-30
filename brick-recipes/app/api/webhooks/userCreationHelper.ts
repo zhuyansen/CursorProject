@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function createUserIfNotExists(userId: string, email: string): Promise<boolean> {
   try {
-    console.log('开始创建用户记录，userId:', userId, 'email:', email);
+    // console.log('开始创建用户记录，userId:', userId, 'email:', email);
 
     // 创建Supabase客户端
     const supabase = createClient(
@@ -24,7 +24,7 @@ export async function createUserIfNotExists(userId: string, email: string): Prom
       .single();
 
     if (existingUser) {
-      console.log('用户记录已存在:', userId);
+      // console.log('用户记录已存在:', userId);
       return true;
     }
 
@@ -35,11 +35,11 @@ export async function createUserIfNotExists(userId: string, email: string): Prom
     let authUserId: string;
 
     if (existingAuthUser) {
-      console.log('Auth用户已存在:', existingAuthUser.id);
+      // console.log('Auth用户已存在:', existingAuthUser.id);
       authUserId = existingAuthUser.id;
     } else {
       // 创建新的Auth用户
-      console.log('创建Auth用户...');
+      // console.log('创建Auth用户...');
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
         password: Math.random().toString(36).substring(2, 15), // 生成随机密码
@@ -54,12 +54,12 @@ export async function createUserIfNotExists(userId: string, email: string): Prom
         return false;
       }
 
-      console.log('Auth用户创建成功:', authData.user?.id);
+      // console.log('Auth用户创建成功:', authData.user?.id);
       authUserId = authData.user!.id;
     }
 
     // 等待触发器创建用户记录
-    console.log('等待触发器创建用户记录...');
+    // console.log('等待触发器创建用户记录...');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // 验证用户记录是否已创建（使用Auth用户ID）
@@ -70,7 +70,7 @@ export async function createUserIfNotExists(userId: string, email: string): Prom
       .single();
 
     if (userAfterAuth) {
-      console.log('用户记录已由触发器创建:', authUserId);
+      // console.log('用户记录已由触发器创建:', authUserId);
       return true;
     } else {
       console.error('触发器未能创建用户记录:', authUserId);

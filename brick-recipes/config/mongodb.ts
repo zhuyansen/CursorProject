@@ -18,7 +18,7 @@ let cachedDb: any = null;
  * @returns {Promise<any>} 数据库连接的Promise
  */
 export async function getVideoToRecipeDb() {
-  console.warn("警告: 使用了已弃用的config/mongodb.ts，请更新为 @/lib/mongodb");
+  // console.warn("警告: 使用了已弃用的config/mongodb.ts，请更新为 @/lib/mongodb");
   
   if (cachedDb) {
     return cachedDb;

@@ -35,16 +35,16 @@ export async function connectToDatabase() {
   try {
     // 如果已有缓存的连接，则使用缓存
     if (cachedClient && cachedDb) {
-      console.log("使用缓存的MongoDB连接");
+      // console.log("使用缓存的MongoDB连接");
       return { client: cachedClient, db: cachedDb }
     }
 
-    console.log("尝试连接MongoDB:", MONGODB_URI);
+    // console.log("尝试连接MongoDB:", MONGODB_URI);
     // 如果没有连接，则建立新连接
     const client = new MongoClient(MONGODB_URI, options)
     await client.connect()
     const db = client.db(MONGODB_DB)
-    console.log("MongoDB连接成功! 数据库:", MONGODB_DB);
+    // console.log("MongoDB连接成功! 数据库:", MONGODB_DB);
 
     // 设置缓存
     cachedClient = client

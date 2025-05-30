@@ -73,7 +73,7 @@ export class UserService {
 
   // 更新用户计划
   async updateUserPlan(userId: string, plan: PlanType): Promise<boolean> {
-    console.log(`[userService.updateUserPlan] Attempting to update plan for userId: ${userId} to ${plan}`);
+    // console.log(`[userService.updateUserPlan] Attempting to update plan for userId: ${userId} to ${plan}`);
     try {
       const { error } = await this.supabase.rpc('update_user_plan', {
         user_uuid: userId,
@@ -84,7 +84,7 @@ export class UserService {
         console.error(`[userService.updateUserPlan] Error updating user plan for ${userId} to ${plan}:`, error);
         return false;
       }
-      console.log(`[userService.updateUserPlan] Successfully updated plan for userId: ${userId} to ${plan}`);
+      // console.log(`[userService.updateUserPlan] Successfully updated plan for userId: ${userId} to ${plan}`);
       return true;
     } catch (error) {
       console.error(`[userService.updateUserPlan] Exception during plan update for ${userId} to ${plan}:`, error);
@@ -135,7 +135,7 @@ export class UserService {
 
   // 创建订阅
   async createSubscription(subscription: Omit<Subscription, 'id' | 'created_at' | 'updated_at'>): Promise<Subscription | null> {
-    console.log(`[userService.createSubscription] Attempting to create subscription record:`, JSON.stringify(subscription, null, 2));
+    // console.log(`[userService.createSubscription] Attempting to create subscription record:`, JSON.stringify(subscription, null, 2));
     const { data, error } = await this.supabase
       .from('subscriptions')
       .insert(subscription)
@@ -147,7 +147,7 @@ export class UserService {
       console.error(`[userService.createSubscription] Data attempted for creation:`, JSON.stringify(subscription, null, 2));
       return null;
     }
-    console.log(`[userService.createSubscription] Successfully created subscription record:`, JSON.stringify(data, null, 2));
+    // console.log(`[userService.createSubscription] Successfully created subscription record:`, JSON.stringify(data, null, 2));
     return data;
   }
 
@@ -353,7 +353,7 @@ export class UserService {
 
   // 根据Stripe订阅ID查找订阅记录
   async getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<Subscription | null> {
-    console.log(`[userService.getSubscriptionByStripeId] Attempting to find subscription by stripe_subscription_id: ${stripeSubscriptionId}`);
+    // console.log(`[userService.getSubscriptionByStripeId] Attempting to find subscription by stripe_subscription_id: ${stripeSubscriptionId}`);
     const { data, error } = await this.supabase
       .from('subscriptions')
       .select('*')
@@ -365,16 +365,16 @@ export class UserService {
       return null;
     }
     if (data) {
-      console.log(`[userService.getSubscriptionByStripeId] Found existing subscription:`, data);
+      // console.log(`[userService.getSubscriptionByStripeId] Found existing subscription:`, data);
     } else {
-      console.log(`[userService.getSubscriptionByStripeId] No existing subscription found for stripe_subscription_id: ${stripeSubscriptionId}`);
+      // console.log(`[userService.getSubscriptionByStripeId] No existing subscription found for stripe_subscription_id: ${stripeSubscriptionId}`);
     }
     return data;
   }
 
   // 更新现有订阅记录
   async updateSubscription(subscriptionDbId: string, subscriptionData: Partial<Omit<Subscription, 'id' | 'created_at' | 'updated_at'>>): Promise<Subscription | null> {
-    console.log(`[userService.updateSubscription] Attempting to update subscription with DB ID: ${subscriptionDbId}. Data:`, JSON.stringify(subscriptionData, null, 2));
+    // console.log(`[userService.updateSubscription] Attempting to update subscription with DB ID: ${subscriptionDbId}. Data:`, JSON.stringify(subscriptionData, null, 2));
     // Ensure `updated_at` is set automatically by Supabase or manually if needed
     const dataToUpdate = {
       ...subscriptionData,
@@ -392,7 +392,7 @@ export class UserService {
       console.error(`[userService.updateSubscription] Error updating subscription DB ID ${subscriptionDbId}:`, error);
       return null;
     }
-    console.log(`[userService.updateSubscription] Successfully updated subscription DB ID ${subscriptionDbId}:`, data);
+    // console.log(`[userService.updateSubscription] Successfully updated subscription DB ID ${subscriptionDbId}:`, data);
     return data;
   }
 }

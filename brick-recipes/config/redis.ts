@@ -22,7 +22,7 @@ redis.on('error', (error) => {
 });
 
 redis.on('connect', () => {
-  console.log('[Redis:DB0] Connected successfully');
+  // console.log('[Redis:DB0] Connected successfully');
 });
 
 // 菜谱客户端错误处理
@@ -31,7 +31,7 @@ recipeRedisClient.on('error', (error) => {
 });
 
 recipeRedisClient.on('connect', () => {
-  console.log('[Redis:DB1] Recipe connected successfully');
+  // console.log('[Redis:DB1] Recipe connected successfully');
 });
 
 // 导出默认客户端（向后兼容）

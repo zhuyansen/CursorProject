@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Vercel 优化配置
+  output: process.env.VERCEL ? 'standalone' : undefined,
+  poweredByHeader: false,
+  generateEtags: false,
+  
   reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
@@ -7,6 +12,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  
   env: {
     // 确保Stripe支付链接环境变量可用
     STRIPE_MONTHLY_PLAN_LINK: process.env.STRIPE_MONTHLY_PLAN_LINK,
@@ -18,6 +24,7 @@ const nextConfig = {
     NEXT_PUBLIC_STRIPE_DESSERT_LINK: process.env.NEXT_PUBLIC_STRIPE_DESSERT_LINK,
     NEXT_PUBLIC_STRIPE_SNACK_LINK: process.env.NEXT_PUBLIC_STRIPE_SNACK_LINK
   },
+  
   images: {
     unoptimized: false,
     dangerouslyAllowSVG: true,
@@ -30,23 +37,32 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'images.unsplash.com',
       },
       {
-        protocol: 'http',
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+      },
+      {
+        protocol: 'https',
         hostname: '**',
       },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60 * 60 * 24 * 7,
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 7, // 7天缓存
   },
+  
   experimental: {
-    optimizeCss: true,
+    optimizeCss: false,
     scrollRestoration: true,
+    // Vercel 边缘运行时优化
+    serverComponentsExternalPackages: ['mongodb', 'ioredis'],
   },
+  
   compress: true,
+  
   async redirects() {
     return [
       {
@@ -54,8 +70,21 @@ const nextConfig = {
         destination: '/',
         permanent: true,
       },
+      // www 重定向到主域名
+      {
+        source: '/www.brickrecipes.ai/:path*',
+        destination: 'https://brickrecipes.ai/:path*',
+        permanent: true,
+        has: [
+          {
+            type: 'host',
+            value: 'www.brickrecipes.ai',
+          },
+        ],
+      },
     ]
   },
+  
   async headers() {
     return [
       {
@@ -80,6 +109,30 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()'
+          }
+        ]
+      },
+      // 静态资源长期缓存
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      // API 路由缓存控制
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, must-revalidate'
           }
         ]
       }

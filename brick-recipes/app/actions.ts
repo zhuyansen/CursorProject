@@ -45,7 +45,7 @@ export const signInAction = async (formData: FormData) => {
   const redirectTo = formData.get("redirectTo")?.toString() || "/protected";
   const supabase = await createClient();
 
-  console.log("[Server] Attempting login for:", email);
+  // console.log("[Server] Attempting login for:", email);
   
   try {
     // 尝试使用密码登录
@@ -60,15 +60,15 @@ export const signInAction = async (formData: FormData) => {
     }
 
     // 登录成功
-    console.log("[Server] Login successful for:", email);
-    console.log("[Server] Session established:", !!data.session);
+    // console.log("[Server] Login successful for:", email);
+    // console.log("[Server] Session established:", !!data.session);
     
     // 为了确保客户端获取到最新会话，刷新一下会话
     const sessionResponse = await supabase.auth.getSession();
-    console.log("[Server] Session after refresh:", !!sessionResponse.data.session);
+    // console.log("[Server] Session after refresh:", !!sessionResponse.data.session);
     
     // 重定向到目标页面
-    console.log("[Server] Redirecting to:", redirectTo);
+    // console.log("[Server] Redirecting to:", redirectTo);
     return redirect(redirectTo);
   } catch (e) {
     console.error("[Server] Unexpected error during login:", e);
@@ -150,6 +150,6 @@ export const resetPasswordAction = async (formData: FormData) => {
 export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  console.log("[Server] User signed out");
+  // console.log("[Server] User signed out");
   return redirect("/sign-in");
 }; 

@@ -60,34 +60,34 @@ export class StripeIntegration {
   // 创建Stripe客户
   async createCustomer(userId: string, email: string, name?: string): Promise<string | null> {
     try {
-      console.log('开始创建Stripe客户，userId:', userId, 'email:', email);
+      // console.log('开始创建Stripe客户，userId:', userId, 'email:', email);
 
       // 先检查用户是否存在，如果不存在则创建
       let user = await this.userService.getUser(userId);
       if (!user) {
-        console.log('用户不存在，需要创建用户记录');
+        // console.log('用户不存在，需要创建用户记录');
         // 创建用户记录
         const userCreated = await createUserIfNotExists(userId, email);
         if (!userCreated) {
           console.error('Failed to create user record for:', userId);
           return null;
         }
-        console.log('用户记录创建成功');
+        // console.log('用户记录创建成功');
         
         // 等待一下确保用户记录已创建
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         user = await this.userService.getUser(userId);
-        console.log('重新获取用户信息:', user ? '成功' : '失败');
+        // console.log('重新获取用户信息:', user ? '成功' : '失败');
         
         // 如果仍然没有找到用户，可能需要使用Auth用户ID
         if (!user) {
-          console.log('使用传入的userId未找到用户，可能需要查找Auth用户ID');
+          // console.log('使用传入的userId未找到用户，可能需要查找Auth用户ID');
           // 这里我们假设createUserIfNotExists已经创建了正确的用户记录
           // 我们需要通过email查找用户
           const userByEmail = await this.userService.getUserByEmail(email);
           if (userByEmail) {
-            console.log('通过email找到用户:', userByEmail.id);
+            // console.log('通过email找到用户:', userByEmail.id);
             user = userByEmail;
             userId = userByEmail.id; // 更新userId为实际的Auth用户ID
           }
@@ -98,10 +98,10 @@ export class StripeIntegration {
           return null;
         }
       } else {
-        console.log('用户已存在:', user.id);
+        // console.log('用户已存在:', user.id);
       }
 
-      console.log('开始创建Stripe客户...');
+      // console.log('开始创建Stripe客户...');
       const customer = await this.stripe.customers.create({
         email,
         name,
@@ -109,12 +109,12 @@ export class StripeIntegration {
           userId: userId,
         },
       });
-      console.log('Stripe客户创建成功:', customer.id);
+      // console.log('Stripe客户创建成功:', customer.id);
 
       // 更新用户的customer_id
-      console.log('更新用户的customer_id...');
+      // console.log('更新用户的customer_id...');
       const updateResult = await this.userService.updateUserCustomerId(userId, customer.id);
-      console.log('更新customer_id结果:', updateResult);
+      // console.log('更新customer_id结果:', updateResult);
       
       return customer.id;
     } catch (error) {
@@ -125,16 +125,16 @@ export class StripeIntegration {
 
   // 获取或创建Stripe客户
   async getOrCreateCustomer(userId: string, email: string, name?: string): Promise<string | null> {
-    console.log('开始获取或创建客户，userId:', userId, 'email:', email);
+    // console.log('开始获取或创建客户，userId:', userId, 'email:', email);
     
     // 首先尝试从数据库获取
     const user = await this.userService.getUser(userId);
     if (user?.customer_id) {
-      console.log('找到现有客户ID:', user.customer_id);
+      // console.log('找到现有客户ID:', user.customer_id);
       return user.customer_id;
     }
 
-    console.log('没有找到现有客户，需要创建新客户');
+    // console.log('没有找到现有客户，需要创建新客户');
     // 如果没有，创建新客户
     return await this.createCustomer(userId, email, name);
   }
@@ -142,7 +142,7 @@ export class StripeIntegration {
   // 创建结账会话
   async createCheckoutSession(data: CheckoutSessionData): Promise<Stripe.Checkout.Session | null> {
     try {
-      console.log('开始创建checkout session，参数:', data);
+      // console.log('开始创建checkout session，参数:', data);
 
       // 获取价格ID
       const priceId = this.getPriceId(data.plan, data.period);
@@ -150,27 +150,27 @@ export class StripeIntegration {
         console.error('获取价格ID失败，plan:', data.plan, 'period:', data.period);
         throw new Error('Invalid plan or period');
       }
-      console.log('获取价格ID成功:', priceId);
+      // console.log('获取价格ID成功:', priceId);
 
       // 获取或创建客户（这里会自动创建用户记录如果不存在）
-      console.log('开始获取或创建客户...');
+      // console.log('开始获取或创建客户...');
       const customerId = await this.getOrCreateCustomer(data.userId, data.email);
       if (!customerId) {
         console.error('获取或创建客户失败');
         throw new Error('Failed to create customer');
       }
-      console.log('获取或创建客户成功:', customerId);
+      // console.log('获取或创建客户成功:', customerId);
 
       // 现在检查用户是否存在，如果不存在则通过email查找
-      console.log('检查用户是否存在...');
+      // console.log('检查用户是否存在...');
       let user = await this.userService.getUser(data.userId);
       let actualUserId = data.userId;
       
       if (!user) {
-        console.log('使用传入的userId未找到用户，尝试通过email查找...');
+        // console.log('使用传入的userId未找到用户，尝试通过email查找...');
         const userByEmail = await this.userService.getUserByEmail(data.email);
         if (userByEmail) {
-          console.log('通过email找到用户:', userByEmail.id);
+          // console.log('通过email找到用户:', userByEmail.id);
           user = userByEmail;
           actualUserId = userByEmail.id;
         }
@@ -180,7 +180,7 @@ export class StripeIntegration {
         console.error('用户记录不存在，userId:', data.userId, 'email:', data.email);
         throw new Error('User not found after customer creation');
       }
-      console.log('用户检查通过:', user.id);
+      // console.log('用户检查通过:', user.id);
 
       // 设置语言，Stripe支持的中文locale
       let locale: Stripe.Checkout.SessionCreateParams.Locale = 'en';
@@ -221,9 +221,9 @@ export class StripeIntegration {
         };
       }
 
-      console.log('开始创建Stripe checkout session...');
+      // console.log('开始创建Stripe checkout session...');
       const session = await this.stripe.checkout.sessions.create(sessionConfig);
-      console.log('Stripe checkout session创建成功:', session.id);
+      // console.log('Stripe checkout session创建成功:', session.id);
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
@@ -276,7 +276,7 @@ export class StripeIntegration {
     try {
       const event = this.stripe.webhooks.constructEvent(body, signature, this.webhookSecret);
 
-      console.log(`Received webhook event: ${event.type}`);
+      // console.log(`Received webhook event: ${event.type}`);
 
       switch (event.type) {
         case 'checkout.session.completed':
@@ -304,7 +304,7 @@ export class StripeIntegration {
           break;
 
         default:
-          console.log(`Unhandled event type: ${event.type}`);
+          // console.log(`Unhandled event type: ${event.type}`);
       }
 
       return { success: true, message: 'Webhook processed successfully' };
@@ -316,7 +316,7 @@ export class StripeIntegration {
 
   // 处理结账完成
   private async handleCheckoutCompleted(session: Stripe.Checkout.Session): Promise<void> {
-    console.log('Processing checkout completed:', session.id);
+    // console.log('Processing checkout completed:', session.id);
     
     let userId = session.metadata?.userId;
     let plan = session.metadata?.plan as PlanType;
@@ -328,7 +328,7 @@ export class StripeIntegration {
       const foundUserId = await this.userService.getUserByStripeCustomerId(customerId);
       if (foundUserId) {
         userId = foundUserId;
-        console.log(`Found userId from customer ID: ${userId}`);
+        // console.log(`Found userId from customer ID: ${userId}`);
       } else {
         console.warn(`No user found for customer ID: ${customerId}`);
         
@@ -337,14 +337,14 @@ export class StripeIntegration {
           const customer = await this.stripe.customers.retrieve(customerId);
           if (customer && !customer.deleted && customer.metadata?.userId) {
             userId = customer.metadata.userId;
-            console.log(`Retrieved userId from Stripe customer metadata: ${userId}`);
+            // console.log(`Retrieved userId from Stripe customer metadata: ${userId}`);
             
             // 尝试创建用户记录并更新customer_id
             if (userId && customer.email) {
               const userCreated = await createUserIfNotExists(userId, customer.email);
               if (userCreated) {
                 await this.userService.updateUserCustomerId(userId, customerId);
-                console.log(`Created user record and linked customer: ${userId}`);
+                // console.log(`Created user record and linked customer: ${userId}`);
               }
             }
           }
@@ -383,7 +383,7 @@ export class StripeIntegration {
         if (planInfo) {
           plan = planInfo.plan;
           period = planInfo.period;
-          console.log(`Inferred plan from price ID ${priceId}: ${plan} (${period})`);
+          // console.log(`Inferred plan from price ID ${priceId}: ${plan} (${period})`);
         }
       }
     }
@@ -398,7 +398,7 @@ export class StripeIntegration {
         if (planInfo) {
           plan = planInfo.plan;
           period = planInfo.period;
-          console.log(`Inferred plan from subscription ${subscriptionId}: ${plan} (${period})`);
+          // console.log(`Inferred plan from subscription ${subscriptionId}: ${plan} (${period})`);
         }
       } catch (error) {
         console.error('Error retrieving subscription:', error);
@@ -410,7 +410,7 @@ export class StripeIntegration {
       return;
     }
 
-    console.log(`Processing checkout for user ${userId}, plan: ${plan}, period: ${period}`);
+    // console.log(`Processing checkout for user ${userId}, plan: ${plan}, period: ${period}`);
 
     // 确保用户存在
     const user = await this.userService.getUser(userId);
@@ -463,7 +463,7 @@ export class StripeIntegration {
         status: 'active',
       });
 
-      console.log(`Lifetime subscription activated for user: ${userId}`);
+      // console.log(`Lifetime subscription activated for user: ${userId}`);
     } catch (error) {
       console.error('Error handling lifetime purchase:', error);
     }
@@ -471,12 +471,12 @@ export class StripeIntegration {
 
   // 处理订阅创建
   private async handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
-    console.log('[handleSubscriptionCreated] Received subscription object from webhook:', JSON.stringify(subscription, null, 2));
+    // console.log('[handleSubscriptionCreated] Received subscription object from webhook:', JSON.stringify(subscription, null, 2));
     const userId = subscription.metadata?.userId;
     let plan = subscription.metadata?.plan as PlanType;
     let period = subscription.metadata?.period as SubscriptionPeriod;
 
-    console.log(`[handleSubscriptionCreated] Extracted metadata - userId: ${userId}, plan: ${plan}, period: ${period}`);
+    // console.log(`[handleSubscriptionCreated] Extracted metadata - userId: ${userId}, plan: ${plan}, period: ${period}`);
 
     if (!userId) {
       console.error('[handleSubscriptionCreated] CRITICAL: Missing userId in subscription metadata. Cannot proceed.', JSON.stringify(subscription.metadata, null, 2));
@@ -487,12 +487,12 @@ export class StripeIntegration {
       // 如果没有plan信息，从价格ID推断
       if (!plan || !period) {
         const priceId = subscription.items.data[0]?.price.id;
-        console.log(`[handleSubscriptionCreated] Plan/period missing from metadata. Attempting to infer from priceId: ${priceId}`);
+        // console.log(`[handleSubscriptionCreated] Plan/period missing from metadata. Attempting to infer from priceId: ${priceId}`);
         const planInfo = this.getPlanFromPriceId(priceId || '');
         if (planInfo) {
           plan = planInfo.plan;
           period = planInfo.period;
-          console.log(`[handleSubscriptionCreated] Inferred plan: ${plan}, period: ${period} from priceId: ${priceId}`);
+          // console.log(`[handleSubscriptionCreated] Inferred plan: ${plan}, period: ${period} from priceId: ${priceId}`);
         } else {
           console.error(`[handleSubscriptionCreated] CRITICAL: Could not infer plan/period from priceId ${priceId}. Cannot proceed.`);
           return;
@@ -500,9 +500,9 @@ export class StripeIntegration {
       }
 
       // 更新用户计划
-      console.log(`[handleSubscriptionCreated] Updating user plan for userId: ${userId} to plan: ${plan}`);
+      // console.log(`[handleSubscriptionCreated] Updating user plan for userId: ${userId} to plan: ${plan}`);
       const planUpdateResult = await this.userService.updateUserPlan(userId, plan);
-      console.log(`[handleSubscriptionCreated] User plan update result for ${userId}: ${planUpdateResult}`);
+      // console.log(`[handleSubscriptionCreated] User plan update result for ${userId}: ${planUpdateResult}`);
       if (!planUpdateResult) {
         console.error(`[handleSubscriptionCreated] WARNING: Failed to update user plan for ${userId} to ${plan}`);
       }
@@ -523,7 +523,7 @@ export class StripeIntegration {
     subscription: Stripe.Subscription
   ): Promise<void> {
     try {
-      console.log(`[handlePremiumSubscription] Processing premium subscription for userId: ${userId}, plan: ${plan}, period: ${period}`);
+      // console.log(`[handlePremiumSubscription] Processing premium subscription for userId: ${userId}, plan: ${plan}, period: ${period}`);
       
       // 计算开始和结束日期，使用当前时间作为开始时间
       const startDate = new Date();
@@ -535,13 +535,13 @@ export class StripeIntegration {
         endDate.setFullYear(endDate.getFullYear() + 1);
       }
 
-      console.log(`[handlePremiumSubscription] Calculated dates - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
+      // console.log(`[handlePremiumSubscription] Calculated dates - Start: ${startDate.toISOString()}, End: ${endDate.toISOString()}`);
 
       // 检查是否已存在该订阅记录
       const existingSubscription = await this.userService.getSubscriptionByStripeId(subscription.id);
       
       if (existingSubscription) {
-        console.log(`[handlePremiumSubscription] Updating existing subscription for userId: ${userId}, stripe_subscription_id: ${subscription.id}`);
+        // console.log(`[handlePremiumSubscription] Updating existing subscription for userId: ${userId}, stripe_subscription_id: ${subscription.id}`);
         const updateResult = await this.userService.updateSubscription(existingSubscription.id, {
           plan: plan,
           period: period,
@@ -552,12 +552,12 @@ export class StripeIntegration {
         });
         
         if (updateResult) {
-          console.log(`[handlePremiumSubscription] Successfully updated subscription for user: ${userId}`);
+          // console.log(`[handlePremiumSubscription] Successfully updated subscription for user: ${userId}`);
         } else {
           console.error(`[handlePremiumSubscription] CRITICAL: Failed to update subscription for user: ${userId}`);
         }
       } else {
-        console.log(`[handlePremiumSubscription] Creating new subscription record for userId: ${userId}`);
+        // console.log(`[handlePremiumSubscription] Creating new subscription record for userId: ${userId}`);
         // 创建新的订阅记录，使用简单直接的方式（类似lifetime）
         const subscriptionRecord = await this.userService.createSubscription({
           user_id: userId,
@@ -571,7 +571,7 @@ export class StripeIntegration {
         });
 
         if (subscriptionRecord) {
-          console.log(`[handlePremiumSubscription] Successfully created subscription for user: ${userId}, plan: ${plan}`);
+          // console.log(`[handlePremiumSubscription] Successfully created subscription for user: ${userId}, plan: ${plan}`);
         } else {
           console.error(`[handlePremiumSubscription] CRITICAL: Failed to create subscription for user: ${userId}, plan: ${plan}`);
         }
@@ -602,26 +602,26 @@ export class StripeIntegration {
       status: 'active' as SubscriptionStatus,
     };
 
-    console.log(`[createSubscriptionEntry] Attempting to create/update subscription record for userId: ${userId}. Data:`, JSON.stringify(subscriptionRecordData, null, 2));
+    // console.log(`[createSubscriptionEntry] Attempting to create/update subscription record for userId: ${userId}. Data:`, JSON.stringify(subscriptionRecordData, null, 2));
     
     const existingSubscription = await this.userService.getSubscriptionByStripeId(stripeSubscription.id);
 
     if (existingSubscription && existingSubscription.id) {
-      console.log(`[createSubscriptionEntry] Existing subscription found for ${stripeSubscription.id}. Updating it. DB ID: ${existingSubscription.id}`);
+      // console.log(`[createSubscriptionEntry] Existing subscription found for ${stripeSubscription.id}. Updating it. DB ID: ${existingSubscription.id}`);
       const { user_id, ...updateData } = subscriptionRecordData; 
       const updateResult = await this.userService.updateSubscription(existingSubscription.id, updateData);
       if (updateResult) {
-        console.log(`[createSubscriptionEntry] Subscription record successfully updated for user: ${userId}, plan: ${plan}.`);
+        // console.log(`[createSubscriptionEntry] Subscription record successfully updated for user: ${userId}, plan: ${plan}.`);
       } else {
         console.error(`[createSubscriptionEntry] CRITICAL: Failed to update existing subscription record for user: ${userId}, stripe_subscription_id: ${stripeSubscription.id}.`);
       }
     } else {
-      console.log(`[createSubscriptionEntry] No existing subscription found for ${stripeSubscription.id}. Creating new one.`);
+      // console.log(`[createSubscriptionEntry] No existing subscription found for ${stripeSubscription.id}. Creating new one.`);
       const createdSubscription = await this.userService.createSubscription(
         subscriptionRecordData as Omit<UserSubscription, 'id' | 'created_at' | 'updated_at'>
       );
       if (createdSubscription) {
-        console.log(`[createSubscriptionEntry] Subscription record successfully created for user: ${userId}, plan: ${plan}. Result:`, JSON.stringify(createdSubscription, null, 2));
+        // console.log(`[createSubscriptionEntry] Subscription record successfully created for user: ${userId}, plan: ${plan}. Result:`, JSON.stringify(createdSubscription, null, 2));
       } else {
         console.error(`[createSubscriptionEntry] CRITICAL: Failed to create new subscription record for user: ${userId}, plan: ${plan}.`);
       }
@@ -656,7 +656,7 @@ export class StripeIntegration {
         await this.userService.updateUserPlan(userId, 'free');
       }
 
-      console.log(`Subscription updated for user: ${userId}, status: ${status}`);
+      // console.log(`Subscription updated for user: ${userId}, status: ${status}`);
     } catch (error) {
       console.error('Error handling subscription update:', error);
     }
@@ -680,7 +680,7 @@ export class StripeIntegration {
       // 降级用户到免费计划
       await this.userService.updateUserPlan(userId, 'free');
 
-      console.log(`Subscription deleted for user: ${userId}`);
+      // console.log(`Subscription deleted for user: ${userId}`);
     } catch (error) {
       console.error('Error handling subscription deletion:', error);
     }
@@ -696,7 +696,7 @@ export class StripeIntegration {
       return;
     }
 
-    console.log(`Payment succeeded for user: ${userId}`);
+    // console.log(`Payment succeeded for user: ${userId}`);
     // 可以在这里添加其他逻辑，如发送邮件通知等
   }
 
@@ -717,7 +717,7 @@ export class StripeIntegration {
         await this.userService.updateSubscriptionStatus(userSubscription.id, 'past_due');
       }
 
-      console.log(`Payment failed for user: ${userId}`);
+      // console.log(`Payment failed for user: ${userId}`);
       // 可以在这里添加其他逻辑，如发送邮件通知等
     } catch (error) {
       console.error('Error handling payment failure:', error);
@@ -810,7 +810,7 @@ export class StripeIntegration {
   async processExpiredSubscriptions(): Promise<void> {
     try {
       await this.userService.checkExpiredSubscriptions();
-      console.log('Expired subscriptions processed');
+      // console.log('Expired subscriptions processed');
     } catch (error) {
       console.error('Error processing expired subscriptions:', error);
     }

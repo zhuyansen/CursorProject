@@ -196,7 +196,7 @@ export default function RecipeDetails() {
 
       // 检查是否为S3 URL
       if (parsedUrl.hostname === 's3.us-east-1.amazonaws.com') {
-        console.log('[RecipeDetails] Processing S3 image URL:', url);
+        // console.log('[RecipeDetails] Processing S3 image URL:', url);
 
         // 确保使用https
         const secureUrl = url.replace(/^http:/, 'https:');
@@ -442,7 +442,7 @@ export default function RecipeDetails() {
                   retries < maxRetries) {
                 retries++;
                 const currentDelay = retryDelay * Math.pow(1.5, retries - 1); // 指数退避
-                console.log(`Retrying fetch (${retries}/${maxRetries}) after ${currentDelay}ms...`);
+                // console.log(`Retrying fetch (${retries}/${maxRetries}) after ${currentDelay}ms...`);
                 
                 // 等待一段时间后重试
                 await new Promise(resolve => setTimeout(resolve, currentDelay));
@@ -453,7 +453,7 @@ export default function RecipeDetails() {
             }
             
             const data: RecipeDetail = await response.json()
-            console.log("Fetched recipe data:", data)
+            // console.log("Fetched recipe data:", data)
             
             // 确保ingredients是数组
             if (data.ingredients && !Array.isArray(data.ingredients)) {
@@ -519,7 +519,7 @@ export default function RecipeDetails() {
                  err.message.includes('Redis operation timed out'))) {
               retries++;
               const currentDelay = retryDelay * Math.pow(1.5, retries - 1);
-              console.log(`Error occurred: ${err.message}. Retrying (${retries}/${maxRetries}) after ${currentDelay}ms...`);
+              // console.log(`Error occurred: ${err.message}. Retrying (${retries}/${maxRetries}) after ${currentDelay}ms...`);
               
               // 等待一段时间后重试
               await new Promise(resolve => setTimeout(resolve, currentDelay));

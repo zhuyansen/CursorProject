@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     // 生成一个新的userId（模拟真实用户ID）
     const userId = 'real-user-' + Math.random().toString(36).substr(2, 9);
 
-    console.log(`模拟真实支付流程 - UserId: ${userId}, Email: ${email}, Plan: ${plan}, Period: ${period}, Locale: ${locale}`);
+    // console.log(`模拟真实支付流程 - UserId: ${userId}, Email: ${email}, Plan: ${plan}, Period: ${period}, Locale: ${locale}`);
 
     // 验证必需参数
     if (!plan || !period || !email) {
@@ -38,12 +38,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('开始创建StripeIntegration实例...');
+    // console.log('开始创建StripeIntegration实例...');
 
     // 创建StripeIntegration实例
     const stripeIntegration = new StripeIntegration();
 
-    console.log('StripeIntegration实例创建成功，开始创建checkout session...');
+    // console.log('StripeIntegration实例创建成功，开始创建checkout session...');
 
     // 注意：这里不会先创建用户记录，直接创建checkout session
     // 这模拟了真实场景下用户直接支付的情况
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Checkout session创建成功: ${session.id}`);
+    // console.log(`Checkout session创建成功: ${session.id}`);
 
     return NextResponse.json({
       sessionId: session.id,

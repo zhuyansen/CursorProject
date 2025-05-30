@@ -80,39 +80,26 @@ export default function VideoToRecipes() {
 
     // YouTube链接验证
     if (platform === "youtube") {
-      // 匹配各种YouTube URL格式
-      const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-      const match = url.match(youtubeRegex);
-
-      if (match && match[1]) {
-        // 提取视频ID并构建标准化URL
-        const videoId = match[1];
-        setProcessedUrl(`https://www.youtube.com/watch?v=${videoId}`);
-        console.log("处理后的YouTube链接:", `https://www.youtube.com/watch?v=${videoId}`);
-        return true;
-      } else {
-        setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
-        setErrorMessage(language === "zh" ? "无效的YouTube链接" : "Invalid YouTube link");
-        return false;
+      const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+      if (ytMatch) {
+        const videoId = ytMatch[1];
+        // console.log("处理后的YouTube链接:", `https://www.youtube.com/watch?v=${videoId}`);
+        return {
+          isValid: true,
+          videoId: videoId,
+          normalizedUrl: `https://www.youtube.com/watch?v=${videoId}`
+        };
       }
-    }
-    
-    // Bilibili链接验证
-    if (platform === "bilibili") {
-      // 匹配Bilibili URL格式，支持BV号和av号格式
-      const bilibiliRegex = /(?:bilibili\.com\/video\/|b23\.tv\/)(BV[a-zA-Z0-9]+|av\d+)/i;
-      const match = url.match(bilibiliRegex);
-
-      if (match && match[1]) {
-        // 提取视频ID并构建标准化URL
-        const videoId = match[1];
-        setProcessedUrl(`https://www.bilibili.com/video/${videoId}`);
-        console.log("处理后的Bilibili链接:", `https://www.bilibili.com/video/${videoId}`);
-        return true;
-      } else {
-        setErrorTitle(language === "zh" ? "链接错误" : "Link Error");
-        setErrorMessage(language === "zh" ? "无效的Bilibili链接" : "Invalid Bilibili link");
-        return false;
+    } else if (platform === "bilibili") {
+      const biliMatch = url.match(/(?:bilibili\.com\/video\/)([a-zA-Z0-9]+)/);
+      if (biliMatch) {
+        const videoId = biliMatch[1];
+        // console.log("处理后的Bilibili链接:", `https://www.bilibili.com/video/${videoId}`);
+        return {
+          isValid: true,
+          videoId: videoId,
+          normalizedUrl: `https://www.bilibili.com/video/${videoId}`
+        };
       }
     }
     
@@ -195,7 +182,7 @@ export default function VideoToRecipes() {
           const cachedDataString = localStorage.getItem(cacheKey);
           if (cachedDataString) {
             // 如果有缓存数据，解析并使用
-            console.log("使用localStorage缓存数据:", cacheKey);
+            // console.log("使用localStorage缓存数据:", cacheKey);
             const cachedData = JSON.parse(cachedDataString);
             processedData = cachedData;
             setRecipeData(cachedData);
@@ -212,290 +199,266 @@ export default function VideoToRecipes() {
       }
       
       // 2. localStorage没有数据，查询MongoDB数据库
-      console.log("尝试从MongoDB查询:", activeTab, videoId);
-      const dbResponse = await fetch('/api/video-cache', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          service: activeTab, 
-          videoId: videoId 
-        }),
-      });
+      // console.log("尝试从MongoDB查询:", activeTab, videoId);
+      const dbResponse = await fetch(`/api/video-cache?service=${activeTab}&videoId=${videoId}`);
       
       // 记录MongoDB查询响应状态
-      console.log("MongoDB查询状态码:", dbResponse.status);
-
-      // 获取完整响应内容进行调试
+      // console.log("MongoDB查询状态码:", dbResponse.status);
+      
+      let dbData = null;
       let dbResponseText = '';
+      
       try {
-        // 克隆响应以避免错误
-        const clonedResponse = dbResponse.clone();
-        dbResponseText = await clonedResponse.text();
-        console.log("MongoDB响应详情:", dbResponseText);
-      } catch (textError) {
-        console.error("无法读取响应文本:", textError);
-      }
-
-      // 状态码200表示MongoDB查询成功，直接使用返回的videotorecipe集合数据
-      if (dbResponse.ok) { // ok为true意味着状态码是2xx
-        const dbData = await dbResponse.json();
-        console.log("MongoDB返回数据:", JSON.stringify(dbData).slice(0, 500) + "...");
+        dbResponseText = await dbResponse.text();
+        // console.log("MongoDB响应详情:", dbResponseText);
         
-        // 根据不同来源处理数据结构
-        if (dbData.source === 'videoCache') {
-          processedData = dbData.data;
-          console.log("数据来源: videoCache集合, data字段类型:", typeof dbData.data);
+        if (dbResponseText) {
+          dbData = JSON.parse(dbResponseText);
+          // console.log("MongoDB返回数据:", JSON.stringify(dbData).slice(0, 500) + "...");
           
-          // 先检查顶级字段中是否有summary对象
-          if (processedData?.summary && typeof processedData.summary === 'object') {
-            console.log("videoCache中发现summary对象，将其展开到顶层");
-            processedData = {
-              ...processedData,
-              ...processedData.summary
-            };
-          }
-          
-          // 检查detail字段
-          if (processedData?.detail && typeof processedData.detail === 'object') {
-            console.log("发现detail对象，将其关键字段提升到顶层");
-            processedData = {
-              ...processedData,
-              ...processedData.detail
-            };
-          }
-          
-          // 标记为bilibili数据
-          if (processedData.service === 'bilibili' || 
-              (processedData.sourceUrl && processedData.sourceUrl.includes('bilibili.com'))) {
-            processedData.isBilibili = true;
-          }
-        } else if (dbData.source === 'videotorecipe') {
-          // 如果来自videotorecipe集合，可能需要进一步处理
-          // videotorecipe集合直接存储完整的数据，不是包含在data字段中
-          processedData = dbData.data;
-          console.log("数据来源: videotorecipe集合, data字段类型:", typeof dbData.data);
-          
-          // 检查特殊数据，记录以便调试
-          console.log("检查源URL:", {
-            videoUrl: processedData?.videoUrl,
-            sourceUrl: processedData?.sourceUrl,
-            hasBilibili: (processedData?.videoUrl && processedData.videoUrl.includes('bilibili.com')) || 
-                         (processedData?.sourceUrl && processedData.sourceUrl.includes('bilibili.com'))
-          });
-
-          // 特殊处理哔哩哔哩数据
-          if (processedData?.isBilibili === true || 
-              (processedData?.videoUrl && processedData.videoUrl.includes('bilibili.com')) || 
-              (processedData?.sourceUrl && processedData.sourceUrl.includes('bilibili.com'))) {
-            console.log("检测到哔哩哔哩视频，提取BV/AV号");
+          if (dbData?.data) {
+            // console.log("数据来源: videoCache集合, data字段类型:", typeof dbData.data);
             
-            // 提取视频ID，优先使用id字段，然后从URL提取
-            let bvidMatch = null;
-            let aidMatch = null;
+            if (dbData.data?.summary && typeof dbData.data.summary === 'object') {
+              // console.log("videoCache中发现summary对象，将其展开到顶层");
+              processedData = {
+                ...dbData.data,
+                ...dbData.data.summary
+              };
+            } else if (dbData.data?.detail && typeof dbData.data.detail === 'object') {
+              // console.log("发现detail对象，将其关键字段提升到顶层");
+              processedData = {
+                ...dbData.data,
+                title: dbData.data.detail.title || dbData.data.title,
+                description: dbData.data.detail.description || dbData.data.description,
+                ingredients: dbData.data.detail.ingredients || dbData.data.ingredients,
+                instructions: dbData.data.detail.instructions || dbData.data.instructions,
+                cookingTime: dbData.data.detail.cookingTime || dbData.data.cookingTime,
+                servings: dbData.data.detail.servings || dbData.data.servings,
+                difficulty: dbData.data.detail.difficulty || dbData.data.difficulty,
+                tags: dbData.data.detail.tags || dbData.data.tags || [],
+                thumbnail: dbData.data.detail.thumbnail || dbData.data.thumbnail
+              };
+            } else {
+              processedData = dbData.data;
+            }
+          } else if (dbData?.source === 'videotorecipe') {
+            // console.log("数据来源: videotorecipe集合, data字段类型:", typeof dbData.data);
             
-            // 尝试所有可能的URL提取BV号或AV号
-            const urlToCheck = processedData?.videoUrl || processedData?.sourceUrl || '';
-            if (urlToCheck) {
-              bvidMatch = urlToCheck.match(/\/(BV[a-zA-Z0-9]+)/i);
-              aidMatch = urlToCheck.match(/\/(av\d+)/i);
+            // console.log("检查源URL:", {
+            //   dbDataId: dbData.id,
+            //   videoId: videoId,
+            //   originalVideoUrl: dbData.videoUrl,
+            //   currentVideoUrl: videoUrl
+            // });
+            
+            if (activeTab === 'bilibili') {
+              // console.log("检测到哔哩哔哩视频，提取BV/AV号");
+              processedData = { ...dbData.data };
               
-              if (bvidMatch && bvidMatch[1]) {
-                processedData.bvid = bvidMatch[1];
-                console.log("从URL提取到BV号:", processedData.bvid);
-              } else if (aidMatch && aidMatch[1]) {
-                processedData.avid = aidMatch[1];
-                console.log("从URL提取到AV号:", processedData.avid);
-              }
-            }
-            
-            // 如果没有从URL提取到，尝试从现有字段中提取
-            if (!processedData.bvid && !processedData.avid) {
-              if (processedData.id && /^BV/i.test(processedData.id)) {
-                processedData.bvid = processedData.id;
-                console.log("从id字段提取到BV号:", processedData.bvid);
-              } else if (processedData.id && /^av/i.test(processedData.id)) {
-                processedData.avid = processedData.id;
-                console.log("从id字段提取到AV号:", processedData.avid);
-              } else if (processedData.videoId && /^BV/i.test(processedData.videoId)) {
-                processedData.bvid = processedData.videoId;
-                console.log("从videoId字段提取到BV号:", processedData.bvid);
-              } else if (processedData.videoId && /^av/i.test(processedData.videoId)) {
-                processedData.avid = processedData.videoId;
-                console.log("从videoId字段提取到AV号:", processedData.avid);
-              }
-            }
-            
-            // 如果只有数字ID，尝试从其他字段确定是AV号还是BV号
-            if (!processedData.bvid && !processedData.avid && processedData.id) {
-              if (/^\d+$/.test(processedData.id)) {
-                processedData.avid = `av${processedData.id}`;
-                console.log("将纯数字ID解释为AV号:", processedData.avid);
-              }
-            }
-            
-            // 设置isBilibili标记
-            processedData.isBilibili = true;
-            
-            // 提取标题信息
-            if (!processedData.title && !processedData.strMeal) {
-              try {
-                // 尝试从URL路径提取标题
-                const url = processedData.videoUrl || processedData.sourceUrl;
-                if (url) {
-                  const urlObj = new URL(url);
-                  const pathParts = urlObj.pathname.split('/');
-                  // 获取最后一个路径段落
-                  const lastPart = pathParts[pathParts.length - 1];
-                  
-                  // 如果最后一个部分不是ID
-                  if (lastPart && !lastPart.match(/^(BV[a-zA-Z0-9]+|av\d+)$/i) && lastPart.length > 5) {
-                    processedData.extractedTitle = decodeURIComponent(lastPart);
-                    console.log("从URL提取到标题:", processedData.extractedTitle);
+              // 尝试从URL提取BV号或AV号
+              if (dbData.videoUrl) {
+                const bvMatch = dbData.videoUrl.match(/\/video\/([Bb][Vv][0-9a-zA-Z]+)/);
+                if (bvMatch) {
+                  processedData.bvid = bvMatch[1];
+                  // console.log("从URL提取到BV号:", processedData.bvid);
+                } else {
+                  const avMatch = dbData.videoUrl.match(/\/video\/([Aa][Vv]\d+)/);
+                  if (avMatch) {
+                    processedData.avid = avMatch[1];
+                    // console.log("从URL提取到AV号:", processedData.avid);
                   }
                 }
-              } catch (e) {
-                console.error("提取标题失败:", e);
+              }
+              
+              // 尝试从id字段提取
+              if (dbData.id && !processedData.bvid && !processedData.avid) {
+                if (dbData.id.startsWith('BV') || dbData.id.startsWith('bv')) {
+                  processedData.bvid = dbData.id;
+                  // console.log("从id字段提取到BV号:", processedData.bvid);
+                } else if (dbData.id.startsWith('AV') || dbData.id.startsWith('av')) {
+                  processedData.avid = dbData.id;
+                  // console.log("从id字段提取到AV号:", processedData.avid);
+                }
+              }
+              
+              // 尝试从videoId字段提取
+              if (dbData.videoId && !processedData.bvid && !processedData.avid) {
+                if (dbData.videoId.startsWith('BV') || dbData.videoId.startsWith('bv')) {
+                  processedData.bvid = dbData.videoId;
+                  // console.log("从videoId字段提取到BV号:", processedData.bvid);
+                } else if (dbData.videoId.startsWith('AV') || dbData.videoId.startsWith('av')) {
+                  processedData.avid = dbData.videoId;
+                  // console.log("从videoId字段提取到AV号:", processedData.avid);
+                }
+              }
+              
+              // 如果是纯数字，可能是AV号
+              if (!processedData.bvid && !processedData.avid && /^\d+$/.test(String(dbData.id || dbData.videoId))) {
+                processedData.avid = `av${dbData.id || dbData.videoId}`;
+                // console.log("将纯数字ID解释为AV号:", processedData.avid);
+              }
+            } else {
+              processedData = dbData.data;
+            }
+            
+            // 尝试从URL中提取标题信息
+            if (dbData.videoUrl && !processedData.title) {
+              const titleMatch = dbData.videoUrl.match(/[?&]title=([^&]*)/);
+              if (titleMatch) {
+                try {
+                  processedData.extractedTitle = decodeURIComponent(titleMatch[1]);
+                  // console.log("从URL提取到标题:", processedData.extractedTitle);
+                } catch (e) {
+                  // 忽略解码错误
+                }
               }
             }
-          }
-
-          // 如果存在processedData.data，意味着数据被嵌套了一层
-          if (processedData && processedData.data) {
-            console.log("检测到嵌套的data字段，提取内部数据");
-            processedData = processedData.data;
-          }
-
-          // 特殊处理summary字段
-          if (processedData && processedData.summary && typeof processedData.summary === 'object') {
-            console.log("检测到summary对象，将字段提升到顶层");
-            processedData = {
-              ...processedData,
-              ...processedData.summary
-            };
-          }
-
-          // 特殊处理metadata字段
-          if (processedData && processedData.metadata && typeof processedData.metadata === 'object') {
-            console.log("检测到metadata对象，将字段提升到顶层");
-            processedData = {
-              ...processedData,
-              ...processedData.metadata
-            };
-          }
-        } else {
-          // 默认情况，尝试使用data字段
-          processedData = dbData.data;
-          console.log("未知数据来源，默认使用data字段, 字段类型:", typeof dbData.data);
-        }
-        
-        console.log("处理后准备使用的数据:", {
-          source: dbData.source,
-          hasData: !!processedData,
-          topLevelKeys: processedData ? Object.keys(processedData) : []
-        });
-        
-        // 确保processedData不为空再进行后续操作
-        if (processedData) {
-          // 同时更新localStorage缓存
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem(cacheKey, JSON.stringify(processedData));
-              console.log("MongoDB数据已保存到localStorage缓存");
-            } catch (storageError) {
-              console.error("更新localStorage缓存失败:", storageError);
+            
+            // 检查是否有嵌套的data字段
+            if (dbData.data?.data && typeof dbData.data.data === 'object') {
+              // console.log("检测到嵌套的data字段，提取内部数据");
+              processedData = { ...processedData, ...dbData.data.data };
             }
+            
+            // 检查是否有summary对象需要展开
+            if (dbData.data?.summary && typeof dbData.data.summary === 'object') {
+              // console.log("检测到summary对象，将字段提升到顶层");
+              processedData = {
+                ...processedData,
+                ...dbData.data.summary
+              };
+            }
+            
+            // 检查是否有metadata对象需要展开
+            if (dbData.data?.metadata && typeof dbData.data.metadata === 'object') {
+              // console.log("检测到metadata对象，将字段提升到顶层");
+              processedData = {
+                ...processedData,
+                ...dbData.data.metadata
+              };
+            }
+          } else {
+            // console.log("未知数据来源，默认使用data字段, 字段类型:", typeof dbData.data);
+            processedData = dbData.data || dbData;
           }
           
-          // 使用MongoDB返回的数据更新UI
+          // console.log("处理后准备使用的数据:", {
+          //   hasTitle: !!processedData.title,
+          //   hasIngredients: !!processedData.ingredients,
+          //   hasInstructions: !!processedData.instructions,
+          //   dataKeys: Object.keys(processedData),
+          //   source: dbData?.source || 'unknown'
+          // });
+          
           setRecipeData(processedData);
-          setProcessedUrl(urlToProcess);
+          // console.log("MongoDB数据已保存到localStorage缓存");
+          // 保存到localStorage缓存
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: processedData,
+            timestamp: Date.now()
+          }));
           setIsAnalyzing(false);
           setAnalysisComplete(true);
           setDataSource("cache");
           return; // 重要: 使用MongoDB数据后直接返回，不调用API
         } else {
-          console.log("MongoDB返回的数据为空，需要调用API获取");
+          // console.log("MongoDB返回的数据为空，需要调用API获取");
         }
-      } else {
-        // 非200状态码，表示MongoDB没有数据或发生错误
-        let errorDetails = "";
+      } catch (parseError) {
+        let errorData = null;
         try {
-          // 尝试解析错误响应为JSON
-          const errorData = JSON.parse(dbResponseText);
-          errorDetails = errorData.details 
-            ? JSON.stringify(errorData.details) 
-            : errorData.error || "";
-          console.log("MongoDB查询错误详情:", errorData);
-        } catch (jsonError) {
-          errorDetails = dbResponseText;
+          errorData = JSON.parse(dbResponseText);
+        } catch {
+          // 如果连JSON都解析不了，就用原始文本
         }
         
-        console.log(`MongoDB查询失败(${dbResponse.status}): ${errorDetails}`);
+        if (errorData) {
+          // console.log("MongoDB查询错误详情:", errorData);
+        }
+        
+        // console.log(`MongoDB查询失败(${dbResponse.status}): ${errorDetails}`);
+      }
+    } catch (mongoError) {
+      // console.log("MongoDB中未找到数据，准备调用API获取:", {
+      //   error: mongoError instanceof Error ? mongoError.message : String(mongoError),
+      //   activeTab,
+      //   videoId
+      // });
+    }
+
+    // 如果没有找到缓存数据，调用API获取数据
+    if (!videoId) {
+      // console.log("警告: videoId为空，尝试重新提取...");
+      
+      if (activeTab === "youtube") {
+        const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu.be\/)([a-zA-Z0-9_-]+)/);
+        if (ytMatch) {
+          videoId = ytMatch[1];
+          // console.log("成功重新提取YouTube videoId:", videoId);
+        }
+      } else if (activeTab === "bilibili") {
+        const biliMatch = videoUrl.match(/(?:bilibili\.com\/video\/)([a-zA-Z0-9]+)/);
+        if (biliMatch) {
+          videoId = biliMatch[1];
+          // console.log("成功重新提取Bilibili videoId:", videoId);
+        }
       }
       
-      // 3. MongoDB中没有数据，需要调用API获取并缓存
-      console.log("MongoDB中未找到数据，准备调用API获取:", {
-        url: urlToProcess,
+      if (!videoId) {
+        // 生成临时ID以允许API处理
+        videoId = `temp_${Date.now()}`;
+        // console.log("创建临时videoId:", videoId);
+      }
+    }
+    
+    // console.log("调用API获取数据并缓存到MongoDB...");
+    try {
+      const requestBody = {
+        videoUrl: videoUrl,
         videoId: videoId,
         service: activeTab,
         shouldCache: true
-      });
-
-      // 确保一定有videoId，如果提取失败，再尝试一次
-      if (!videoId) {
-        console.log("警告: videoId为空，尝试重新提取...");
-        if (activeTab === "youtube") {
-          const match = urlToProcess.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?\/\s]{11})/);
-          if (match && match[1]) {
-            videoId = match[1];
-            console.log("成功重新提取YouTube videoId:", videoId);
-          }
-        } else if (activeTab === "bilibili") {
-          const match = urlToProcess.match(/(?:bilibili\.com\/video\/)(BV[a-zA-Z0-9]+|av\d+)/);
-          if (match && match[1]) {
-            videoId = match[1];
-            console.log("成功重新提取Bilibili videoId:", videoId);
-          }
-        }
-      }
-
-      // 如果仍然没有videoId，生成一个临时ID
-      if (!videoId) {
-        videoId = `temp-${Date.now()}`;
-        console.log("创建临时videoId:", videoId);
-      }
-
-      // 发送API请求获取新数据
-      console.log("调用API获取数据并缓存到MongoDB...");
+      };
+      
       const response = await fetch('/api/video-to-recipes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          videoUrl: urlToProcess,
-          videoId: videoId,
-          service: activeTab,
-          shouldCache: true // 告诉API保存到MongoDB供后续查询使用
-        }),
+        body: JSON.stringify(requestBody)
       });
-
-      // 记录API响应状态码和头信息
-      console.log("API响应状态:", response.status, response.statusText);
-      console.log("API响应头信息:", Object.fromEntries(response.headers.entries()));
-
-      // 处理API响应
+      
+      // console.log("API响应状态:", response.status, response.statusText);
+      // console.log("API响应头信息:", Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API请求失败:", errorText);
-        throw new Error(errorText || '视频分析失败');
+        let errorMessage = `API请求失败: ${response.status} ${response.statusText}`;
+        let errorDetails = '';
+        let suggestions = '';
+        let troubleshooting = null;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          errorDetails = errorData.details || '';
+          suggestions = errorData.suggestions || '';
+          troubleshooting = errorData.troubleshooting || null;
+        } catch (parseError) {
+          const errorText = await response.text();
+          errorDetails = errorText.substring(0, 200);
+        }
+        
+        setShowError(true);
+        setErrorTitle(language === "zh" ? "API请求失败" : "API Request Failed");
+        setErrorMessage(errorMessage + (errorDetails ? `\n详情: ${errorDetails}` : '') + (suggestions ? `\n建议: ${suggestions}` : ''));
+        setIsAnalyzing(false);
+        return;
       }
-
+      
       const data = await response.json();
-      console.log("API返回数据大致大小:", JSON.stringify(data).length, "字节");
-      console.log("API返回数据字段:", Object.keys(data));
+      // console.log("API返回数据大致大小:", JSON.stringify(data).length, "字节");
+      // console.log("API返回数据字段:", Object.keys(data));
 
       // 处理API返回的数据
       processedData = data;
@@ -524,14 +487,14 @@ export default function VideoToRecipes() {
         };
       }
       
-      console.log("处理后的数据:", processedData);
+      // console.log("处理后的数据:", processedData);
       
       // 保存到localStorage以便快速访问 (API已经自动保存到MongoDB)
       if (typeof window !== 'undefined' && processedData) {
         try {
           localStorage.setItem(cacheKey, JSON.stringify(processedData));
-          console.log("API数据已保存到localStorage缓存:", cacheKey);
-          console.log("（注：相同数据已由API自动保存到MongoDB供后续查询）");
+          // console.log("API数据已保存到localStorage缓存:", cacheKey);
+          // console.log("（注：相同数据已由API自动保存到MongoDB供后续查询）");
         } catch (cacheError) {
           console.error("保存localStorage缓存失败:", cacheError);
         }
@@ -547,8 +510,36 @@ export default function VideoToRecipes() {
       console.error('分析视频时出错:', error);
       setIsAnalyzing(false);
       setShowError(true);
-      setErrorTitle(language === "zh" ? "分析错误" : "Analysis Error");
-      setErrorMessage(error.message || (language === "zh" ? "视频处理过程中发生错误" : "An error occurred during video processing"));
+      
+      // 解析错误信息，提供更好的用户体验
+      let errorTitle = language === "zh" ? "分析错误" : "Analysis Error";
+      let errorMessage = error.message || (language === "zh" ? "视频处理过程中发生错误" : "An error occurred during video processing");
+      
+      // 如果错误信息包含具体的建议，提取并显示
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.suggestions) {
+          errorMessage = `${errorData.message || errorData.error}\n\n建议: ${errorData.suggestions}`;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (parseError) {
+        // 如果不是JSON格式，直接使用原始错误信息
+      }
+      
+      // 根据错误类型设置不同的标题
+      if (errorMessage.includes('API端点不可用')) {
+        errorTitle = language === "zh" ? "服务配置问题" : "Service Configuration Issue";
+      } else if (errorMessage.includes('服务器内部错误')) {
+        errorTitle = language === "zh" ? "外部服务故障" : "External Service Error";
+      } else if (errorMessage.includes('调用频率限制')) {
+        errorTitle = language === "zh" ? "使用频率限制" : "Rate Limit Exceeded";
+      } else if (errorMessage.includes('超时')) {
+        errorTitle = language === "zh" ? "请求超时" : "Request Timeout";
+      }
+      
+      setErrorTitle(errorTitle);
+      setErrorMessage(errorMessage);
     }
   }
 
@@ -577,7 +568,7 @@ export default function VideoToRecipes() {
     const cacheKey = `${CACHE_PREFIX}${activeTab}_${videoId}`;
     try {
       localStorage.removeItem(cacheKey);
-      console.log("已清除缓存:", cacheKey);
+      // console.log("已清除缓存:", cacheKey);
       
       // 重新分析视频，从API获取新数据
       handleAnalyzeVideo();
@@ -946,25 +937,88 @@ export default function VideoToRecipes() {
 
       {/* 错误对话框 */}
       <Dialog open={showError} onOpenChange={closeErrorDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center text-red-500">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              {errorTitle || (language === "zh" ? "链接错误" : "Link Error")}
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              {errorTitle}
             </DialogTitle>
-            <DialogDescription className="pt-2">
-              {errorMessage}
-            </DialogDescription>
-            {(errorTitle === (language === "zh" ? "平台不匹配错误" : "Platform Mismatch Error")) && (
-              <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-sm">
-                <p className="text-gray-700 dark:text-gray-300">{language === "zh" ? "请切换到正确的标签页" : "Switch to the correct tab"}</p>
+            <DialogDescription className="text-left space-y-3">
+              <div className="text-sm text-gray-600">
+                {errorMessage}
               </div>
-            )}
+              
+              {/* 如果是BibiGPT相关错误，显示额外的故障排除信息 */}
+              {(errorMessage.includes('BibiGPT') || errorMessage.includes('服务器内部错误') || errorMessage.includes('外部服务故障')) && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-blue-800 mb-2">
+                    🔧 故障排除建议
+                  </h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• 等待5-10分钟后重试（外部服务可能临时故障）</li>
+                    <li>• 确认视频链接是否有效且可公开访问</li>
+                    <li>• 尝试使用其他视频进行测试</li>
+                    <li>• 如问题持续，请联系技术支持</li>
+                  </ul>
+                  
+                  <div className="mt-3 pt-2 border-t border-blue-200">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/bibigpt-status');
+                          const status = await response.json();
+                          alert(`BibiGPT服务状态: ${status.message}\n建议: ${status.suggestions.join(', ')}`);
+                        } catch (error) {
+                          alert('无法检查服务状态，请稍后重试');
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      检查BibiGPT服务状态
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* 如果是网络或超时错误 */}
+              {(errorMessage.includes('超时') || errorMessage.includes('网络') || errorMessage.includes('连接')) && (
+                <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h4 className="font-medium text-yellow-800 mb-2">
+                    🌐 网络问题排查
+                  </h4>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• 检查网络连接是否稳定</li>
+                    <li>• 尝试刷新页面后重试</li>
+                    <li>• 如使用VPN，尝试切换节点</li>
+                    <li>• 稍后再试，可能是网络拥堵</li>
+                  </ul>
+                </div>
+              )}
+              
+              {/* 如果是频率限制错误 */}
+              {errorMessage.includes('频率限制') && (
+                <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <h4 className="font-medium text-orange-800 mb-2">
+                    ⏱️ 使用频率限制
+                  </h4>
+                  <ul className="text-sm text-orange-700 space-y-1">
+                    <li>• 请等待几分钟后重试</li>
+                    <li>• 避免频繁提交相同请求</li>
+                    <li>• 考虑升级到高级套餐获得更高限额</li>
+                  </ul>
+                </div>
+              )}
+            </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end">
-            <Button onClick={closeErrorDialog} className="bg-[#b94a2c] hover:bg-[#a03f25] dark:bg-[#ff6b47] dark:hover:bg-[#e05a3a]">
-              {language === "zh" ? "确认" : "Confirm"}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={closeErrorDialog}>
+              {language === "zh" ? "关闭" : "Close"}
             </Button>
+            {processedUrl && (
+              <Button onClick={clearVideoCache} variant="default">
+                {language === "zh" ? "重新分析" : "Retry Analysis"}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -1069,7 +1123,7 @@ export default function VideoToRecipes() {
                                 
                                 // 如果是B站图片，使用代理
                                 if (isBilibiliImage) {
-                                  console.log("检测到B站图片URL，使用代理:", url);
+                                  // console.log("检测到B站图片URL，使用代理:", url);
                                   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
                                 }
                                 
@@ -1104,7 +1158,7 @@ export default function VideoToRecipes() {
                           const imgElement = e.currentTarget as HTMLImageElement;
                           imgElement.onerror = null; // 防止循环触发错误
                           imgElement.src = "/placeholder.svg?height=300&width=500"; 
-                          console.log("图片加载失败，已替换为占位图");
+                          // console.log("图片加载失败，已替换为占位图");
                         }}
                       />
                     </div>
@@ -1149,18 +1203,18 @@ export default function VideoToRecipes() {
                           const isBilibili = recipeData?.isBilibili === true || url.includes('bilibili.com') || url.includes('b23.tv');
                           
                           // 调试信息
-                          console.log("视频播放器信息:", {
-                            url,
-                            isBilibili,
-                            hasBvid: !!recipeData?.bvid,
-                            hasAvid: !!recipeData?.avid,
-                            videoId: recipeData?.id || "未知"
-                          });
+                          // console.log("视频播放器信息:", {
+                          //   url,
+                          //   isBilibili,
+                          //   hasBvid: !!recipeData?.bvid,
+                          //   hasAvid: !!recipeData?.avid,
+                          //   videoId: recipeData?.id || "未知"
+                          // });
                           
                           if (isBilibili) {
                             // 优先使用从数据中提取的bvid或avid
                             if (recipeData?.bvid) {
-                              console.log("使用预处理提取的BV号:", recipeData.bvid);
+                              // console.log("使用预处理提取的BV号:", recipeData.bvid);
                               return (
                                 <iframe
                                   src={`https://player.bilibili.com/player.html?bvid=${recipeData.bvid}&high_quality=1&danmaku=0`}
@@ -1173,7 +1227,7 @@ export default function VideoToRecipes() {
                             } else if (recipeData?.avid) {
                               // 移除可能的'av'前缀
                               const aid = recipeData.avid.replace(/^av/i, '');
-                              console.log("使用预处理提取的AV号:", aid);
+                              // console.log("使用预处理提取的AV号:", aid);
                               return (
                                 <iframe
                                   src={`https://player.bilibili.com/player.html?aid=${aid}&high_quality=1&danmaku=0`}
@@ -1196,7 +1250,7 @@ export default function VideoToRecipes() {
                             
                             if (bvMatch && bvMatch[1]) {
                               bvid = bvMatch[1];
-                              console.log("从URL成功提取BV号:", bvid);
+                              // console.log("从URL成功提取BV号:", bvid);
                               
                               // 直接使用完整的BV号
                               return (
@@ -1210,7 +1264,7 @@ export default function VideoToRecipes() {
                               );
                             } else if (avMatch && avMatch[1]) {
                               aid = avMatch[1].replace(/^av/i, '');
-                              console.log("从URL成功提取AV号:", aid);
+                              // console.log("从URL成功提取AV号:", aid);
                               
                               return (
                                 <iframe
@@ -1227,7 +1281,7 @@ export default function VideoToRecipes() {
                               const lastPart = pathParts[pathParts.length - 1]?.split('?')[0];
                               
                               if (lastPart && /^BV/i.test(lastPart)) {
-                                console.log("从URL最后部分提取BV号:", lastPart);
+                                // console.log("从URL最后部分提取BV号:", lastPart);
                                 return (
                                   <iframe
                                     src={`https://player.bilibili.com/player.html?bvid=${lastPart}&high_quality=1&danmaku=0`}
@@ -1241,7 +1295,7 @@ export default function VideoToRecipes() {
                               
                               // 尝试使用ID字段作为BV号
                               if (recipeData?.id && /^BV/i.test(recipeData.id)) {
-                                console.log("使用ID字段作为BV号:", recipeData.id);
+                                // console.log("使用ID字段作为BV号:", recipeData.id);
                                 return (
                                   <iframe
                                     src={`https://player.bilibili.com/player.html?bvid=${recipeData.id}&high_quality=1&danmaku=0`}
@@ -1256,7 +1310,7 @@ export default function VideoToRecipes() {
                               // 尝试最后使用videoId字段
                               if (recipeData?.videoId) {
                                 if (/^BV/i.test(recipeData.videoId)) {
-                                  console.log("使用videoId字段作为BV号:", recipeData.videoId);
+                                  // console.log("使用videoId字段作为BV号:", recipeData.videoId);
                                   return (
                                     <iframe
                                       src={`https://player.bilibili.com/player.html?bvid=${recipeData.videoId}&high_quality=1&danmaku=0`}
@@ -1268,7 +1322,7 @@ export default function VideoToRecipes() {
                                   );
                                 } else if (/^\d+$/.test(recipeData.videoId) || /^av\d+$/i.test(recipeData.videoId)) {
                                   const aidValue = recipeData.videoId.replace(/^av/i, '');
-                                  console.log("使用videoId字段作为AV号:", aidValue);
+                                  // console.log("使用videoId字段作为AV号:", aidValue);
                                   return (
                                     <iframe
                                       src={`https://player.bilibili.com/player.html?aid=${aidValue}&high_quality=1&danmaku=0`}
@@ -1281,7 +1335,7 @@ export default function VideoToRecipes() {
                                 }
                               }
                               
-                              console.warn("无法提取B站视频ID，显示提示信息");
+                              // console.warn("无法提取B站视频ID，显示提示信息");
                               // 无法提取ID时显示提示
                               return (
                                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700 p-4 text-center">
@@ -1304,7 +1358,7 @@ export default function VideoToRecipes() {
                               }
                             }
                             
-                            console.log("YouTube嵌入URL:", embedUrl);
+                            // console.log("YouTube嵌入URL:", embedUrl);
                             
                             return (
                               <iframe
@@ -1318,7 +1372,7 @@ export default function VideoToRecipes() {
                             );
                           } else {
                             // 未知视频类型
-                            console.warn("未知视频类型:", url);
+                            // console.warn("未知视频类型:", url);
                             return (
                               <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                                 <PlayCircle className="h-16 w-16 text-gray-300 dark:text-gray-500" />

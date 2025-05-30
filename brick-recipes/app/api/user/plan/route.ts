@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// 健康检查函数
+async function checkSupabaseConnection() {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    // 执行一个简单的查询来检查连接 - 修复SQL语法
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
+    
+    if (error) {
+      console.error('[Supabase Health Check] Connection test failed:', error);
+      return false;
+    }
+    
+    // console.log('[Supabase Health Check] Connection successful');
+    return true;
+  } catch (error) {
+    console.error('[Supabase Health Check] Connection error:', error);
+    return false;
+  }
+}
+
 // 获取用户计划信息
 export async function POST(request: NextRequest) {
   try {
@@ -13,26 +40,78 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.log(`[/api/user/plan POST] Received request for userId: ${userId}`);
+    // console.log(`[/api/user/plan POST] Received request for userId: ${userId}`);
+
+    // 检查环境变量
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[/api/user/plan POST] Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: '服务配置错误', details: 'Supabase环境变量未正确配置' },
+        { status: 500 }
+      );
+    }
+
+    // 检查Supabase连接
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      return NextResponse.json(
+        { error: '数据库连接失败', details: 'Supabase服务暂时不可用，请稍后重试' },
+        { status: 503 }
+      );
+    }
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    console.log(`[/api/user/plan POST] Attempting to fetch user plan from Supabase for userId: ${userId}`);
+    // console.log(`[/api/user/plan POST] Attempting to fetch user plan from Supabase for userId: ${userId}`);
+    
+    // 设置超时
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('数据库查询超时')), 10000)
+    );
+
     // 获取用户计划信息
-    const { data: user, error } = await supabase
+    const queryPromise = supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single();
 
+    const { data: user, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
     if (error) {
-      console.error('[/api/user/plan POST] Error fetching user plan from Supabase:', error); // Log the full error object
+      console.error('[/api/user/plan POST] Error fetching user plan from Supabase:', {
+        message: error.message,
+        details: error.details || 'No additional details',
+        hint: error.hint || 'No hints available',
+        code: error.code || 'UNKNOWN_ERROR'
+      });
+      
+      // 根据错误类型返回不同的响应
+      let errorMessage = '获取用户计划失败';
+      let statusCode = 500;
+      
+      if (error.code === 'PGRST116') {
+        errorMessage = '用户不存在';
+        statusCode = 404;
+      } else if (error.message?.includes('timeout') || error.message?.includes('数据库查询超时')) {
+        errorMessage = '数据库查询超时，请稍后重试';
+        statusCode = 504;
+      } else if (error.message?.includes('connection') || error.message?.includes('network')) {
+        errorMessage = '数据库连接失败，请稍后重试';
+        statusCode = 503;
+      }
+      
       return NextResponse.json(
-        { error: '获取用户计划失败', details: error.message, code: (error as any).code || 'UNKNOWN_DB_ERROR' },
-        { status: 500 }
+        { 
+          error: errorMessage, 
+          details: error.message, 
+          code: error.code || 'UNKNOWN_DB_ERROR',
+          hint: error.hint || '请检查网络连接或稍后重试'
+        },
+        { status: statusCode }
       );
     }
 
@@ -43,22 +122,37 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    console.log(`[/api/user/plan POST] Successfully fetched user plan for userId: ${userId}`, user);
+    
+    // console.log(`[/api/user/plan POST] Successfully fetched user plan for userId: ${userId}`, user);
     return NextResponse.json({
       success: true,
       user,
     });
   } catch (error: any) {
-    console.error('[/api/user/plan POST] Unhandled exception in POST handler:', error); // Log the full error object
+    console.error('[/api/user/plan POST] Unhandled exception in POST handler:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || 'No stack trace',
+      name: error?.name || 'Unknown error type'
+    });
+    
     let errorMessage = '服务器内部错误';
-    if (error && typeof error.message === 'string') {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
+    let statusCode = 500;
+    
+    if (error?.message?.includes('数据库查询超时')) {
+      errorMessage = '数据库查询超时，请稍后重试';
+      statusCode = 504;
+    } else if (error?.message?.includes('fetch failed') || error?.name === 'TypeError') {
+      errorMessage = '网络连接失败，请检查网络连接后重试';
+      statusCode = 503;
     }
+    
     return NextResponse.json(
-      { error: '服务器内部错误', details: errorMessage, fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)) },
-      { status: 500 }
+      { 
+        error: errorMessage, 
+        details: error?.message || 'Unknown error',
+        code: 'INTERNAL_SERVER_ERROR'
+      },
+      { status: statusCode }
     );
   }
 }

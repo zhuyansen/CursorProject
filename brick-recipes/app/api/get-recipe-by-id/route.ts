@@ -8,7 +8,7 @@ async function retryRedisConnection(maxRetries = 3, delay = 500) {
       return true;
     }
     
-    console.log(`[API/get-recipe-by-id] Recipe Redis (DB1) not ready, retrying (${i+1}/${maxRetries})...`);
+    // console.log(`[API/get-recipe-by-id] Recipe Redis (DB1) not ready, retrying (${i+1}/${maxRetries})...`);
     // 等待一段时间后重试
     await new Promise(resolve => setTimeout(resolve, delay));
     
@@ -22,7 +22,7 @@ async function retryRedisConnection(maxRetries = 3, delay = 500) {
 export async function GET(request: NextRequest) {
   // 尝试重新连接Redis
   if (!recipeRedisClient || recipeRedisClient.status !== 'ready') {
-    console.log('[API/get-recipe-by-id] Recipe Redis client (DB1) not ready, attempting to reconnect...');
+    // console.log('[API/get-recipe-by-id] Recipe Redis client (DB1) not ready, attempting to reconnect...');
     const redisReady = await retryRedisConnection();
     
     if (!redisReady) {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const recipeKey = `recipe:${recipeId}`;
-    console.log(`[API/get-recipe-by-id] Attempting to GET key: ${recipeKey} from Recipe DB`);
+    // console.log(`[API/get-recipe-by-id] Attempting to GET key: ${recipeKey} from Recipe DB`);
     
     // 添加超时处理
     const timeoutPromise = new Promise((_, reject) => 
@@ -56,11 +56,11 @@ export async function GET(request: NextRequest) {
     ]) as string | null;
 
     if (!recipeDataString) {
-      console.log(`[API/get-recipe-by-id] Recipe not found in Recipe DB for key: ${recipeKey}`);
+      // console.log(`[API/get-recipe-by-id] Recipe not found in Recipe DB for key: ${recipeKey}`);
       return NextResponse.json({ message: 'Recipe not found' }, { status: 404 });
     }
 
-    console.log(`[API/get-recipe-by-id] Found data in Recipe DB for key: ${recipeKey}`);
+    // console.log(`[API/get-recipe-by-id] Found data in Recipe DB for key: ${recipeKey}`);
     
     // 尝试解析 JSON，如果失败则返回错误
     let recipeData;
@@ -73,18 +73,18 @@ export async function GET(request: NextRequest) {
     
     // --- BEGIN: Process ingredients field ---
     if (recipeData && typeof recipeData.ingredients === 'string') {
-      console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is a string: "${recipeData.ingredients}". Converting to array.`);
+      // console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is a string: "${recipeData.ingredients}". Converting to array.`);
       recipeData.ingredients = recipeData.ingredients.split(/,\s*|\s*,\s*/).map((s: string) => s.trim()).filter((s: string) => s);
-      console.log(`[API/get-recipe-by-id] ingredients AFTER conversion:`, recipeData.ingredients);
+      // console.log(`[API/get-recipe-by-id] ingredients AFTER conversion:`, recipeData.ingredients);
     } else if (recipeData && recipeData.ingredients !== undefined && !Array.isArray(recipeData.ingredients)) {
       console.warn(`[API/get-recipe-by-id] ingredients for ${recipeId} is neither a string nor an array. Type: ${typeof recipeData.ingredients}. Setting to empty array.`);
       recipeData.ingredients = [];
     } else if (recipeData && Array.isArray(recipeData.ingredients)) {
       // If it's already an array, ensure all elements are trimmed strings and filter out empty ones
-      console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is already an array. Trimming and filtering.`);
+      // console.log(`[API/get-recipe-by-id] ingredients for ${recipeId} is already an array. Trimming and filtering.`);
       recipeData.ingredients = recipeData.ingredients.map((s: any) => typeof s === 'string' ? s.trim() : s).filter((s: any) => s);
     } else if (recipeData && recipeData.ingredients === undefined) {
-        console.log(`[API/get-recipe-by-id] ingredients field is undefined for ${recipeId}. Setting to empty array.`);
+        // console.log(`[API/get-recipe-by-id] ingredients field is undefined for ${recipeId}. Setting to empty array.`);
         recipeData.ingredients = [];
     }
     // --- END: Process ingredients field ---

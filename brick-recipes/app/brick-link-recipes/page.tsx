@@ -148,7 +148,7 @@ export default function BrickLinkRecipes() {
   };
 
   const handleSearch = async (pageNumber = 1) => {
-    console.log('[Page] handleSearch triggered');
+    // console.log('[Page] handleSearch triggered');
     setIsLoading(true);
     const params = new URLSearchParams();
 
@@ -156,7 +156,7 @@ export default function BrickLinkRecipes() {
       params.append('ingredients', selectedIngredients.join(','));
     }
     if (selectedMethods.length > 0) {
-      console.log('[Page] Selected methods:', selectedMethods);
+      // console.log('[Page] Selected methods:', selectedMethods);
       params.append('methods', selectedMethods.join(','));
     }
     if (searchQuery) {
@@ -191,7 +191,7 @@ export default function BrickLinkRecipes() {
       cuisine: selectedCuisine || null
     });
 
-    console.log('[Page] Applying filters with params:', params.toString());
+    // console.log('[Page] Applying filters with params:', params.toString());
 
     try {
       const response = await fetch(`/api/recipes?${params.toString()}`);
@@ -199,7 +199,7 @@ export default function BrickLinkRecipes() {
         throw new Error(`API request failed with status ${response.status}`);
       }
       const data = await response.json();
-      console.log('[Page] Recipes fetched:', data);
+      // console.log('[Page] Recipes fetched:', data);
 
       if (data.recipes && Array.isArray(data.recipes)) {
         setApiRecipes(data.recipes);
@@ -215,7 +215,7 @@ export default function BrickLinkRecipes() {
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('brick-recipes-pagination', JSON.stringify(data.pagination));
           }
-          console.log("[Page] Pagination info:", data.pagination);
+          // console.log("[Page] Pagination info:", data.pagination);
         }
       } else {
         const recipes = Array.isArray(data) ? data : [];
@@ -301,11 +301,11 @@ export default function BrickLinkRecipes() {
         searchParams.has('cuisine');
 
       if (hasRelevantParamsInUrl) {
-        console.log('[Page] Client sync: URL有参数，session无食谱。正在使用URL参数搜索。');
+        // console.log('[Page] Client sync: URL有参数，session无食谱。正在使用URL参数搜索。');
         handleSearch(pageFromUrl); 
       } else {
         // 无相关URL参数，但由于 selectedIngredients/selectedCuisine 有静态默认值，我们仍执行默认搜索
-        console.log('[Page] Client sync: URL无相关参数，session无食谱。执行默认搜索。');
+        // console.log('[Page] Client sync: URL无相关参数，session无食谱。执行默认搜索。');
         handleSearch(1); // 使用已设置的默认筛选条件（如 Potato, Beef, Western）搜索第一页
       }
     }
@@ -328,7 +328,7 @@ export default function BrickLinkRecipes() {
 
   const toggleIngredient = (id: string) => {
     // 在这里，id参数实际上是食材的名称（根据renderIngredientButton函数的调用参数）
-    console.log('[Page] Toggling ingredient:', id);
+    // console.log('[Page] Toggling ingredient:', id);
     const newIngredients = selectedIngredients.includes(id)
       ? selectedIngredients.filter((i) => i !== id)
       : [...selectedIngredients, id];
@@ -346,7 +346,7 @@ export default function BrickLinkRecipes() {
 
     // 获取方法名称并转换为首字母大写格式（如：bake -> Bake）
     const methodName = methodObj.name.charAt(0).toUpperCase() + methodObj.name.slice(1);
-    console.log('[Page] Toggling method:', methodName);
+    // console.log('[Page] Toggling method:', methodName);
 
     const methodExists = selectedMethods.includes(methodName);
     const newMethods = methodExists
@@ -460,11 +460,11 @@ export default function BrickLinkRecipes() {
 
       // 检查是否为S3 URL
       if (parsedUrl.hostname === 's3.us-east-1.amazonaws.com') {
-        console.log('[Page] Processing S3 image URL:', url);
+        // console.log('[Page] Processing S3 image URL:', url);
 
         // 检查URL路径长度，S3有时候会生成特别长的URL，可能导致优化服务处理超时
         if (url.length > 500) {
-          console.log('[Page] URL too long, using direct S3 URL');
+          // console.log('[Page] URL too long, using direct S3 URL');
           imageCache.current.set(cacheKey, url);
           return url;
         }
@@ -537,7 +537,7 @@ export default function BrickLinkRecipes() {
           try {
             // 执行搜索
             await handleSearch();
-            console.log('食谱筛选功能使用成功');
+            // console.log('食谱筛选功能使用成功');
           } catch (error) {
             console.error('处理筛选失败:', error);
           }

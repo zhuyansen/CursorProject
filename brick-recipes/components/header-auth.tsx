@@ -20,7 +20,7 @@ export default function HeaderAuth() {
   // 使用 useEffect 确保仅在客户端渲染
   useEffect(() => {
     setIsClient(true);
-    console.log("HeaderAuth: isLoading =", isLoading, "user =", user?.email);
+    // console.log("HeaderAuth: isLoading =", isLoading, "user =", user?.email);
   }, [isLoading, user]);
   
   // 在客户端加载之前或状态加载中时，显示一个空的占位符
@@ -73,7 +73,7 @@ export default function HeaderAuth() {
   
   // 用户已登录，显示用户信息和登出按钮
   if (user) {
-    console.log("HeaderAuth: Rendering logged in state for", user.email);
+    // console.log("HeaderAuth: Rendering logged in state for", user.email);
     return (
       <div className="flex items-center gap-4">
         {t('auth.hello')}, {user.email}!
@@ -89,7 +89,7 @@ export default function HeaderAuth() {
   }
   
   // 用户未登录，显示登录和注册按钮
-  console.log("HeaderAuth: Rendering logged out state");
+  // console.log("HeaderAuth: Rendering logged out state");
   return (
     <div className="flex gap-2">
       <Button asChild size="sm" variant={"outline"} className="dark:border-gray-700 dark:text-gray-200">
