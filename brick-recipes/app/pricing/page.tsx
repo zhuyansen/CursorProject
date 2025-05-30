@@ -224,8 +224,8 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 {language === "zh" 
-                  ? "是的，您可以随时取消订阅。取消后，您仍可以使用专业功能直到当前计费周期结束。"
-                  : "Yes, you can cancel your subscription at any time. After cancellation, you'll still have access to pro features until the end of your current billing period."}
+                  ? "目前取消订阅功能还在开发中，此项功能后续添加。如需取消订阅请联系客服。"
+                  : "Subscription cancellation is currently under development and will be added in future updates. Please contact support if you need to cancel your subscription."}
               </p>
             </div>
             <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm">
