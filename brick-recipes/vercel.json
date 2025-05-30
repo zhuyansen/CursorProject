@@ -5,10 +5,10 @@
   "regions": ["iad1", "cle1", "pdx1"],
   "functions": {
     "app/api/**": {
-      "maxDuration": 120
+      "maxDuration": 60
     },
     "app/api/video-to-recipes/**": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   },
   "headers": [
