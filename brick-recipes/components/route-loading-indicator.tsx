@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export function RouteLoadingIndicator() {
+function RouteLoadingIndicatorContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -45,5 +45,13 @@ export function RouteLoadingIndicator() {
     <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-transparent overflow-hidden">
       <div className="h-full bg-[#b94a2c] dark:bg-[#ff6b47] animate-route-loading"></div>
     </div>
+  );
+}
+
+export function RouteLoadingIndicator() {
+  return (
+    <Suspense fallback={null}>
+      <RouteLoadingIndicatorContent />
+    </Suspense>
   );
 } 

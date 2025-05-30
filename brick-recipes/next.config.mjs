@@ -13,6 +13,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
+  // 外部包配置（从 experimental 移动到这里）
+  serverExternalPackages: ['mongodb', 'ioredis'],
+  
   env: {
     // 确保Stripe支付链接环境变量可用
     STRIPE_MONTHLY_PLAN_LINK: process.env.STRIPE_MONTHLY_PLAN_LINK,
@@ -57,8 +60,6 @@ const nextConfig = {
   experimental: {
     optimizeCss: false,
     scrollRestoration: true,
-    // Vercel 边缘运行时优化
-    serverComponentsExternalPackages: ['mongodb', 'ioredis'],
   },
   
   compress: true,
