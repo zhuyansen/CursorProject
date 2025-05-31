@@ -37,7 +37,7 @@ export default function PricingPlans() {
   }, [router, recipesLink]);
 
   // 处理购买按钮点击
-  const handlePurchaseClick = useCallback(async (planType: 'monthly' | 'yearly' | 'lifetime', planPeriod: 'monthly' | 'yearly' | 'one_time_purchase') => {
+  const handlePurchaseClick = useCallback(async (planType: string, planPeriod: string) => {
     if (isLoading || loadingPlan) return; // 如果正在加载，不做任何操作
 
     if (!user) {
@@ -57,22 +57,32 @@ export default function PricingPlans() {
       return;
     }
 
+    // 验证用户数据
+    if (!user.id || !user.email) {
+      console.error('用户数据不完整:', { id: user.id, email: user.email });
+      alert(language === 'zh' ? '用户信息不完整，请重新登录' : 'User information incomplete, please login again');
+      router.push('/sign-in');
+      return;
+    }
+
     // 用户已登录，创建checkout session
     setLoadingPlan(planType);
     
     try {
+      const requestBody = {
+        userId: user.id,
+        plan: planType === 'lifetime' ? 'lifetime' : 'premium',
+        period: planPeriod,
+        email: user.email,
+        locale: language === 'zh' ? 'zh' : 'en',
+      };
+      
       const response = await fetch('/api/payment/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userId: user.id,
-          plan: planType === 'lifetime' ? 'lifetime' : 'premium',
-          period: planPeriod,
-          email: user.email,
-          locale: language === 'zh' ? 'zh' : 'en',
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -82,11 +92,16 @@ export default function PricingPlans() {
         window.location.href = result.url;
       } else {
         console.error('Failed to create checkout session:', result.error);
-        alert(language === 'zh' ? '创建支付会话失败，请重试' : 'Failed to create payment session, please try again');
+        // 提供更详细的错误信息
+        let errorMessage = language === 'zh' ? '创建支付会话失败，请重试' : 'Failed to create payment session, please try again';
+        if (result.error?.includes('客户') || result.error?.includes('customer')) {
+          errorMessage = language === 'zh' ? '支付信息需要重置，请重新尝试' : 'Payment information needs to be reset, please try again';
+        }
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      alert(language === 'zh' ? '网络错误，请重试' : 'Network error, please try again');
+      alert(language === 'zh' ? '网络错误，请检查连接后重试' : 'Network error, please check your connection and try again');
     } finally {
       setLoadingPlan(null);
     }

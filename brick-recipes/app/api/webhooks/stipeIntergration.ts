@@ -131,10 +131,20 @@ export class StripeIntegration {
     const user = await this.userService.getUser(userId);
     if (user?.customer_id) {
       // console.log('找到现有客户ID:', user.customer_id);
-      return user.customer_id;
+      
+      // 验证Stripe客户是否仍然存在
+      try {
+        await this.stripe.customers.retrieve(user.customer_id);
+        // console.log('Stripe客户验证成功');
+        return user.customer_id;
+      } catch (error) {
+        console.log('Stripe客户不存在，需要重新创建:', user.customer_id);
+        // 客户在Stripe中不存在，清除数据库中的customer_id并重新创建
+        await this.userService.updateUserCustomerId(userId, null);
+      }
     }
 
-    // console.log('没有找到现有客户，需要创建新客户');
+    // console.log('没有找到现有客户或客户已失效，需要创建新客户');
     // 如果没有，创建新客户
     return await this.createCustomer(userId, email, name);
   }

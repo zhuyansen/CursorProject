@@ -8,6 +8,8 @@
 - [ ] 代码已推送到 GitHub main 分支
 - [ ] `.env.local` 不在 Git 仓库中
 - [ ] `.env.example` 包含所有必要变量示例
+- [x] **Sitemap 配置正确** (`/sitemap.xml` 可访问)
+- [x] **Robots.txt 配置正确** (`/robots.txt` 可访问)
 
 ### ✅ 配置文件检查
 - [ ] `vercel.json` 配置正确

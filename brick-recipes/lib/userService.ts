@@ -246,7 +246,7 @@ export class UserService {
   }
 
   // 更新用户Stripe客户ID
-  async updateUserCustomerId(userId: string, customerId: string): Promise<boolean> {
+  async updateUserCustomerId(userId: string, customerId: string | null): Promise<boolean> {
     const { error } = await this.supabase
       .from('users')
       .update({ customer_id: customerId })
