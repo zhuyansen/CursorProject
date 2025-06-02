@@ -857,6 +857,55 @@ export default function RecipeDetails() {
     };
   }, []);
 
+  // YouTube视频ID提取函数
+  const extractYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null
+    
+    // 处理各种YouTube URL格式
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/)?([a-zA-Z0-9_-]{11})/,
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+      /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+    ]
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match && match[1]) {
+        return match[1]
+      }
+    }
+    
+    return null
+  }
+
+  // Bilibili视频ID提取函数
+  const extractBilibiliVideoId = (url: string): string | null => {
+    if (!url) return null
+    
+    // 处理Bilibili URL格式 (BV号)
+    const patterns = [
+      /(?:https?:\/\/)?(?:www\.)?bilibili\.com\/video\/(BV[a-zA-Z0-9]+)/,
+      /(?:https?:\/\/)?(?:www\.)?bilibili\.com\/video\/(av\d+)/,
+      /BV[a-zA-Z0-9]+/,
+      /av\d+/
+    ]
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match && match[1]) {
+        return match[1]
+      }
+    }
+    
+    // 如果URL本身就是BV号或av号
+    if (/^(BV[a-zA-Z0-9]+|av\d+)$/.test(url)) {
+      return url
+    }
+    
+    return null
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
@@ -955,22 +1004,23 @@ export default function RecipeDetails() {
                   <div className="aspect-video rounded-lg overflow-hidden shadow-lg">
                     {recipe.strYoutube ? (
                       <iframe
-                        src={`https://www.youtube.com/embed/${recipe.strYoutube.split('v=')[1]}`}
+                        src={`https://www.youtube.com/embed/${extractYouTubeVideoId(recipe.strYoutube)}`}
                         title={`${recipe.strMeal} Video Tutorial`}
                         className="w-full h-full"
                         allowFullScreen
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        loading="lazy"
                       ></iframe>
                     ) : recipe.strBilibili ? (
                       <iframe
-                        src={`https://player.bilibili.com/player.html?bvid=${recipe.strBilibili.split('video/')[1]}&page=1&high_quality=1&danmaku=0&autoplay=0`}
+                        src={`https://player.bilibili.com/player.html?bvid=${extractBilibiliVideoId(recipe.strBilibili)}&page=1&high_quality=1&danmaku=0&autoplay=0`}
                         title={`${recipe.strMeal} Video Tutorial`}
                         className="w-full h-full"
                         allowFullScreen
                         allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         scrolling="no"
-                        frameBorder="no"
-                        sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
+                        frameBorder="0"
+                        loading="lazy"
                       ></iframe>
                     ) : null}
                   </div>
