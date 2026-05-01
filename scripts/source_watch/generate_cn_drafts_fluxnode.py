@@ -18,6 +18,7 @@ and `scripts/source_watch/.env` are auto-loaded if present (never override exist
   NEWAPI_BASE_URL or FLUXNODE_BASE_URL  default https://api.fluxnode.org/v1
   NEWAPI_CHAT_MODEL                default gpt-4 (override e.g. claude model id your gateway uses)
   NEWAPI_IMAGE_MODEL               optional e.g. gpt-image-2
+  NEWAPI_EXTRA_HEADERS             optional JSON object merged into chat/image POST headers (provider-specific)
 
   TYPEFULLY_API_KEY                Bearer for https://api.typefully.com/v2
   TYPEFULLY_SOCIAL_SET_ID          integer; if unset, first social set from GET /social-sets
@@ -69,7 +70,8 @@ def _normalize_gateway_base_url(base: str) -> str:
         b = "https://" + b.lstrip("/")
     low = b.lower()
     if "docs.newapi.pro" in low:
-        b = re.sub(r"(?i)docs\.newapi\.pro", "api.newapi.pro", b, count=1)
+        # Doc/marketing host is not the API; Fluxnode keys use api.fluxnode.org (same as default gateway).
+        b = re.sub(r"(?i)docs\.newapi\.pro", "api.fluxnode.org", b, count=1)
     if not b.lower().endswith("/v1"):
         b = b.rstrip("/") + "/v1"
     return b
@@ -95,6 +97,37 @@ def _post_discord(webhook: str, content: str) -> None:
         resp.read()
 
 
+def _extra_headers_from_env() -> dict[str, str]:
+    raw = (os.environ.get("NEWAPI_EXTRA_HEADERS") or "").strip()
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(parsed, dict):
+        return {}
+    return {str(k): str(v) for k, v in parsed.items() if v is not None}
+
+
+def _openai_gateway_browser_headers(api_base: str) -> dict[str, str]:
+    """Some gateways (Cloudflare / WAF) expect browser-like Origin + Accept, not bare urllib."""
+    b = api_base.strip()
+    if not re.match(r"(?i)^https?://", b):
+        b = "https://" + b.lstrip("/")
+    parsed = urllib.parse.urlparse(b)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    return {
+        "Accept": "application/json, text/plain, */*",
+        "Origin": origin,
+        "Referer": origin + "/",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        ),
+    }
+
+
 def _http_request(
     url: str,
     *,
@@ -105,7 +138,8 @@ def _http_request(
     max_redirects: int = 8,
 ) -> tuple[int, bytes]:
     """
-    urllib does not follow 307/308 on POST by default; newapi may redirect to a trailing-slash URL.
+    urllib does not follow 307/308 on POST by default; gateways may redirect to a trailing-slash URL.
+    Non-redirect HTTP errors read the response body (urllib often hides it on HTTPError).
     """
     hdrs = {"User-Agent": "curl/8.5.0", **(headers or {})}
     current_url = url
@@ -121,28 +155,50 @@ def _http_request(
                     raise
                 current_url = urllib.parse.urljoin(current_url, location)
                 continue
-            raise
+            err_body = b""
+            try:
+                err_body = err.read()
+            except Exception:
+                pass
+            err_text = err_body.decode("utf-8", errors="replace")[:1500]
+            hint = ""
+            if err.code == 403:
+                hint = (
+                    " Often: WAF/geo block from datacenter IP, or model/channel disabled on gateway; "
+                    "try the same curl from your laptop, or set NEWAPI_EXTRA_HEADERS (JSON object) if your provider requires extra headers."
+                )
+            elif err.code == 401:
+                hint = (
+                    " Check NEWAPI_KEY / NEWAPI_IMAGE_KEY and NEWAPI_BASE_URL; "
+                    "token must match the gateway host (e.g. https://api.fluxnode.org/v1)."
+                )
+            raise RuntimeError(f"HTTP {err.code} {current_url}: {err_text}{hint}") from err
     raise RuntimeError(f"Too many redirects starting from {url}")
 
 
-def _http_post_json(url: str, auth_bearer: str, payload: dict, timeout: int = 180) -> dict:
+def _http_post_json(
+    url: str,
+    auth_bearer: str,
+    payload: dict,
+    timeout: int = 180,
+    *,
+    openai_compat_base: str | None = None,
+) -> dict:
     data = json.dumps(payload).encode("utf-8")
+    hdrs: dict[str, str] = {"Authorization": f"Bearer {auth_bearer}", "Content-Type": "application/json"}
+    if openai_compat_base:
+        hdrs = {**_openai_gateway_browser_headers(openai_compat_base), **hdrs}
+        hdrs = {**hdrs, **_extra_headers_from_env()}
     status, raw = _http_request(
         url,
         method="POST",
-        headers={"Authorization": f"Bearer {auth_bearer}", "Content-Type": "application/json"},
+        headers=hdrs,
         body=data,
         timeout=timeout,
     )
     text = raw.decode("utf-8", errors="replace")
     if status >= 400:
-        hint = ""
-        if status == 401:
-            hint = (
-                " Check NEWAPI_KEY and NEWAPI_BASE_URL (or FLUXNODE_BASE_URL); "
-                "Bearer tokens are tied to the gateway host (e.g. https://api.fluxnode.org/v1)."
-            )
-        raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}{hint}")
+        raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}")
     if text.lstrip().startswith("<!DOCTYPE") or text.lstrip().startswith("<html"):
         raise RuntimeError(
             f"Non-JSON response from {url} (wrong path or HTML error page; "
@@ -195,6 +251,7 @@ def _chat_completion(base: str, api_key: str, model: str, messages: list[dict]) 
         api_key,
         {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096},
         timeout=240,
+        openai_compat_base=base,
     )
     choices = body.get("choices") or []
     if not choices:
@@ -214,6 +271,7 @@ def _images_generate(base: str, api_key: str, model: str, prompt: str, size: str
                 api_key,
                 {"model": model, "prompt": prompt[:900], "n": 1, "size": size},
                 timeout=300,
+                openai_compat_base=base,
             )
         except Exception as e:
             last_err = e
