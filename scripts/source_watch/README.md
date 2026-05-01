@@ -22,9 +22,27 @@ cp config.example.json config.json
 
 `config.json` 已在仓库根 `.gitignore` 中忽略，避免误提交。
 
-## 3. 环境变量
+## 3. 后台 / 环境变量（推荐 `.env`）
 
-监控 X 时间线需要 **twitterapi.io** 的 Key：
+脚本会在启动时**自动加载**以下文件（若存在），把 `KEY=value` 写入进程环境；**已在 shell、CI 或 Cursor Secrets 里设置的变量不会被覆盖**。
+
+加载顺序（同一变量名：**先出现的文件**生效，后面的跳过）：
+
+1. 仓库根目录的 `.env`（与 Next 等项目共用；已在根 `.gitignore`）
+2. `scripts/source_watch/.env`（推荐只放监控与草稿流水线密钥；已 `.gitignore`）
+3. 与脚本同目录的 `.env`（一般与第 2 步相同，可省略）
+
+模板：
+
+```bash
+cd scripts/source_watch
+cp .env.example .env
+# 编辑 .env 填入 TWITTERAPI_KEY、NEWAPI_KEY、TYPEFULLY_API_KEY 等
+```
+
+**Cursor Cloud Agent / 后台任务**：在项目的 **Secrets / Environment variables** 里配置与 `.env.example` 同名的变量即可，不必提交 `.env`。
+
+监控 X 时间线需要 **twitterapi.io** 的 Key（`TWITTERAPI_KEY`）。也可继续用 shell：
 
 ```bash
 export TWITTERAPI_KEY="你的_X-API-Key"
@@ -116,6 +134,13 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 
 ```cron
 5 */8 * * * cd /path/to/repo/scripts/source_watch && TWITTERAPI_KEY=... /usr/bin/python3 fetch_en_top10_discord.py >>/tmp/en_digest.log 2>&1
+```
+
+若已写好 **`scripts/source_watch/.env`**，可用 `set -a` 先导出再跑（脚本也会再读一遍 `.env`，重复无妨）：
+
+```cron
+10 */8 * * * cd /path/to/repo/scripts/source_watch && set -a && [ -f .env ] && . ./.env && set +a && /usr/bin/python3 fetch_en_top10_discord.py >>/tmp/en_digest.log 2>&1
+25 */8 * * * cd /path/to/repo/scripts/source_watch && set -a && [ -f .env ] && . ./.env && set +a && /usr/bin/python3 generate_cn_drafts_fluxnode.py >>/tmp/cn_drafts.log 2>&1
 ```
 
 首次运行会写入 `en_digest_posted_ids.json`（已加入 `.gitignore`）。若要「全量重推」，删除该文件即可。

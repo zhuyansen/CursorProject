@@ -6,7 +6,8 @@
 4) Image (optional): POST .../images/generations (tries with/without trailing slash)
 5) Push each Chinese draft to Typefully: upload image → create X draft (default: no publish_at = saved draft)
 
-Secrets — use environment variables ONLY (never commit):
+Secrets — use environment variables ONLY (never commit). Repo-root `.env`
+and `scripts/source_watch/.env` are auto-loaded if present (never override existing env).
 
   NEWAPI_KEY or OPENAI_API_KEY     Bearer for docs.newapi.pro
   NEWAPI_BASE_URL                  default https://docs.newapi.pro/v1
@@ -32,7 +33,17 @@ import urllib.request
 from pathlib import Path
 from uuid import uuid4
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+_script_path = Path(__file__).resolve()
+_scripts_dir = _script_path.parent.parent if _script_path.parent.name == "source_watch" else _script_path.parent
+_scripts_str = str(_scripts_dir)
+if _scripts_str not in sys.path:
+    sys.path.insert(0, _scripts_str)
+
+from local_env_file import activate_script_env
+
+activate_script_env(_script_path)
+
+SCRIPT_DIR = _script_path.parent
 BATCH_PATH = SCRIPT_DIR / "en_digest_last_batch.json"
 TWEETS_PATH = Path("/workspace/twitterapi_90d_report/tweets_90d.jsonl")
 DEFAULT_CONFIG = SCRIPT_DIR / "config.json"

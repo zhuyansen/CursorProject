@@ -23,6 +23,16 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+_script_path = Path(__file__).resolve()
+_scripts_dir = _script_path.parent.parent if _script_path.parent.name == "source_watch" else _script_path.parent
+_scripts_str = str(_scripts_dir)
+if _scripts_str not in sys.path:
+    sys.path.insert(0, _scripts_str)
+
+from local_env_file import activate_script_env
+
+activate_script_env(_script_path)
+
 _DISCORD_HEADERS = {
     "User-Agent": "curl/8.5.0",
     "Content-Type": "application/json",

@@ -24,8 +24,18 @@ import urllib.parse
 import urllib.request
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
+_script_path = Path(__file__).resolve()
+_scripts_dir = _script_path.parent.parent if _script_path.parent.name == "source_watch" else _script_path.parent
+_scripts_str = str(_scripts_dir)
+if _scripts_str not in sys.path:
+    sys.path.insert(0, _scripts_str)
+
+from local_env_file import activate_script_env
+
+activate_script_env(_script_path)
 
 API_BASE = "https://api.twitterapi.io"
 DEFAULT_USERS = ("berryxia", "AYi_AInotes", "dotey", "lxfater", "op7418", "gosailglobal")
