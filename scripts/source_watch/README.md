@@ -145,11 +145,12 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 
 首次运行会写入 `en_digest_posted_ids.json`（已加入 `.gitignore`）。若要「全量重推」，删除该文件即可。
 
-## 12. docs.newapi.pro 聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
+## 12. New API 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
 
 1. 先跑 **`fetch_en_top10_discord.py`** → 生成 **`en_digest_last_batch.json`**。  
 2. 环境变量（见 **`fluxnode.example.env`**）：
-   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 **`https://docs.newapi.pro/v1`**）+ `NEWAPI_CHAT_MODEL`（默认 **`gpt-4`**）
+   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 **`https://api.newapi.pro/v1`**；`docs.newapi.pro` 是文档站，不是 API）+ `NEWAPI_CHAT_MODEL`（默认 **`gpt-4`**）
+   - 若聊天与生图在网关侧是**两把不同的 key**：设 **`NEWAPI_IMAGE_KEY`**（仅 `images/generations` 使用；不设则与 `NEWAPI_KEY` 相同）
    - `NEWAPI_IMAGE_MODEL`（如 **`gpt-image-2`**）可选；生图 URL 会下载并走 Typefully **媒体上传** 再挂到 X 草稿
    - **`TYPEFULLY_API_KEY`**；`TYPEFULLY_SOCIAL_SET_ID` 可省略（自动 `GET /v2/social-sets` 取第一个，或用 `TYPEFULLY_X_USERNAME=GoSailGlobal` 匹配）
    - `TYPEFULLY_PUBLISH_AT`：默认 **只存草稿**（不设 `publish_at`）；设为 `now` 或 `next-free-slot` 或 ISO 时间则按 Typefully 文档发布/排队

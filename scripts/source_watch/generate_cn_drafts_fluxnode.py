@@ -2,7 +2,7 @@
 """
 1) Read en_digest_last_batch.json (from fetch_en_top10_discord.py)
 2) Few-shot style from @gosailglobal zh hits in tweets_90d.jsonl
-3) Chat: POST {NEWAPI_BASE}/chat/completions (default https://docs.newapi.pro/v1)
+3) Chat: POST {NEWAPI_BASE}/chat/completions (default https://api.newapi.pro/v1; docs.* host auto-remapped)
 4) Image (optional): POST .../images/generations (tries with/without trailing slash)
 5) Push each Chinese draft to Typefully: upload image → create X draft (default: no publish_at = saved draft)
 
@@ -13,7 +13,8 @@ Outputs (gitignored):
 Secrets — use environment variables ONLY (never commit). Repo-root `.env`
 and `scripts/source_watch/.env` are auto-loaded if present (never override existing env).
 
-  NEWAPI_KEY or OPENAI_API_KEY     Bearer for docs.newapi.pro
+  NEWAPI_KEY or OPENAI_API_KEY     Bearer for docs.newapi.pro (chat)
+  NEWAPI_IMAGE_KEY                 optional; if set, images/generations uses this key instead of NEWAPI_KEY
   NEWAPI_BASE_URL                  default https://docs.newapi.pro/v1
   NEWAPI_CHAT_MODEL                default gpt-4 (override e.g. claude model id your gateway uses)
   NEWAPI_IMAGE_MODEL               optional e.g. gpt-image-2
@@ -30,9 +31,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from uuid import uuid4
@@ -55,7 +58,19 @@ OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
 OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
-_DEFAULT_NEWAPI = "https://docs.newapi.pro/v1"
+# docs.newapi.pro is the marketing/docs site (307/HTML); OpenAI-compatible API is on api.newapi.pro.
+_DEFAULT_NEWAPI = "https://api.newapi.pro/v1"
+
+
+def _normalize_newapi_base_url(base: str) -> str:
+    """Map docs host to API host and ensure path ends with /v1."""
+    b = base.strip().rstrip("/")
+    low = b.lower()
+    if "docs.newapi.pro" in low:
+        b = re.sub(r"(?i)docs\.newapi\.pro", "api.newapi.pro", b, count=1)
+    if not b.lower().endswith("/v1"):
+        b = b.rstrip("/") + "/v1"
+    return b
 
 
 def _load_json(path: Path):
@@ -85,11 +100,27 @@ def _http_request(
     headers: dict | None = None,
     body: bytes | None = None,
     timeout: int = 120,
+    max_redirects: int = 8,
 ) -> tuple[int, bytes]:
+    """
+    urllib does not follow 307/308 on POST by default; newapi may redirect to a trailing-slash URL.
+    """
     hdrs = {"User-Agent": "curl/8.5.0", **(headers or {})}
-    req = urllib.request.Request(url, data=body, headers=hdrs, method=method)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.status, resp.read()
+    current_url = url
+    for _ in range(max_redirects + 1):
+        req = urllib.request.Request(current_url, data=body, headers=hdrs, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.status, resp.read()
+        except urllib.error.HTTPError as err:
+            if err.code in (301, 302, 303, 307, 308):
+                location = (err.headers.get("Location") or "").strip()
+                if not location:
+                    raise
+                current_url = urllib.parse.urljoin(current_url, location)
+                continue
+            raise
+    raise RuntimeError(f"Too many redirects starting from {url}")
 
 
 def _http_post_json(url: str, auth_bearer: str, payload: dict, timeout: int = 180) -> dict:
@@ -103,7 +134,17 @@ def _http_post_json(url: str, auth_bearer: str, payload: dict, timeout: int = 18
     )
     text = raw.decode("utf-8", errors="replace")
     if status >= 400:
-        raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}")
+        hint = ""
+        if status == 401 and "newapi" in url.lower():
+            hint = (
+                " Check NEWAPI_KEY and NEWAPI_BASE_URL: keys are tied to your gateway host "
+                "(often https://api.newapi.pro/v1 for newapi.pro SaaS; not the docs site)."
+            )
+        raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}{hint}")
+    if text.lstrip().startswith("<!DOCTYPE") or text.lstrip().startswith("<html"):
+        raise RuntimeError(
+            f"Non-JSON response from {url} (likely wrong host: use https://api.newapi.pro/v1 not docs.newapi.pro)."
+        )
     return json.loads(text) if text.strip() else {}
 
 
@@ -300,7 +341,14 @@ def main() -> None:
         or os.environ.get("FLUXNODE_API_KEY")
         or ""
     ).strip()
-    base = (os.environ.get("NEWAPI_BASE_URL") or os.environ.get("FLUXNODE_BASE_URL") or _DEFAULT_NEWAPI).strip().rstrip("/")
+    newapi_image_key = (
+        os.environ.get("NEWAPI_IMAGE_KEY")
+        or os.environ.get("OPENAI_IMAGE_API_KEY")
+        or newapi_key
+    ).strip()
+    base = _normalize_newapi_base_url(
+        (os.environ.get("NEWAPI_BASE_URL") or os.environ.get("FLUXNODE_BASE_URL") or _DEFAULT_NEWAPI).strip()
+    ).rstrip("/")
     chat_model = (
         os.environ.get("NEWAPI_CHAT_MODEL")
         or os.environ.get("FLUXNODE_CLAUDE_MODEL")
@@ -388,7 +436,7 @@ def main() -> None:
                     os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip()
                     or f"Minimal abstract editorial cover for AI news, no text, no logos, topic: {text[:100]}"
                 )
-                img_url = _images_generate(base, newapi_key, image_model, ip, image_size)
+                img_url = _images_generate(base, newapi_image_key, image_model, ip, image_size)
                 if img_url:
                     img_bytes, fname = _download_bytes(img_url)
                     media_ids.append(_typefully_upload_image(tf_key, social_set_id, img_bytes, fname))
