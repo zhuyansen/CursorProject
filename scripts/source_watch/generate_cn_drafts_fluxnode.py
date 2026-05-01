@@ -2,7 +2,7 @@
 """
 1) Read en_digest_last_batch.json (from fetch_en_top10_discord.py)
 2) Few-shot style from @gosailglobal zh hits in tweets_90d.jsonl
-3) Chat: POST {NEWAPI_BASE}/chat/completions (default https://api.newapi.pro/v1; docs.* host auto-remapped)
+3) Chat: POST {NEWAPI_BASE}/chat/completions (default https://api.fluxnode.org/v1; optional docs.newapi remap)
 4) Image (optional): POST .../images/generations (tries with/without trailing slash)
 5) Push each Chinese draft to Typefully: upload image → create X draft (default: no publish_at = saved draft)
 
@@ -13,9 +13,9 @@ Outputs (gitignored):
 Secrets — use environment variables ONLY (never commit). Repo-root `.env`
 and `scripts/source_watch/.env` are auto-loaded if present (never override existing env).
 
-  NEWAPI_KEY or OPENAI_API_KEY     Bearer for docs.newapi.pro (chat)
+  NEWAPI_KEY or OPENAI_API_KEY     Bearer for your OpenAI-compatible gateway (chat)
   NEWAPI_IMAGE_KEY                 optional; if set, images/generations uses this key instead of NEWAPI_KEY
-  NEWAPI_BASE_URL                  default https://docs.newapi.pro/v1
+  NEWAPI_BASE_URL or FLUXNODE_BASE_URL  default https://api.fluxnode.org/v1
   NEWAPI_CHAT_MODEL                default gpt-4 (override e.g. claude model id your gateway uses)
   NEWAPI_IMAGE_MODEL               optional e.g. gpt-image-2
 
@@ -58,13 +58,15 @@ OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
 OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
-# docs.newapi.pro is the marketing/docs site (307/HTML); OpenAI-compatible API is on api.newapi.pro.
-_DEFAULT_NEWAPI = "https://api.newapi.pro/v1"
+# Fluxnode OpenAI-compatible gateway (chat + images share this host unless you override).
+_DEFAULT_NEWAPI = "https://api.fluxnode.org/v1"
 
 
-def _normalize_newapi_base_url(base: str) -> str:
-    """Map docs host to API host and ensure path ends with /v1."""
+def _normalize_gateway_base_url(base: str) -> str:
+    """Ensure https scheme, map legacy doc host to public API host, ensure path ends with /v1."""
     b = base.strip().rstrip("/")
+    if not re.match(r"(?i)^https?://", b):
+        b = "https://" + b.lstrip("/")
     low = b.lower()
     if "docs.newapi.pro" in low:
         b = re.sub(r"(?i)docs\.newapi\.pro", "api.newapi.pro", b, count=1)
@@ -135,15 +137,16 @@ def _http_post_json(url: str, auth_bearer: str, payload: dict, timeout: int = 18
     text = raw.decode("utf-8", errors="replace")
     if status >= 400:
         hint = ""
-        if status == 401 and "newapi" in url.lower():
+        if status == 401:
             hint = (
-                " Check NEWAPI_KEY and NEWAPI_BASE_URL: keys are tied to your gateway host "
-                "(often https://api.newapi.pro/v1 for newapi.pro SaaS; not the docs site)."
+                " Check NEWAPI_KEY and NEWAPI_BASE_URL (or FLUXNODE_BASE_URL); "
+                "Bearer tokens are tied to the gateway host (e.g. https://api.fluxnode.org/v1)."
             )
         raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}{hint}")
     if text.lstrip().startswith("<!DOCTYPE") or text.lstrip().startswith("<html"):
         raise RuntimeError(
-            f"Non-JSON response from {url} (likely wrong host: use https://api.newapi.pro/v1 not docs.newapi.pro)."
+            f"Non-JSON response from {url} (wrong path or HTML error page; "
+            "set NEWAPI_BASE_URL to your gateway root, e.g. https://api.fluxnode.org/v1)."
         )
     return json.loads(text) if text.strip() else {}
 
@@ -346,7 +349,7 @@ def main() -> None:
         or os.environ.get("OPENAI_IMAGE_API_KEY")
         or newapi_key
     ).strip()
-    base = _normalize_newapi_base_url(
+    base = _normalize_gateway_base_url(
         (os.environ.get("NEWAPI_BASE_URL") or os.environ.get("FLUXNODE_BASE_URL") or _DEFAULT_NEWAPI).strip()
     ).rstrip("/")
     chat_model = (

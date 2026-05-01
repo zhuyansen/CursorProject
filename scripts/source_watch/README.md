@@ -111,7 +111,7 @@ python3 scripts/source_watch/post_digest_discord.py /path/to/config.json
 
 脚本：`post_source_feed_top10_discord.py`
 
-从 `twitterapi_90d_report/tweets_90d.jsonl` 中取 **`lang == en`** 的推文，按 **`viewCount`** 降序取 **Top10**，每条发 **X status 链接**（不是站外文章）。若英文条数不足 10，用其它语言高浏览帖补足并标注。
+从 `twitterapi_90d_report/tweets_90d.jsonl` 中取 `**lang == en`** 的推文，按 `**viewCount`** 降序取 **Top10**，每条发 **X status 链接**（不是站外文章）。若英文条数不足 10，用其它语言高浏览帖补足并标注。
 
 ```bash
 python3 scripts/source_watch/post_source_feed_top10_discord.py
@@ -123,7 +123,7 @@ python3 scripts/source_watch/post_source_feed_top10_discord.py
 - 脚本：`fetch_en_top10_discord.py`  
   - 拉取名单里每个号的 `last_tweets`（twitterapi.io），**只考虑最近 `window_hours`（默认 8）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。  
   - 按 `viewCount` 取全局 Top10，**优先 `lang=en`**，不够则其它语言补足。  
-  - Discord 每条带 **一句中文「搬运候选」导语**（模板，模拟翻译号口吻）+ **X 原文链接**。  
+  - Discord 每条带 **一句中文「搬运候选」导语**（模板，模拟翻译号口吻）+ **X 原文链接**。
 
 ```bash
 export TWITTERAPI_KEY="..."
@@ -136,7 +136,7 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 5 */8 * * * cd /path/to/repo/scripts/source_watch && TWITTERAPI_KEY=... /usr/bin/python3 fetch_en_top10_discord.py >>/tmp/en_digest.log 2>&1
 ```
 
-若已写好 **`scripts/source_watch/.env`**，可用 `set -a` 先导出再跑（脚本也会再读一遍 `.env`，重复无妨）：
+若已写好 `**scripts/source_watch/.env**`，可用 `set -a` 先导出再跑（脚本也会再读一遍 `.env`，重复无妨）：
 
 ```cron
 10 */8 * * * cd /path/to/repo/scripts/source_watch && set -a && [ -f .env ] && . ./.env && set +a && /usr/bin/python3 fetch_en_top10_discord.py >>/tmp/en_digest.log 2>&1
@@ -145,15 +145,15 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 
 首次运行会写入 `en_digest_posted_ids.json`（已加入 `.gitignore`）。若要「全量重推」，删除该文件即可。
 
-## 12. New API 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
+## 12. Fluxnode 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
 
-1. 先跑 **`fetch_en_top10_discord.py`** → 生成 **`en_digest_last_batch.json`**。  
-2. 环境变量（见 **`fluxnode.example.env`**）：
-   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 **`https://api.newapi.pro/v1`**；`docs.newapi.pro` 是文档站，不是 API）+ `NEWAPI_CHAT_MODEL`（默认 **`gpt-4`**）
-   - 若聊天与生图在网关侧是**两把不同的 key**：设 **`NEWAPI_IMAGE_KEY`**（仅 `images/generations` 使用；不设则与 `NEWAPI_KEY` 相同）
-   - `NEWAPI_IMAGE_MODEL`（如 **`gpt-image-2`**）可选；生图 URL 会下载并走 Typefully **媒体上传** 再挂到 X 草稿
-   - **`TYPEFULLY_API_KEY`**；`TYPEFULLY_SOCIAL_SET_ID` 可省略（自动 `GET /v2/social-sets` 取第一个，或用 `TYPEFULLY_X_USERNAME=GoSailGlobal` 匹配）
-   - `TYPEFULLY_PUBLISH_AT`：默认 **只存草稿**（不设 `publish_at`）；设为 `now` 或 `next-free-slot` 或 ISO 时间则按 Typefully 文档发布/排队
+1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**。
+2. 环境变量（见 `**fluxnode.example.env**`）：
+  - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 `**https://api.fluxnode.org/v1**`；也可用 `FLUXNODE_BASE_URL`）+ `NEWAPI_CHAT_MODEL`（默认 `**gpt-4**`）
+  - 若聊天与生图在网关侧是**两把不同的 key**：设 `**NEWAPI_IMAGE_KEY`**（仅 `images/generations` 使用；不设则与 `NEWAPI_KEY` 相同）
+  - `NEWAPI_IMAGE_MODEL`（如 `**gpt-image-2`**）可选；生图 URL 会下载并走 Typefully **媒体上传** 再挂到 X 草稿
+  - `**TYPEFULLY_API_KEY`**；`TYPEFULLY_SOCIAL_SET_ID` 可省略（自动 `GET /v2/social-sets` 取第一个，或用 `TYPEFULLY_X_USERNAME=GoSailGlobal` 匹配）
+  - `TYPEFULLY_PUBLISH_AT`：默认 **只存草稿**（不设 `publish_at`）；设为 `now` 或 `next-free-slot` 或 ISO 时间则按 Typefully 文档发布/排队
 
 ```bash
 export NEWAPI_KEY="sk-..."
@@ -161,8 +161,8 @@ export TYPEFULLY_API_KEY="..."
 python3 scripts/source_watch/generate_cn_drafts_fluxnode.py
 ```
 
-- **`cn_drafts_text_last.json`**：本轮每条 **`draft_zh`** 即完整中文稿（最适合直接复制发推）；已 `.gitignore`。  
-- **`cn_drafts_typefully_last.json`**：Typefully 接口返回摘要；已 `.gitignore`。  
+- `**cn_drafts_text_last.json**`：本轮每条 `**draft_zh**` 即完整中文稿（最适合直接复制发推）；已 `.gitignore`。  
+- `**cn_drafts_typefully_last.json**`：Typefully 接口返回摘要；已 `.gitignore`。
 
 若仍配置了 Discord webhook，会同步发 Typefully 链接与草稿分段。
 
