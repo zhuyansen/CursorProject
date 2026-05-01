@@ -30,6 +30,7 @@ Discord (optional): discord_webhook_url in config.json or DISCORD_WEBHOOK_URL
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -162,7 +163,13 @@ def _http_request(
                 pass
             err_text = err_body.decode("utf-8", errors="replace")[:1500]
             hint = ""
-            if err.code == 403:
+            host = urllib.parse.urlparse(current_url).netloc.lower()
+            if err.code == 403 and "amazonaws.com" in host:
+                hint = (
+                    " Presigned S3 PUT: do not send Content-Type unless the URL was signed with it "
+                    "(urllib adds application/x-www-form-urlencoded by default — script uses a raw PUT for Typefully)."
+                )
+            elif err.code == 403 and ("fluxnode" in host or "newapi" in host):
                 hint = (
                     " Often: WAF/geo block from datacenter IP, or model/channel disabled on gateway; "
                     "try the same curl from your laptop, or set NEWAPI_EXTRA_HEADERS (JSON object) if your provider requires extra headers."
@@ -310,6 +317,49 @@ def _download_bytes(image_url: str) -> tuple[bytes, str]:
     return raw, f"cover-{uuid4().hex[:10]}{ext}"
 
 
+def _fluxnode_effective_chat_model(raw: str, *, api_base: str) -> str:
+    """On api.fluxnode.org, tokens often have no gpt-4; map legacy env defaults to a working Claude id."""
+    m = (raw or "").strip()
+    if not m:
+        return "claude-opus-4-7-thinking"
+    if "fluxnode" not in (api_base or "").lower():
+        return m
+    low = m.lower()
+    if low in ("gpt-4", "gpt4", "gpt-4o", "gpt-4-turbo", "gpt4-turbo"):
+        return "claude-opus-4-7-thinking"
+    return m
+
+
+def _s3_presigned_put(upload_url: str, body: bytes, timeout: int = 180) -> int:
+    """
+    urllib adds Content-Type: application/x-www-form-urlencoded on POST-like bodies;
+    presigned S3 URLs are signed without that header → SignatureDoesNotMatch. Use raw PUT.
+    """
+    parsed = urllib.parse.urlparse(upload_url)
+    if parsed.scheme.lower() != "https":
+        raise RuntimeError(f"S3 upload URL must be https, got: {upload_url[:80]}")
+    host = parsed.netloc
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    conn = http.client.HTTPSConnection(host, timeout=timeout)
+    try:
+        conn.request(
+            "PUT",
+            path,
+            body=body,
+            headers={
+                "User-Agent": "curl/8.5.0",
+                "Content-Length": str(len(body)),
+            },
+        )
+        resp = conn.getresponse()
+        resp.read()
+        return resp.status
+    finally:
+        conn.close()
+
+
 def _typefully_resolve_social_set(api_key: str) -> int:
     explicit = (os.environ.get("TYPEFULLY_SOCIAL_SET_ID") or "").strip()
     if explicit.isdigit():
@@ -337,7 +387,7 @@ def _typefully_upload_image(api_key: str, social_set_id: int, file_bytes: bytes,
     upload_url = init.get("upload_url")
     if not media_id or not upload_url:
         raise RuntimeError(f"Typefully media/upload: {json.dumps(init)[:600]}")
-    status, _ = _http_request(upload_url, method="PUT", body=file_bytes, timeout=180)
+    status = _s3_presigned_put(upload_url, file_bytes, timeout=180)
     if status not in (200, 204):
         raise RuntimeError(f"S3 PUT failed HTTP {status}")
     for _ in range(45):
@@ -410,11 +460,14 @@ def main() -> None:
     base = _normalize_gateway_base_url(
         (os.environ.get("NEWAPI_BASE_URL") or os.environ.get("FLUXNODE_BASE_URL") or _DEFAULT_NEWAPI).strip()
     ).rstrip("/")
-    chat_model = (
-        os.environ.get("NEWAPI_CHAT_MODEL")
-        or os.environ.get("FLUXNODE_CLAUDE_MODEL")
-        or "claude-opus-4-7-thinking"
-    ).strip()
+    chat_model = _fluxnode_effective_chat_model(
+        (
+            os.environ.get("NEWAPI_CHAT_MODEL")
+            or os.environ.get("FLUXNODE_CLAUDE_MODEL")
+            or "claude-opus-4-7-thinking"
+        ).strip(),
+        api_base=base,
+    )
     image_model = (os.environ.get("NEWAPI_IMAGE_MODEL") or os.environ.get("FLUXNODE_IMAGE_MODEL") or "").strip()
     image_size = (os.environ.get("NEWAPI_IMAGE_SIZE") or os.environ.get("FLUXNODE_IMAGE_SIZE") or "1024x1024").strip()
 
