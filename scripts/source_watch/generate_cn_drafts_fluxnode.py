@@ -18,6 +18,7 @@ and `scripts/source_watch/.env` are auto-loaded if present (never override exist
   NEWAPI_BASE_URL or FLUXNODE_BASE_URL  default https://api.fluxnode.org/v1
   NEWAPI_CHAT_MODEL                default claude-opus-4-7-thinking (Fluxnode; override if needed)
   NEWAPI_IMAGE_MODEL               optional e.g. gpt-image-2
+  NEWAPI_IMAGE_PROMPT              optional override; else a refined English cover prompt from draft/tweet
   NEWAPI_EXTRA_HEADERS             optional JSON object merged into chat/image POST headers (provider-specific)
 
   TYPEFULLY_API_KEY                Bearer for https://api.typefully.com/v2
@@ -267,6 +268,21 @@ def _chat_completion(base: str, api_key: str, model: str, messages: list[dict]) 
     return (msg.get("content") or "").strip()
 
 
+def _default_cover_image_prompt(tweet_text: str, draft_zh: str) -> str:
+    """English prompt for image APIs; avoid generic 'AI blob' look."""
+    topic = (draft_zh or "").replace("\n", " ").strip()[:220]
+    if len(topic) < 20:
+        topic = (tweet_text or "").replace("\n", " ").strip()[:220]
+    topic = topic[:400]
+    return (
+        "High-end editorial illustration for a single tech social post, one clear abstract metaphor, "
+        "refined minimal composition, soft cinematic rim light, deep navy to teal gradient, subtle film grain, "
+        "premium magazine / keynote slide aesthetic, generous negative space, crisp shapes, no text, no logos, "
+        "no watermarks, no UI mockups, no human faces or hands. Atmosphere only for topic: "
+        + topic
+    )
+
+
 def _images_generate(base: str, api_key: str, model: str, prompt: str, size: str) -> str | None:
     paths = ["/images/generations", "/images/generations/"]
     last_err = None
@@ -295,6 +311,35 @@ def _images_generate(base: str, api_key: str, model: str, prompt: str, size: str
 
             return "b64:" + b64
         return None
+    if last_err:
+        raise last_err
+    return None
+
+
+def _images_generate_with_key_fallback(
+    base: str,
+    api_keys: list[str],
+    model: str,
+    prompt: str,
+    size: str,
+) -> str | None:
+    """Try image-specific key first; on 401 / Invalid token retry with chat key if different."""
+    seen: set[str] = set()
+    ordered = [k for k in api_keys if k and k not in seen and not seen.add(k)]
+    if not ordered:
+        return None
+    last_err: Exception | None = None
+    for idx, key in enumerate(ordered):
+        try:
+            out = _images_generate(base, key, model, prompt, size)
+            if out:
+                return out
+        except Exception as e:
+            last_err = e
+            err_s = str(e)
+            if idx < len(ordered) - 1 and ("401" in err_s or "Invalid token" in err_s or "Unauthorized" in err_s):
+                continue
+            raise
     if last_err:
         raise last_err
     return None
@@ -548,14 +593,23 @@ def main() -> None:
             try:
                 ip = (
                     os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip()
-                    or f"Minimal abstract editorial cover for AI news, no text, no logos, topic: {text[:100]}"
+                    or _default_cover_image_prompt(text, draft)
                 )
-                img_url = _images_generate(base, newapi_image_key, image_model, ip, image_size)
+                image_key_chain = [newapi_image_key, newapi_key]
+                img_url = _images_generate_with_key_fallback(
+                    base, image_key_chain, image_model, ip, image_size
+                )
                 if img_url:
                     img_bytes, fname = _download_bytes(img_url)
                     media_ids.append(_typefully_upload_image(tf_key, social_set_id, img_bytes, fname))
             except Exception as e:
-                draft += f"\n\n（配图未附上：{e}）"
+                err_short = str(e).replace("\n", " ")[:420]
+                draft += (
+                    "\n\n（配图未生成："
+                    + err_short
+                    + " 若单独设置了 NEWAPI_IMAGE_KEY 且报 Invalid token，可删掉该变量改用与聊天相同的 key，"
+                    "或换一把有「生图」权限的 token。）"
+                )
 
         try:
             tf_resp = _typefully_create_draft(

@@ -150,7 +150,7 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**。
 2. 环境变量（见 `**fluxnode.example.env**`）：
   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 `**https://api.fluxnode.org/v1**`；也可用 `FLUXNODE_BASE_URL`）+ `NEWAPI_CHAT_MODEL`（默认 **`claude-opus-4-7-thinking`**，与 Fluxnode 上可用模型一致；可按控制台改名覆盖）
-  - 若聊天与生图在网关侧是**两把不同的 key**：设 `**NEWAPI_IMAGE_KEY`**（仅 `images/generations` 使用；不设则与 `NEWAPI_KEY` 相同）
+  - 若聊天与生图在网关侧是**两把不同的 key**：设 `**NEWAPI_IMAGE_KEY`**（仅 `images/generations` 优先使用）。若该 key 报 **401 / Invalid token**，脚本会**自动再用 `NEWAPI_KEY` 试一次**；两把 key 都无效时请删错 key 或换有「生图」权限的 token。
   - `NEWAPI_IMAGE_MODEL`（如 `**gpt-image-2`**）可选；生图 URL 会下载并走 Typefully **媒体上传** 再挂到 X 草稿
   - 若网关返回 **`403 Forbidden`**：多为 **WAF / 地区 / 机房 IP** 拦截，或控制台里 **模型/渠道未开通**。脚本已对 `chat` / `images` 请求加上常见浏览器头；仍失败时在本机终端用同一 Key 试 `curl` 对比；若服务商要求额外头，可设 **`NEWAPI_EXTRA_HEADERS`**（JSON，见 `.env.example`）。在 **`api.fluxnode.org`** 上若仍配置了 `NEWAPI_CHAT_MODEL=gpt-4` 等无权限模型，脚本会**自动改用** `claude-opus-4-7-thinking`（建议在 `.env` 里显式写上你在控制台可用的模型 id）。
   - Typefully 预签名 **S3 PUT** 若报 **`SignatureDoesNotMatch`**：多为请求自动带了错误的 `Content-Type`；脚本已改为**裸 PUT**（仅 `Content-Length`），与预签名一致。
