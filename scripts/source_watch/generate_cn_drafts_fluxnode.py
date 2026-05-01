@@ -6,6 +6,10 @@
 4) Image (optional): POST .../images/generations (tries with/without trailing slash)
 5) Push each Chinese draft to Typefully: upload image → create X draft (default: no publish_at = saved draft)
 
+Outputs (gitignored):
+  cn_drafts_text_last.json — full Chinese body per item (`draft_zh`), easiest to copy-paste.
+  cn_drafts_typefully_last.json — Typefully API responses + source URLs.
+
 Secrets — use environment variables ONLY (never commit). Repo-root `.env`
 and `scripts/source_watch/.env` are auto-loaded if present (never override existing env).
 
@@ -48,6 +52,7 @@ BATCH_PATH = SCRIPT_DIR / "en_digest_last_batch.json"
 TWEETS_PATH = Path("/workspace/twitterapi_90d_report/tweets_90d.jsonl")
 DEFAULT_CONFIG = SCRIPT_DIR / "config.json"
 OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
+OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
 _DEFAULT_NEWAPI = "https://docs.newapi.pro/v1"
@@ -356,6 +361,7 @@ def main() -> None:
         time.sleep(0.4)
 
     results: list[dict] = []
+    text_rows: list[dict] = []
 
     for it in items:
         rank = it.get("rank", 0)
@@ -401,11 +407,21 @@ def main() -> None:
         except Exception as e:
             tf_resp = {"error": str(e)}
 
-        results.append(
+        row: dict = {
+            "rank": rank,
+            "source_url": url,
+            "typefully_response": tf_resp,
+        }
+        results.append(row)
+        text_rows.append(
             {
                 "rank": rank,
+                "author": author,
+                "category": cat,
                 "source_url": url,
-                "typefully_response": tf_resp,
+                "draft_zh": draft,
+                "typefully_draft_id": tf_resp.get("draft_id") or tf_resp.get("id"),
+                "typefully_private_url": tf_resp.get("private_url") or "",
             }
         )
 
@@ -422,7 +438,15 @@ def main() -> None:
         OUT_LOG,
         {"batch": batch.get("window_label"), "social_set_id": social_set_id, "results": results},
     )
-    print(f"Done. Log: {OUT_LOG}", flush=True)
+    _save_json(
+        OUT_TEXT,
+        {
+            "batch": batch.get("window_label"),
+            "social_set_id": social_set_id,
+            "items": text_rows,
+        },
+    )
+    print(f"Done. Typefully log: {OUT_LOG}\nFull Chinese text: {OUT_TEXT}", flush=True)
 
 
 if __name__ == "__main__":

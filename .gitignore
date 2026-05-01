@@ -59,6 +59,7 @@ scripts/source_watch/*.state.json
 scripts/source_watch/en_digest_posted_ids.json
 scripts/source_watch/en_digest_last_batch.json
 scripts/source_watch/cn_drafts_typefully_last.json
+scripts/source_watch/cn_drafts_text_last.json
 
 # twitterapi.io 90d scrape output (large; regenerate locally)
 twitterapi_90d_report/

@@ -160,6 +160,9 @@ export TYPEFULLY_API_KEY="..."
 python3 scripts/source_watch/generate_cn_drafts_fluxnode.py
 ```
 
-结果摘要写入 **`cn_drafts_typefully_last.json`**（已 `.gitignore`）。若仍配置了 Discord webhook，会同步发摘要与草稿分段。
+- **`cn_drafts_text_last.json`**：本轮每条 **`draft_zh`** 即完整中文稿（最适合直接复制发推）；已 `.gitignore`。  
+- **`cn_drafts_typefully_last.json`**：Typefully 接口返回摘要；已 `.gitignore`。  
+
+若仍配置了 Discord webhook，会同步发 Typefully 链接与草稿分段。
 
 **安全**：任何 `sk-` 出现在聊天后都应 **轮换**；勿把密钥写入仓库。
