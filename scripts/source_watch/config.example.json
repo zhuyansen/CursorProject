@@ -1,0 +1,30 @@
+{
+  "discord_webhook_url": "https://discord.com/api/webhooks/0000000000/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "ntfy_topic": "",
+  "ntfy_base_url": "https://ntfy.sh",
+  "rss_feeds": [
+    {
+      "name": "OpenAI News",
+      "url": "https://openai.com/blog/rss.xml"
+    },
+    {
+      "name": "Simon Willison",
+      "url": "https://simonwillison.net/atom/everything/"
+    }
+  ],
+  "twitter_users": [
+    "OpenAI",
+    "OpenAIDevs",
+    "AnthropicAI",
+    "claudeai",
+    "sama",
+    "gdb",
+    "simonw",
+    "karpathy",
+    "swyx",
+    "garrytan",
+    "op7418"
+  ],
+  "twitter_include_replies": false,
+  "twitter_max_per_user": 5
+}
