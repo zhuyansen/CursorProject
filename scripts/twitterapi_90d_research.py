@@ -7,7 +7,7 @@ Requires: TWITTERAPI_KEY in environment (header X-API-Key).
 
 Optional argv: usernames to re-fetch only (merge into existing tweets_90d.jsonl + summary).
   Example: python3 twitterapi_90d_research.py op7418
-  No argv: full refresh of DEFAULT_USERS (berryxia, AYi_AInotes, dotey, lxfater, op7418).
+  No argv: full refresh of DEFAULT_USERS (includes vista8, LufzzLiz, etc.).
 
 Docs: GET /twitter/tweet/advanced_search — use since_time/until_time in query;
       avoid relying on cursor; keep windows small enough to not miss >20 tweets/window.
@@ -38,7 +38,16 @@ from local_env_file import activate_script_env
 activate_script_env(_script_path)
 
 API_BASE = "https://api.twitterapi.io"
-DEFAULT_USERS = ("berryxia", "AYi_AInotes", "dotey", "lxfater", "op7418", "gosailglobal")
+DEFAULT_USERS = (
+    "berryxia",
+    "AYi_AInotes",
+    "dotey",
+    "lxfater",
+    "op7418",
+    "gosailglobal",
+    "vista8",
+    "LufzzLiz",
+)
 
 
 def _epoch_utc(dt: datetime) -> int:
