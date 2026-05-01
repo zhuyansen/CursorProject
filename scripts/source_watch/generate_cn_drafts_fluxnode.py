@@ -3,8 +3,9 @@
 1) Read en_digest_last_batch.json (from fetch_en_top10_discord.py)
 2) Few-shot style from @gosailglobal zh hits in tweets_90d.jsonl
 3) Chat: POST {NEWAPI_BASE}/chat/completions (default https://api.fluxnode.org/v1; optional docs.newapi remap)
-4) Image (optional): POST .../images/generations (tries with/without trailing slash)
-5) Push each Chinese draft to Typefully: upload image → create X draft (default: no publish_at = saved draft)
+4) Image (optional): only if batch media_kind is text_only or text_with_image; text+photo uses /images/edits then fallback generations
+5) Video: skip image gen; download mp4 when possible; append CapCut 剪映 subtitle workflow to draft
+6) Typefully: upload image (if any) → create X draft (default: no publish_at = saved draft)
 
 Outputs (gitignored):
   cn_drafts_text_last.json — full Chinese body per item (`draft_zh`), easiest to copy-paste.
@@ -53,12 +54,29 @@ from local_env_file import activate_script_env
 
 activate_script_env(_script_path)
 
+_script_dir_str = str(_script_path.parent)
+if _script_dir_str not in sys.path:
+    sys.path.insert(0, _script_dir_str)
+
+from tweet_media_utils import (
+    MEDIA_TEXT_ONLY,
+    MEDIA_TEXT_WITH_IMAGE,
+    MEDIA_VIDEO,
+    capcut_instruction_block,
+    download_url_to_file,
+    extract_primary_photo_url,
+    extract_primary_video_url,
+    fetch_tweet_by_id,
+    resolve_media_kind_for_batch_item,
+)
+
 SCRIPT_DIR = _script_path.parent
 BATCH_PATH = SCRIPT_DIR / "en_digest_last_batch.json"
 TWEETS_PATH = Path("/workspace/twitterapi_90d_report/tweets_90d.jsonl")
 DEFAULT_CONFIG = SCRIPT_DIR / "config.json"
 OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
 OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
+VIDEO_DIR = SCRIPT_DIR / "downloaded_videos"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
 # Fluxnode OpenAI-compatible gateway (chat + images share this host unless you override).
@@ -268,6 +286,17 @@ def _chat_completion(base: str, api_key: str, model: str, messages: list[dict]) 
     return (msg.get("content") or "").strip()
 
 
+def _edit_prompt_for_photo(draft_zh: str) -> str:
+    """Instruction for /images/edits when a reference photo is attached."""
+    topic = (draft_zh or "").replace("\n", " ").strip()[:300]
+    return (
+        "Create a polished editorial cover image inspired by the reference photo's subject and mood, "
+        "same general topic but refined composition, cinematic lighting, premium social-post aesthetic. "
+        "No text, no logos, no watermarks, no extra UI. Topic context: "
+        + topic
+    )
+
+
 def _default_cover_image_prompt(tweet_text: str, draft_zh: str) -> str:
     """English prompt for image APIs; avoid generic 'AI blob' look."""
     topic = (draft_zh or "").replace("\n", " ").strip()[:220]
@@ -281,6 +310,57 @@ def _default_cover_image_prompt(tweet_text: str, draft_zh: str) -> str:
         "no watermarks, no UI mockups, no human faces or hands. Atmosphere only for topic: "
         + topic
     )
+
+
+def _images_edit_multipart(
+    base: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    size: str,
+    image_bytes: bytes,
+    image_filename: str,
+    *,
+    openai_compat_base: str,
+) -> dict:
+    """POST /v1/images/edits with image + prompt (OpenAI-style multipart)."""
+    boundary = f"----WebKitFormBoundary{uuid4().hex[:24]}"
+    crlf = b"\r\n"
+    parts: list[bytes] = []
+
+    def add_field(name: str, value: str) -> None:
+        parts.append(f'--{boundary}'.encode() + crlf)
+        parts.append(f'Content-Disposition: form-data; name="{name}"'.encode() + crlf + crlf)
+        parts.append(value.encode("utf-8") + crlf)
+
+    add_field("model", model)
+    add_field("prompt", prompt[:900])
+    add_field("n", "1")
+    add_field("size", size)
+    parts.append(f'--{boundary}'.encode() + crlf)
+    parts.append(
+        (
+            f'Content-Disposition: form-data; name="image"; filename="{image_filename}"\r\n'
+            f"Content-Type: application/octet-stream\r\n\r\n"
+        ).encode()
+    )
+    parts.append(image_bytes + crlf)
+    parts.append(f"--{boundary}--".encode() + crlf)
+    body = b"".join(parts)
+    url = base.rstrip("/") + "/images/edits"
+    hdrs = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+    }
+    hdrs = {**_openai_gateway_browser_headers(openai_compat_base), **hdrs}
+    hdrs = {**hdrs, **_extra_headers_from_env()}
+    status, raw = _http_request(url, method="POST", headers=hdrs, body=body, timeout=300)
+    text = raw.decode("utf-8", errors="replace")
+    if status >= 400:
+        raise RuntimeError(f"HTTP {status} {url}: {text[:1200]}")
+    if text.lstrip().startswith("<!DOCTYPE") or text.lstrip().startswith("<html"):
+        raise RuntimeError(f"Non-JSON response from {url}")
+    return json.loads(text) if text.strip() else {}
 
 
 def _images_generate(base: str, api_key: str, model: str, prompt: str, size: str) -> str | None:
@@ -322,6 +402,9 @@ def _images_generate_with_key_fallback(
     model: str,
     prompt: str,
     size: str,
+    *,
+    ref_image_bytes: bytes | None = None,
+    ref_image_filename: str = "ref.jpg",
 ) -> str | None:
     """Try image-specific key first; on 401 / Invalid token retry with chat key if different."""
     seen: set[str] = set()
@@ -331,7 +414,31 @@ def _images_generate_with_key_fallback(
     last_err: Exception | None = None
     for idx, key in enumerate(ordered):
         try:
-            out = _images_generate(base, key, model, prompt, size)
+            out: str | None = None
+            if ref_image_bytes:
+                body = _images_edit_multipart(
+                    base,
+                    key,
+                    model,
+                    prompt,
+                    size,
+                    ref_image_bytes,
+                    ref_image_filename,
+                    openai_compat_base=base,
+                )
+                data = body.get("data") or []
+                if data and isinstance(data[0], dict):
+                    row0 = data[0]
+                    if row0.get("url"):
+                        out = str(row0["url"]).strip()
+                    else:
+                        b64 = row0.get("b64_json")
+                        if b64:
+                            out = "b64:" + b64
+                if not out:
+                    out = _images_generate(base, key, model, prompt, size)
+            else:
+                out = _images_generate(base, key, model, prompt, size)
             if out:
                 return out
         except Exception as e:
@@ -516,6 +623,7 @@ def main() -> None:
     image_model = (os.environ.get("NEWAPI_IMAGE_MODEL") or os.environ.get("FLUXNODE_IMAGE_MODEL") or "").strip()
     image_size = (os.environ.get("NEWAPI_IMAGE_SIZE") or os.environ.get("FLUXNODE_IMAGE_SIZE") or "1024x1024").strip()
 
+    twitter_key = (os.environ.get("TWITTERAPI_KEY") or "").strip()
     tf_key = (os.environ.get("TYPEFULLY_API_KEY") or "").strip()
     publish_raw = (os.environ.get("TYPEFULLY_PUBLISH_AT") or "draft").strip().lower()
     publish_at: str | None = None
@@ -576,8 +684,19 @@ def main() -> None:
         author = it.get("author") or ""
         text = it.get("text") or ""
         cat = it.get("category") or ""
+        tweet_id = str(it.get("id") or "").strip()
+        media_kind = str(it.get("media_kind") or "").strip()
+        if not media_kind and tweet_id:
+            media_kind = resolve_media_kind_for_batch_item(
+                tweet_id=tweet_id, tweet_text=text, twitterapi_key=twitter_key
+            )
+        if not media_kind:
+            media_kind = "unknown"
+        detail = fetch_tweet_by_id(twitter_key, tweet_id) if twitter_key and tweet_id else None
+
         user_msg = (
-            f"分类：{cat}\n英文作者：@{author}\n原文链接：{url}\n英文原文：\n{text}\n\n请输出完整中文草稿。"
+            f"分类：{cat}\n英文作者：@{author}\n原文链接：{url}\n"
+            f"原推媒体类型（供你把握详略）：{media_kind}\n英文原文：\n{text}\n\n请输出完整中文草稿。"
         )
         messages = [
             {"role": "system", "content": system + "\n\n【风格样例】\n" + sample_block},
@@ -588,16 +707,43 @@ def main() -> None:
         except Exception as e:
             draft = f"（生成失败：{e}）\n原文链接：{url}\nvia @{author}"
 
+        video_local: Path | None = None
+        if media_kind == MEDIA_VIDEO and detail:
+            vurl = extract_primary_video_url(detail)
+            if vurl and tweet_id:
+                dest = VIDEO_DIR / f"{tweet_id}.mp4"
+                try:
+                    download_url_to_file(vurl, dest, timeout=180)
+                    video_local = dest
+                except Exception as e:
+                    draft += f"\n\n（原推含视频；自动下载失败：{e}）"
+            draft += capcut_instruction_block(draft_zh=draft, video_path=video_local, source_url=url)
+
         media_ids: list[str] = []
-        if image_model:
+        allow_image_gen = media_kind in (MEDIA_TEXT_ONLY, MEDIA_TEXT_WITH_IMAGE)
+        if image_model and allow_image_gen:
             try:
-                ip = (
-                    os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip()
-                    or _default_cover_image_prompt(text, draft)
-                )
+                ref_bytes: bytes | None = None
+                ref_name = "ref.jpg"
+                if media_kind == MEDIA_TEXT_WITH_IMAGE and detail:
+                    purl = extract_primary_photo_url(detail)
+                    if purl:
+                        ref_bytes, ref_name = _download_bytes(purl)
+                if os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip():
+                    ip = os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip()
+                elif ref_bytes:
+                    ip = _edit_prompt_for_photo(draft)
+                else:
+                    ip = _default_cover_image_prompt(text, draft)
                 image_key_chain = [newapi_image_key, newapi_key]
                 img_url = _images_generate_with_key_fallback(
-                    base, image_key_chain, image_model, ip, image_size
+                    base,
+                    image_key_chain,
+                    image_model,
+                    ip,
+                    image_size,
+                    ref_image_bytes=ref_bytes,
+                    ref_image_filename=ref_name,
                 )
                 if img_url:
                     img_bytes, fname = _download_bytes(img_url)
@@ -610,6 +756,11 @@ def main() -> None:
                     + " 若单独设置了 NEWAPI_IMAGE_KEY 且报 Invalid token，可删掉该变量改用与聊天相同的 key，"
                     "或换一把有「生图」权限的 token。）"
                 )
+        elif image_model and not allow_image_gen:
+            draft += (
+                f"\n\n（本轮跳过 AI 配图：原推类型为 `{media_kind}`，"
+                "仅对纯文字或「文字+图片」原推生图；视频类请用上方剪映流程。）"
+            )
 
         try:
             tf_resp = _typefully_create_draft(
@@ -635,6 +786,8 @@ def main() -> None:
                 "author": author,
                 "category": cat,
                 "source_url": url,
+                "media_kind": media_kind,
+                "video_local_path": str(video_local) if video_local else "",
                 "draft_zh": draft,
                 "typefully_draft_id": tf_resp.get("draft_id") or tf_resp.get("id"),
                 "typefully_private_url": tf_resp.get("private_url") or "",

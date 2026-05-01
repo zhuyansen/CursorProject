@@ -22,6 +22,10 @@ cp config.example.json config.json
 
 `config.json` 已在仓库根 `.gitignore` 中忽略，避免误提交。
 
+## 2b. Cursor Skill：`gpt-image-2`（可选）
+
+仓库已克隆安装到 **`~/.cursor/skills/gpt-image/`**（来自 [wuyoscar/gpt_image_2_skill](https://github.com/wuyoscar/gpt_image_2_skill)）。在 Cursor 里写图、改图、参考图编辑时，Agent 可加载该 skill 的 `SKILL.md` 与 CLI 说明。流水线里的配图仍由 `generate_cn_drafts_fluxnode.py` 直接调网关 `images/generations` / `images/edits`，与 skill 并行不冲突。
+
 ## 3. 后台 / 环境变量（推荐 `.env`）
 
 脚本会在启动时**自动加载**以下文件（若存在），把 `KEY=value` 写入进程环境；**已在 shell、CI 或 Cursor Secrets 里设置的变量不会被覆盖**。
@@ -122,8 +126,9 @@ python3 scripts/source_watch/post_source_feed_top10_discord.py
 - 名单：`en_sources_by_category.json`（工程实践 / 研究叙事 / 大厂官方；**不含**媒体/通讯社类新闻号，避免 digest 被时事刷屏）。  
 - 脚本：`fetch_en_top10_discord.py`  
   - 拉取名单里每个号的 `last_tweets`（twitterapi.io），**只考虑最近 `window_hours`（默认 8）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。  
+  - 对每条用 **`GET /twitter/tweets?tweet_ids=...`** 写入 **`media_kind`**：`text_only` | `text_with_image` | `video` | `other`（供下一步生图/剪映分支）。  
   - 按 `viewCount` 取全局 Top10，**优先 `lang=en`**，不够则其它语言补足。  
-  - Discord 每条带 **一句中文「搬运候选」导语**（模板，模拟翻译号口吻）+ **X 原文链接**。
+  - Discord 每条带 **一句中文「搬运候选」导语**（模板，模拟翻译号口吻）+ **X 原文链接**。  
 
 ```bash
 export TWITTERAPI_KEY="..."
@@ -147,8 +152,9 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 
 ## 12. Fluxnode 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
 
-1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**。
-2. 环境变量（见 `**fluxnode.example.env**`）：
+1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**（含 `media_kind`，需 `TWITTERAPI_KEY`）。  
+2. 再跑 `**generate_cn_drafts_fluxnode.py`**：仅当 `media_kind` 为 **`text_only`** 或 **`text_with_image`** 时调用生图；`text_with_image` 会下载原图并走 **`/images/edits`**（参考图），失败则回退 **`/images/generations`**。原推为 **`video`** 时跳过生图，尝试下载 mp4 到 **`scripts/source_watch/downloaded_videos/<tweet_id>.mp4`**，并在正文末尾追加 **剪映 CapCut 中文字幕**操作说明（自动剪辑需另接工具链）。  
+3. 环境变量（见 `**fluxnode.example.env**`）：
   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 `**https://api.fluxnode.org/v1**`；也可用 `FLUXNODE_BASE_URL`）+ `NEWAPI_CHAT_MODEL`（默认 **`claude-opus-4-7-thinking`**，与 Fluxnode 上可用模型一致；可按控制台改名覆盖）
   - 若聊天与生图在网关侧是**两把不同的 key**：设 `**NEWAPI_IMAGE_KEY`**（仅 `images/generations` 优先使用）。若该 key 报 **401 / Invalid token**，脚本会**自动再用 `NEWAPI_KEY` 试一次**；两把 key 都无效时请删错 key 或换有「生图」权限的 token。
   - `NEWAPI_IMAGE_MODEL`（如 `**gpt-image-2`**）可选；生图 URL 会下载并走 Typefully **媒体上传** 再挂到 X 草稿

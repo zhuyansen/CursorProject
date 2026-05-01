@@ -33,6 +33,12 @@ from local_env_file import activate_script_env
 
 activate_script_env(_script_path)
 
+_sw_dir = str(Path(__file__).resolve().parent)
+if _sw_dir not in sys.path:
+    sys.path.insert(0, _sw_dir)
+
+from tweet_media_utils import enrich_batch_items
+
 _DISCORD_HEADERS = {
     "User-Agent": "curl/8.5.0",
     "Content-Type": "application/json",
@@ -225,6 +231,7 @@ def main() -> None:
                 "text": t.get("text") or "",
             }
         )
+    batch_items = enrich_batch_items(batch_items, api_key)
     _save_json(
         BATCH_PATH,
         {"window_label": window_label, "window_hours": window_hours, "items": batch_items},
