@@ -16,7 +16,7 @@ and `scripts/source_watch/.env` are auto-loaded if present (never override exist
   NEWAPI_KEY or OPENAI_API_KEY     Bearer for your OpenAI-compatible gateway (chat)
   NEWAPI_IMAGE_KEY                 optional; if set, images/generations uses this key instead of NEWAPI_KEY
   NEWAPI_BASE_URL or FLUXNODE_BASE_URL  default https://api.fluxnode.org/v1
-  NEWAPI_CHAT_MODEL                default gpt-4 (override e.g. claude model id your gateway uses)
+  NEWAPI_CHAT_MODEL                default claude-opus-4-7-thinking (Fluxnode; override if needed)
   NEWAPI_IMAGE_MODEL               optional e.g. gpt-image-2
   NEWAPI_EXTRA_HEADERS             optional JSON object merged into chat/image POST headers (provider-specific)
 
@@ -413,7 +413,7 @@ def main() -> None:
     chat_model = (
         os.environ.get("NEWAPI_CHAT_MODEL")
         or os.environ.get("FLUXNODE_CLAUDE_MODEL")
-        or "gpt-4"
+        or "claude-opus-4-7-thinking"
     ).strip()
     image_model = (os.environ.get("NEWAPI_IMAGE_MODEL") or os.environ.get("FLUXNODE_IMAGE_MODEL") or "").strip()
     image_size = (os.environ.get("NEWAPI_IMAGE_SIZE") or os.environ.get("FLUXNODE_IMAGE_SIZE") or "1024x1024").strip()
