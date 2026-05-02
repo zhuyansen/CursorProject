@@ -14,22 +14,13 @@
   ],
   "twitter_users": [
     "OpenAI",
-    "OpenAIDevs",
     "AnthropicAI",
-    "claudeai",
-    "sama",
-    "gdb",
     "simonw",
     "karpathy",
     "swyx",
-    "garrytan",
     "op7418",
     "vista8",
-    "LufzzLiz",
-    "bozhou_ai",
-    "servasyy_ai",
-    "hitw93",
-    "songguoxiansen"
+    "LufzzLiz"
   ],
   "twitter_include_replies": false,
   "twitter_max_per_user": 5
