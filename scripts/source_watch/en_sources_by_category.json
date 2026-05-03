@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Low-follower English AI creator pool — strict filter: 12h, lang=en, AI/tool keywords, viewCount >100k, author followers <=50k. Authority names are keyword references, not source accounts.",
+    "description": "English AI source pool — strict filter: 12h, lang=en, AI/tool keywords, viewCount >100k. Low-follower creators must be <=50k followers; top_authority handles are allowed through as official trend sources.",
     "top_n": 10,
     "prefer_lang": "en",
     "include_replies": false,
@@ -9,7 +9,26 @@
     "min_view_count": 100000,
     "max_author_followers": 50000,
     "state_file": "en_digest_posted_ids.json",
-    "authority_allowlist": [],
+    "authority_allowlist": [
+      "AndrewYNg",
+      "OpenAI",
+      "OpenAIDevs",
+      "cursor_ai",
+      "deepseek_ai",
+      "AnthropicAI",
+      "claudeai",
+      "GoogleDeepMind",
+      "GoogleAI",
+      "AIatMeta",
+      "nvidia",
+      "MistralAI",
+      "Cohere",
+      "PerplexityAI",
+      "xai",
+      "grok",
+      "GitHub",
+      "GitHubCopilot"
+    ],
     "ai_keywords": [
       "ai",
       "agent",
@@ -43,6 +62,7 @@
     ]
   },
   "category_labels": {
+    "top_authority": "顶级权威/官方风向",
     "tool_workflow": "低粉工具实操",
     "niche_tool_recap": "低粉利基工具/赚钱复盘",
     "indie_ai_creators": "低粉AI创作者",
@@ -54,6 +74,26 @@
       "label": "X List扩展",
       "max_members": 120
     }
+  ],
+  "top_authority": [
+    "AndrewYNg",
+    "OpenAI",
+    "OpenAIDevs",
+    "cursor_ai",
+    "deepseek_ai",
+    "AnthropicAI",
+    "claudeai",
+    "GoogleDeepMind",
+    "GoogleAI",
+    "AIatMeta",
+    "nvidia",
+    "MistralAI",
+    "Cohere",
+    "PerplexityAI",
+    "xai",
+    "grok",
+    "GitHub",
+    "GitHubCopilot"
   ],
   "tool_workflow": [
     "carlvellotti",
