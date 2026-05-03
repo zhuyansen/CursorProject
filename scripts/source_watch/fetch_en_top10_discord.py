@@ -50,6 +50,7 @@ DEFAULT_CONFIG = SCRIPT_DIR / "config.json"
 STATE_PATH = SCRIPT_DIR / "en_digest_posted_ids.json"
 BATCH_PATH = SCRIPT_DIR / "en_digest_last_batch.json"
 API = "https://api.twitterapi.io/twitter/user/last_tweets"
+LIST_MEMBERS_API = "https://api.twitterapi.io/twitter/list/members"
 
 
 def _load_json(path: Path) -> dict:
@@ -81,6 +82,30 @@ def _fetch_user_tweets(api_key: str, username: str, include_replies: bool, limit
     data = body.get("data") or body
     tweets = data.get("tweets") or []
     return tweets[:limit]
+
+
+def _fetch_list_members(api_key: str, list_id: str, limit: int) -> list[dict]:
+    members: list[dict] = []
+    cursor = ""
+    while len(members) < limit:
+        q = {"list_id": list_id}
+        if cursor:
+            q["cursor"] = cursor
+        url = f"{LIST_MEMBERS_API}?{urllib.parse.urlencode(q)}"
+        req = urllib.request.Request(url, headers={"X-API-Key": api_key, "User-Agent": "curl/8.5.0"})
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        rows = body.get("members") or body.get("data") or []
+        if not rows:
+            break
+        members.extend([r for r in rows if isinstance(r, dict)])
+        if not body.get("has_next_page"):
+            break
+        cursor = str(body.get("next_cursor") or "").strip()
+        if not cursor:
+            break
+        time.sleep(0.2)
+    return members[:limit]
 
 
 def _parse_twitter_time(value: str | None) -> datetime | None:
@@ -126,7 +151,7 @@ def _collect_handles(bundle: dict) -> tuple[list[str], dict[str, str]]:
     seen: set[str] = set()
     cat_map: dict[str, str] = {}
     for key, values in bundle.items():
-        if key in {"meta", "category_labels"} or not isinstance(values, list):
+        if key in {"meta", "category_labels", "x_lists"} or not isinstance(values, list):
             continue
         cat = str(labels.get(key) or key)
         for h in values:
@@ -139,6 +164,71 @@ def _collect_handles(bundle: dict) -> tuple[list[str], dict[str, str]]:
                 seen.add(lu)
             cat_map[lu] = cat
     return handles, cat_map
+
+
+def _fetch_list_members(api_key: str, list_id: str, max_pages: int = 10) -> list[dict]:
+    members: list[dict] = []
+    cursor = ""
+    for _ in range(max_pages):
+        q = {"list_id": list_id}
+        if cursor:
+            q["cursor"] = cursor
+        url = "https://api.twitterapi.io/twitter/list/members?" + urllib.parse.urlencode(q)
+        req = urllib.request.Request(url, headers={"X-API-Key": api_key, "User-Agent": "curl/8.5.0"})
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+        page = body.get("members") or body.get("data") or []
+        if isinstance(page, list):
+            members.extend([m for m in page if isinstance(m, dict)])
+        if not body.get("has_next_page"):
+            break
+        cursor = str(body.get("next_cursor") or "").strip()
+        if not cursor:
+            break
+    return members
+
+
+def _extend_handles_from_lists(
+    *,
+    api_key: str,
+    bundle: dict,
+    handles: list[str],
+    cat_map: dict[str, str],
+    max_followers: int,
+    authority_allowlist: set[str],
+) -> tuple[list[str], int, list[str]]:
+    seen = {h.lower() for h in handles}
+    added = 0
+    errors: list[str] = []
+    labels = bundle.get("category_labels") or {}
+    for row in bundle.get("x_lists") or []:
+        if not isinstance(row, dict):
+            continue
+        list_id = str(row.get("id") or "").strip()
+        if not list_id:
+            continue
+        label = str(row.get("label") or labels.get("x_lists") or "X List扩展")
+        max_pages = int(row.get("max_pages") or 10)
+        try:
+            members = _fetch_list_members(api_key, list_id, max_pages=max_pages)
+        except (urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError, TimeoutError) as e:
+            errors.append(f"list:{list_id} {e}")
+            continue
+        for m in members:
+            u = str(m.get("userName") or "").strip().lstrip("@")
+            if not u:
+                continue
+            lu = u.lower()
+            if lu in seen:
+                continue
+            followers = int(m.get("followers") or m.get("followersCount") or 0)
+            if max_followers > 0 and lu not in authority_allowlist and followers > max_followers:
+                continue
+            handles.append(u)
+            seen.add(lu)
+            cat_map[lu] = label
+            added += 1
+    return handles, added, errors
 
 
 def main() -> None:
@@ -173,6 +263,14 @@ def main() -> None:
     keywords = [str(x).lower() for x in meta.get("ai_keywords", []) if str(x).strip()]
 
     handles, cat_map = _collect_handles(bundle)
+    handles, added_from_lists, list_errors = _extend_handles_from_lists(
+        api_key=api_key,
+        bundle=bundle,
+        handles=handles,
+        cat_map=cat_map,
+        max_followers=max_followers,
+        authority_allowlist=authority_allowlist,
+    )
 
     posted: set[str] = set()
     if STATE_PATH.is_file():
@@ -180,6 +278,7 @@ def main() -> None:
 
     all_tweets: dict[str, dict] = {}
     errors: list[str] = []
+    errors.extend(list_errors)
 
     for i, user in enumerate(handles):
         try:

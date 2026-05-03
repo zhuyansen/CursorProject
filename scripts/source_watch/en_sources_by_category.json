@@ -9,6 +9,10 @@
     "min_view_count": 100000,
     "max_author_followers": 50000,
     "state_file": "en_digest_posted_ids.json",
+    "x_lists": [
+      "2003366813665767870"
+    ],
+    "max_list_members": 120,
     "authority_allowlist": [
       "AndrewYNg",
       "OpenAI",
@@ -48,8 +52,16 @@
   "category_labels": {
     "top_authority": "顶级权威",
     "tool_workflow": "主流工具实操",
-    "niche_tool_recap": "利基工具/赚钱复盘"
+    "niche_tool_recap": "利基工具/赚钱复盘",
+    "x_lists": "X List扩展"
   },
+  "x_lists": [
+    {
+      "id": "2003366813665767870",
+      "label": "X List扩展",
+      "max_members": 120
+    }
+  ],
   "top_authority": [
     "AndrewYNg",
     "OpenAI",

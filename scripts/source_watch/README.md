@@ -125,7 +125,7 @@ python3 scripts/source_watch/post_source_feed_top10_discord.py
 
 - 名单：`en_sources_by_category.json`（顶级权威 / 主流工具实操 / 利基工具复盘；**不含**媒体/通讯社）。  
 - 脚本：`fetch_en_top10_discord.py`  
-  - 拉取名单里每个号的 `last_tweets`（twitterapi.io），**只考虑最近 `window_hours`（默认 12）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。  
+  - 拉取名单里每个号的 `last_tweets`（twitterapi.io），并会额外展开 `x_lists` 里配置的 X List（当前：`https://x.com/i/lists/2003366813665767870`，先按粉丝数阈值筛成员），**只考虑最近 `window_hours`（默认 12）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。
   - 严格过滤：`lang=en`、AI/工具关键词命中、`viewCount >= 100000`、作者粉丝数 `<= 50000`；`authority_allowlist`（DeepSeek/Andrew Ng/Cursor/OpenAI 等顶级权威）不受粉丝上限约束。  
   - 对每条用 **`GET /twitter/tweets?tweet_ids=...`** 写入 **`media_kind`**：`text_only` | `text_with_image` | `video` | `other`（供下一步生图/剪映分支）。  
   - 按 `viewCount` 取全局 Top10。  
