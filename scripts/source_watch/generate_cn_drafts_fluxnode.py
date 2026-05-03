@@ -528,7 +528,8 @@ def _typefully_resolve_social_set(api_key: str) -> int:
     return int(results[0]["id"])
 
 
-def _typefully_upload_image(api_key: str, social_set_id: int, file_bytes: bytes, file_name: str) -> str:
+def _typefully_upload_media(api_key: str, social_set_id: int, file_bytes: bytes, file_name: str) -> str:
+    """Upload image/video bytes to Typefully and wait until the media is ready."""
     init = _http_post_json(
         f"{TYPEFULLY_BASE}/social-sets/{social_set_id}/media/upload",
         api_key,
@@ -707,6 +708,7 @@ def main() -> None:
         except Exception as e:
             draft = f"（生成失败：{e}）\n原文链接：{url}\nvia @{author}"
 
+        media_ids: list[str] = []
         video_local: Path | None = None
         if media_kind == MEDIA_VIDEO and detail:
             vurl = extract_primary_video_url(detail)
@@ -715,11 +717,13 @@ def main() -> None:
                 try:
                     download_url_to_file(vurl, dest, timeout=180)
                     video_local = dest
+                    media_ids.append(
+                        _typefully_upload_media(tf_key, social_set_id, dest.read_bytes(), dest.name)
+                    )
                 except Exception as e:
-                    draft += f"\n\n（原推含视频；自动下载失败：{e}）"
+                    draft += f"\n\n（原推含视频；自动下载/上传到 Typefully 失败：{e}）"
             draft += capcut_instruction_block(draft_zh=draft, video_path=video_local, source_url=url)
 
-        media_ids: list[str] = []
         allow_image_gen = media_kind in (MEDIA_TEXT_ONLY, MEDIA_TEXT_WITH_IMAGE)
         if image_model and allow_image_gen:
             try:
@@ -747,7 +751,7 @@ def main() -> None:
                 )
                 if img_url:
                     img_bytes, fname = _download_bytes(img_url)
-                    media_ids.append(_typefully_upload_image(tf_key, social_set_id, img_bytes, fname))
+                    media_ids.append(_typefully_upload_media(tf_key, social_set_id, img_bytes, fname))
             except Exception as e:
                 err_short = str(e).replace("\n", " ")[:420]
                 draft += (
@@ -756,10 +760,10 @@ def main() -> None:
                     + " 若单独设置了 NEWAPI_IMAGE_KEY 且报 Invalid token，可删掉该变量改用与聊天相同的 key，"
                     "或换一把有「生图」权限的 token。）"
                 )
-        elif image_model and not allow_image_gen:
+        elif image_model and not allow_image_gen and media_kind != MEDIA_VIDEO:
             draft += (
                 f"\n\n（本轮跳过 AI 配图：原推类型为 `{media_kind}`，"
-                "仅对纯文字或「文字+图片」原推生图；视频类请用上方剪映流程。）"
+                "仅对纯文字或「文字+图片」原推生图。）"
             )
 
         try:

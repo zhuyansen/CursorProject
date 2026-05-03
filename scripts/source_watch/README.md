@@ -153,7 +153,7 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 ## 12. Fluxnode 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
 
 1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**（含 `media_kind`，需 `TWITTERAPI_KEY`）。  
-2. 再跑 `**generate_cn_drafts_fluxnode.py`**：仅当 `media_kind` 为 **`text_only`** 或 **`text_with_image`** 时调用生图；`text_with_image` 会下载原图并走 **`/images/edits`**（参考图），失败则回退 **`/images/generations`**。原推为 **`video`** 时跳过生图，尝试下载 mp4 到 **`scripts/source_watch/downloaded_videos/<tweet_id>.mp4`**，并在正文末尾追加 **剪映 CapCut 中文字幕**操作说明（自动剪辑需另接工具链）。  
+2. 再跑 `**generate_cn_drafts_fluxnode.py`**：仅当 `media_kind` 为 **`text_only`** 或 **`text_with_image`** 时调用生图；`text_with_image` 会下载原图并走 **`/images/edits`**（参考图），失败则回退 **`/images/generations`**。原推为 **`video`** 时跳过生图，尝试下载 mp4 到 **`scripts/source_watch/downloaded_videos/<tweet_id>.mp4`**，然后通过 Typefully `media/upload` 作为视频附件挂到草稿；正文末尾也会追加 **剪映 CapCut 中文字幕**操作说明（自动剪辑需另接工具链）。  
 3. 环境变量（见 `**fluxnode.example.env**`）：
   - `NEWAPI_KEY` + `NEWAPI_BASE_URL`（默认 `**https://api.fluxnode.org/v1**`；也可用 `FLUXNODE_BASE_URL`）+ `NEWAPI_CHAT_MODEL`（默认 **`claude-opus-4-7-thinking`**，与 Fluxnode 上可用模型一致；可按控制台改名覆盖）
   - 若聊天与生图在网关侧是**两把不同的 key**：设 `**NEWAPI_IMAGE_KEY`**（仅 `images/generations` 优先使用）。若该 key 报 **401 / Invalid token**，脚本会**自动再用 `NEWAPI_KEY` 试一次**；两把 key 都无效时请删错 key 或换有「生图」权限的 token。
