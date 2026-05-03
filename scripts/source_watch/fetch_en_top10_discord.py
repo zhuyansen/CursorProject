@@ -349,7 +349,7 @@ def main() -> None:
         f"扫描 **{len(handles)}** 个信源号，本轮窗口内新帖 **{len(fresh)}** 条（未在 Discord 记录过）；"
         f"过滤后 **{len(filtered)}** 条；取 **浏览 Top{top_n}**。\n"
         f"过滤：`lang=en` · 近 `{int(window_hours)}h` · 👁 ≥ `{min_views:,}` · "
-        f"粉丝 ≤ `{max_followers:,}`（权威白名单例外） · AI/工具关键词命中。\n"
+        f"粉丝 ≤ `{max_followers:,}` · AI/工具关键词命中。\n"
         "发推时请 **转述成你的口吻** + 图/视频另做中文字幕或重制图。"
     )
     if errors:
@@ -359,7 +359,7 @@ def main() -> None:
     time.sleep(0.5)
 
     if not pick:
-        _post_discord(webhook, "（本轮没有符合条件的新英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）")
+        _post_discord(webhook, "（本轮没有符合条件的低粉英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）")
         print("No new tweets to post.", flush=True)
         return
 

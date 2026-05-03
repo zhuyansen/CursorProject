@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "English AI X source pool — strict filter: 12h, lang=en, AI/tool keywords, viewCount >100k, author followers <=50k (authority_allowlist excepted).",
+    "description": "Low-follower English AI creator pool — strict filter: 12h, lang=en, AI/tool keywords, viewCount >100k, author followers <=50k. Authority names are keyword references, not source accounts.",
     "top_n": 10,
     "prefer_lang": "en",
     "include_replies": false,
@@ -9,17 +9,7 @@
     "min_view_count": 100000,
     "max_author_followers": 50000,
     "state_file": "en_digest_posted_ids.json",
-    "x_lists": [
-      "2003366813665767870"
-    ],
-    "max_list_members": 120,
-    "authority_allowlist": [
-      "AndrewYNg",
-      "OpenAI",
-      "OpenAIDevs",
-      "cursor_ai",
-      "deepseek_ai"
-    ],
+    "authority_allowlist": [],
     "ai_keywords": [
       "ai",
       "agent",
@@ -46,13 +36,16 @@
       "stripe",
       "trustmrr",
       "mrr",
-      "revenue"
+      "revenue",
+      "indie",
+      "saas",
+      "build in public"
     ]
   },
   "category_labels": {
-    "top_authority": "顶级权威",
-    "tool_workflow": "主流工具实操",
-    "niche_tool_recap": "利基工具/赚钱复盘",
+    "tool_workflow": "低粉工具实操",
+    "niche_tool_recap": "低粉利基工具/赚钱复盘",
+    "indie_ai_creators": "低粉AI创作者",
     "x_lists": "X List扩展"
   },
   "x_lists": [
@@ -62,38 +55,45 @@
       "max_members": 120
     }
   ],
-  "top_authority": [
-    "AndrewYNg",
-    "OpenAI",
-    "OpenAIDevs",
-    "cursor_ai",
-    "deepseek_ai"
-  ],
   "tool_workflow": [
-    "simonw",
-    "swyx",
-    "goodside",
-    "steipete",
-    "jxnlco",
-    "karpathy",
-    "omarsar0",
-    "DrJimFan",
-    "lilianweng",
-    "yoavgo",
-    "claudeai",
-    "AnthropicAI"
+    "carlvellotti",
+    "rryssf",
+    "tomcrawshaw01",
+    "the_agenteers",
+    "localghost",
+    "Jacobsklug",
+    "bridgemindai",
+    "alexjc",
+    "HalimAlrasihi",
+    "promptcowboy",
+    "Whats_AI",
+    "ValsAI"
   ],
   "niche_tool_recap": [
-    "levelsio",
-    "t3dotgg",
-    "rauchg",
-    "kentcdodds",
-    "danshipper",
-    "HamelHusain",
-    "hwchase17",
-    "vista8",
-    "LufzzLiz",
-    "simonw",
-    "swyx"
+    "startupideaspod",
+    "jordymaui",
+    "helloitsaustin",
+    "santiago__rdz",
+    "kirbyman01",
+    "aleximm",
+    "KSimback",
+    "rschmelzer",
+    "snewmanpv",
+    "localghost"
+  ],
+  "indie_ai_creators": [
+    "fal",
+    "Trae_ai",
+    "comet",
+    "HuggingPapers",
+    "Prince_Canuma",
+    "eyad_khrais",
+    "joon_s_pk",
+    "SourabhSKatoch",
+    "RobotPigeonNews",
+    "yan5xu",
+    "LearnOpenCV",
+    "ZixuanLi_",
+    "sudalairajkumar"
   ]
 }
