@@ -252,7 +252,7 @@ def main() -> None:
 
     bundle = _load_json(SOURCES_JSON)
     meta = bundle.get("meta") or {}
-    top_n = int(meta.get("top_n", 10))
+    top_n = int(os.environ.get("SOURCE_WATCH_TOP_N") or meta.get("top_n", 10))
     prefer_en = bool(meta.get("prefer_lang", True))
     include_replies = bool(meta.get("include_replies", False))
     per_user = int(meta.get("max_tweets_per_user", 12))
