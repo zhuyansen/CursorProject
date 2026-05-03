@@ -1,48 +1,87 @@
 {
   "meta": {
-    "description": "English X — lean pool for 8h Top10 digest (lang=en preferred). Fewer accounts = faster pulls.",
+    "description": "English AI X source pool — strict filter: 12h, lang=en, AI/tool keywords, viewCount >100k, author followers <=50k (authority_allowlist excepted).",
     "top_n": 10,
     "prefer_lang": "en",
     "include_replies": false,
-    "max_tweets_per_user": 12,
-    "window_hours": 8,
-    "state_file": "en_digest_posted_ids.json"
+    "max_tweets_per_user": 20,
+    "window_hours": 12,
+    "min_view_count": 100000,
+    "max_author_followers": 50000,
+    "state_file": "en_digest_posted_ids.json",
+    "authority_allowlist": [
+      "AndrewYNg",
+      "OpenAI",
+      "OpenAIDevs",
+      "cursor_ai",
+      "deepseek_ai"
+    ],
+    "ai_keywords": [
+      "ai",
+      "agent",
+      "agents",
+      "llm",
+      "rag",
+      "model",
+      "benchmark",
+      "eval",
+      "workflow",
+      "tutorial",
+      "guide",
+      "prompt",
+      "claude",
+      "cursor",
+      "codex",
+      "gpt-image",
+      "gpt image",
+      "seedance",
+      "deepseek",
+      "openai",
+      "anthropic",
+      "vercel",
+      "stripe",
+      "trustmrr",
+      "mrr",
+      "revenue"
+    ]
   },
-  "engineering_tutorial": [
+  "category_labels": {
+    "top_authority": "顶级权威",
+    "tool_workflow": "主流工具实操",
+    "niche_tool_recap": "利基工具/赚钱复盘"
+  },
+  "top_authority": [
+    "AndrewYNg",
+    "OpenAI",
+    "OpenAIDevs",
+    "cursor_ai",
+    "deepseek_ai"
+  ],
+  "tool_workflow": [
     "simonw",
     "swyx",
     "goodside",
     "steipete",
-    "rauchg",
-    "kentcdodds",
-    "levelsio",
     "jxnlco",
-    "t3dotgg",
-    "omarsar0"
-  ],
-  "research_narrative": [
     "karpathy",
-    "ylecun",
-    "gdb",
+    "omarsar0",
+    "DrJimFan",
     "lilianweng",
     "yoavgo",
-    "DrJimFan",
-    "Thom_Wolf",
-    "AndrewYNg",
-    "fchollet",
-    "hardmaru",
-    "vista8",
-    "LufzzLiz"
-  ],
-  "bigtech_official": [
-    "OpenAI",
-    "OpenAIDevs",
-    "AnthropicAI",
     "claudeai",
-    "GoogleAI",
-    "GoogleDeepMind",
-    "nvidia",
-    "DeepMind",
-    "AIatMeta"
+    "AnthropicAI"
+  ],
+  "niche_tool_recap": [
+    "levelsio",
+    "t3dotgg",
+    "rauchg",
+    "kentcdodds",
+    "danshipper",
+    "HamelHusain",
+    "hwchase17",
+    "vista8",
+    "LufzzLiz",
+    "simonw",
+    "swyx"
   ]
 }

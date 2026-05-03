@@ -121,13 +121,14 @@ python3 scripts/source_watch/post_digest_discord.py /path/to/config.json
 python3 scripts/source_watch/post_source_feed_top10_discord.py
 ```
 
-## 11. 英文信源（非新闻）· 每 8 小时 · 窗口内浏览 Top10 → Discord（GoSailGlobal 搬运池文案）
+## 11. 英文 AI 信源（非新闻）· 近 12 小时 · 高阅读 → Discord（GoSailGlobal 搬运池文案）
 
-- 名单：`en_sources_by_category.json`（工程实践 / 研究叙事 / 大厂官方；**精简**高信号英文号，**不含**媒体/通讯社；可按需自行加回 handle）。  
+- 名单：`en_sources_by_category.json`（顶级权威 / 主流工具实操 / 利基工具复盘；**不含**媒体/通讯社）。  
 - 脚本：`fetch_en_top10_discord.py`  
-  - 拉取名单里每个号的 `last_tweets`（twitterapi.io），**只考虑最近 `window_hours`（默认 8）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。  
+  - 拉取名单里每个号的 `last_tweets`（twitterapi.io），**只考虑最近 `window_hours`（默认 12）小时内**、且 **未在 `en_digest_posted_ids.json` 里发过** 的帖。  
+  - 严格过滤：`lang=en`、AI/工具关键词命中、`viewCount >= 100000`、作者粉丝数 `<= 50000`；`authority_allowlist`（DeepSeek/Andrew Ng/Cursor/OpenAI 等顶级权威）不受粉丝上限约束。  
   - 对每条用 **`GET /twitter/tweets?tweet_ids=...`** 写入 **`media_kind`**：`text_only` | `text_with_image` | `video` | `other`（供下一步生图/剪映分支）。  
-  - 按 `viewCount` 取全局 Top10，**优先 `lang=en`**，不够则其它语言补足。  
+  - 按 `viewCount` 取全局 Top10。  
   - Discord 每条带 **一句中文「搬运候选」导语**（模板，模拟翻译号口吻）+ **X 原文链接**。  
 
 ```bash

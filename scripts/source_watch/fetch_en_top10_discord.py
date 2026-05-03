@@ -3,8 +3,8 @@
 Every run (e.g. cron every 8h):
   - Load English source handles from en_sources_by_category.json (categories with non-empty lists)
   - Fetch last tweets per user via twitterapi.io last_tweets
-  - Among tweets not yet posted (state file), pick top N by viewCount
-  - Prefer lang=en; backfill if fewer than N
+  - Among tweets not yet posted (state file), filter by freshness, English, views, followers, AI relevance
+  - Pick top N by viewCount
   - Post to Discord with a short GoSailGlobal-style Chinese lead + links
 
 Env: TWITTERAPI_KEY
@@ -101,6 +101,46 @@ def _lead_cn(tweet: dict) -> str:
     return f"【搬运候选】@{author} 这条在海外圈里在传 —— 要点我用自己的话会放在正式发推里；先存原文：{text}"
 
 
+def _author_username(tweet: dict) -> str:
+    return str((tweet.get("author") or {}).get("userName") or "").lstrip("@")
+
+
+def _author_followers(tweet: dict) -> int:
+    author = tweet.get("author") or {}
+    for key in ("followers", "followersCount", "followerCount"):
+        try:
+            return int(author.get(key) or 0)
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
+def _contains_any_keyword(text: str, keywords: list[str]) -> bool:
+    low = (text or "").lower()
+    return any(str(k).lower() in low for k in keywords if str(k).strip())
+
+
+def _collect_handles(bundle: dict) -> tuple[list[str], dict[str, str]]:
+    labels = bundle.get("category_labels") or {}
+    handles: list[str] = []
+    seen: set[str] = set()
+    cat_map: dict[str, str] = {}
+    for key, values in bundle.items():
+        if key in {"meta", "category_labels"} or not isinstance(values, list):
+            continue
+        cat = str(labels.get(key) or key)
+        for h in values:
+            u = str(h).lstrip("@").strip()
+            if not u:
+                continue
+            lu = u.lower()
+            if lu not in seen:
+                handles.append(u)
+                seen.add(lu)
+            cat_map[lu] = cat
+    return handles, cat_map
+
+
 def main() -> None:
     api_key = os.environ.get("TWITTERAPI_KEY", "").strip()
     if not api_key:
@@ -127,22 +167,12 @@ def main() -> None:
     include_replies = bool(meta.get("include_replies", False))
     per_user = int(meta.get("max_tweets_per_user", 12))
     window_hours = float(meta.get("window_hours", 8))
+    min_views = int(meta.get("min_view_count", 0))
+    max_followers = int(meta.get("max_author_followers", 0))
+    authority_allowlist = {str(x).lower().lstrip("@") for x in meta.get("authority_allowlist", [])}
+    keywords = [str(x).lower() for x in meta.get("ai_keywords", []) if str(x).strip()]
 
-    handles: list[str] = []
-    cat_map: dict[str, str] = {}
-    for cat, key in (
-        ("工程实践/教程", "engineering_tutorial"),
-        ("研究/叙事", "research_narrative"),
-        ("大厂/官方", "bigtech_official"),
-    ):
-        for h in bundle.get(key) or []:
-            u = str(h).lstrip("@").strip()
-            if not u:
-                continue
-            lu = u.lower()
-            if lu not in {x.lower() for x in handles}:
-                handles.append(u)
-            cat_map[lu] = cat
+    handles, cat_map = _collect_handles(bundle)
 
     posted: set[str] = set()
     if STATE_PATH.is_file():
@@ -183,8 +213,24 @@ def main() -> None:
         return dt >= cutoff
 
     fresh = [t for tid, t in all_tweets.items() if tid not in posted and in_window(t)]
-    en_f = [t for t in fresh if str(t.get("lang") or "").lower() == "en"]
-    non_f = [t for t in fresh if str(t.get("lang") or "").lower() != "en"]
+
+    def passes_filters(t: dict) -> bool:
+        au = _author_username(t).lower()
+        if str(t.get("lang") or "").lower() != "en":
+            return False
+        if int(t.get("viewCount") or 0) < min_views:
+            return False
+        if max_followers > 0 and au not in authority_allowlist:
+            followers = _author_followers(t)
+            if followers > max_followers:
+                return False
+        if keywords and not _contains_any_keyword(t.get("text") or "", keywords):
+            return False
+        return True
+
+    filtered = [t for t in fresh if passes_filters(t)]
+    en_f = filtered
+    non_f: list[dict] = []
 
     def by_view(t: dict) -> int:
         return int(t.get("viewCount") or 0)
@@ -194,7 +240,7 @@ def main() -> None:
     if prefer_en:
         pool = en_f + [t for t in non_f if t not in en_f]
     else:
-        pool = fresh
+        pool = filtered
         pool.sort(key=by_view, reverse=True)
     pick = pool[:top_n]
 
@@ -202,7 +248,9 @@ def main() -> None:
     header = (
         f"🌊 **【GoSailGlobal 搬运池 · 近{int(window_hours)}h 英文热帖】** `{window_label}`\n"
         f"扫描 **{len(handles)}** 个信源号，本轮窗口内新帖 **{len(fresh)}** 条（未在 Discord 记录过）；"
-        f"取 **浏览 Top{top_n}**（优先 `lang=en`）。\n"
+        f"过滤后 **{len(filtered)}** 条；取 **浏览 Top{top_n}**。\n"
+        f"过滤：`lang=en` · 近 `{int(window_hours)}h` · 👁 ≥ `{min_views:,}` · "
+        f"粉丝 ≤ `{max_followers:,}`（权威白名单例外） · AI/工具关键词命中。\n"
         "发推时请 **转述成你的口吻** + 图/视频另做中文字幕或重制图。"
     )
     if errors:
@@ -212,7 +260,7 @@ def main() -> None:
     time.sleep(0.5)
 
     if not pick:
-        _post_discord(webhook, "（本轮没有「未发过」的新帖，或全部已记录。下轮 8h 再试。）")
+        _post_discord(webhook, "（本轮没有符合条件的新英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）")
         print("No new tweets to post.", flush=True)
         return
 
