@@ -256,9 +256,9 @@ def main() -> None:
     prefer_en = bool(meta.get("prefer_lang", True))
     include_replies = bool(meta.get("include_replies", False))
     per_user = int(meta.get("max_tweets_per_user", 12))
-    window_hours = float(meta.get("window_hours", 8))
-    min_views = int(meta.get("min_view_count", 0))
-    max_followers = int(meta.get("max_author_followers", 0))
+    window_hours = float(os.environ.get("SOURCE_WATCH_WINDOW_HOURS") or meta.get("window_hours", 8))
+    min_views = int(os.environ.get("SOURCE_WATCH_MIN_VIEW_COUNT") or meta.get("min_view_count", 0))
+    max_followers = int(os.environ.get("SOURCE_WATCH_MAX_AUTHOR_FOLLOWERS") or meta.get("max_author_followers", 0))
     authority_allowlist = {str(x).lower().lstrip("@") for x in meta.get("authority_allowlist", [])}
     keywords = [str(x).lower() for x in meta.get("ai_keywords", []) if str(x).strip()]
 
