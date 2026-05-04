@@ -244,9 +244,8 @@ def main() -> None:
     if not webhook and cfg_path.is_file():
         cfg = _load_json(cfg_path)
         webhook = (cfg.get("discord_webhook_url") or "").strip()
-    if webhook and ("0000000000" in webhook or "xxxxxxxx" in webhook):
-        webhook = ""
-    discord_enabled = bool(webhook)
+    if not webhook or "0000000000" in webhook or "xxxxxxxx" in webhook:
+        raise SystemExit("Need DISCORD_WEBHOOK_URL (env or config.json: discord_webhook_url)")
 
     if not SOURCES_JSON.is_file():
         raise SystemExit(f"Missing {SOURCES_JSON}")
@@ -356,18 +355,14 @@ def main() -> None:
     if errors:
         header += "\n⚠️ 部分账号拉取失败: " + "; ".join(errors[:5])
 
-    if discord_enabled:
-        _post_discord(webhook, header)
-        time.sleep(0.5)
-    else:
-        print(header, flush=True)
+    _post_discord(webhook, header)
+    time.sleep(0.5)
 
     if not pick:
-        msg = "（本轮没有符合条件的低粉英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）"
-        if discord_enabled:
-            _post_discord(webhook, msg)
-        else:
-            print(msg, flush=True)
+        _post_discord(
+            webhook,
+            "（本轮没有符合条件的低粉英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）",
+        )
         print("No new tweets to post.", flush=True)
         return
 
@@ -405,20 +400,16 @@ def main() -> None:
             f"{lead}\n"
             f"{url}"
         )
-        if discord_enabled:
-            _post_discord(webhook, block)
-            time.sleep(0.45)
-        else:
-            print(block, flush=True)
+        _post_discord(webhook, block)
         posted.add(tid)
+        time.sleep(0.45)
 
     posted_list = list(posted)
     if len(posted_list) > 4000:
         posted_list = posted_list[-4000:]
     _save_json(STATE_PATH, posted_list)
 
-    suffix = "Discord" if discord_enabled else "stdout (no Discord webhook)"
-    print(f"Posted {len(pick)} tweets to {suffix}; state={len(posted_list)} ids", flush=True)
+    print(f"Posted {len(pick)} tweets to Discord; state={len(posted_list)} ids", flush=True)
 
 
 if __name__ == "__main__":
