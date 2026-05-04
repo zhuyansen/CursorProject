@@ -151,7 +151,28 @@ python3 scripts/source_watch/fetch_en_top10_discord.py
 
 首次运行会写入 `en_digest_posted_ids.json`（已加入 `.gitignore`）。若要「全量重推」，删除该文件即可。
 
-## 12. Fluxnode 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ 可选 Discord）
+## 11.5 一键流水线（Discord + Typefully）
+
+`run_pipeline.sh`：依次执行 `fetch_en_top10_discord.py` 与 `generate_cn_drafts_fluxnode.py`，把 Discord digest 与 Typefully 草稿一次跑完。
+
+需要的环境变量（Cursor Secrets 或本地 `.env`）：
+
+- `TWITTERAPI_KEY`
+- `DISCORD_WEBHOOK_URL`
+- `NEWAPI_KEY`
+- `TYPEFULLY_API_KEY`
+
+可选：
+
+- `NEWAPI_IMAGE_KEY`、`TYPEFULLY_X_USERNAME=GoSailGlobal`、`TYPEFULLY_PUBLISH_AT=draft`
+- 调档：`SOURCE_WATCH_TOP_N`、`SOURCE_WATCH_WINDOW_HOURS`、`SOURCE_WATCH_MIN_VIEW_COUNT`、`SOURCE_WATCH_MAX_AUTHOR_FOLLOWERS`
+
+```bash
+cd scripts/source_watch
+./run_pipeline.sh
+```
+
+## 12. Fluxnode 网关（OpenAI 兼容）聊天 + 生图 → 中文草稿 → **Typefully**（+ Discord）
 
 1. 先跑 `**fetch_en_top10_discord.py`** → 生成 `**en_digest_last_batch.json`**（含 `media_kind`，需 `TWITTERAPI_KEY`）。  
 2. 再跑 `**generate_cn_drafts_fluxnode.py`**：仅当 `media_kind` 为 **`text_only`** 或 **`text_with_image`** 时调用生图；`text_with_image` 会下载原图并走 **`/images/edits`**（参考图），失败则回退 **`/images/generations`**。原推为 **`video`** 时跳过生图，尝试下载 mp4 到 **`scripts/source_watch/downloaded_videos/<tweet_id>.mp4`**，然后通过 Typefully `media/upload` 作为视频附件挂到草稿；正文末尾也会追加 **剪映 CapCut 中文字幕**操作说明（自动剪辑需另接工具链）。  
