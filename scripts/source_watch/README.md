@@ -1,5 +1,7 @@
 # 信源监控 → Discord（拿到 Webhook 之后）
 
+> 一键运行参考：[`.cursor/skills/gosailglobal-digest/`](../../.cursor/skills/gosailglobal-digest/)。该 skill 把本目录的两个脚本和 `run_pipeline.sh` 串起来，并写明 Cursor Secrets 与排错。
+
 ## 1. 准备 Webhook（Discord 端）
 
 1. 服务器里选一个**文字频道**（建议单独建 `#信源`）。
