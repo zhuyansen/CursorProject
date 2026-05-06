@@ -65,6 +65,21 @@ SOURCE_WATCH_TOP_N=3 \
 - `scripts/source_watch/cn_drafts_typefully_last.json` — Typefully API responses (with `private_url`)
 - `scripts/source_watch/downloaded_videos/<tweet_id>.mp4` — for video tweets
 
+## Dedupe state files
+
+Both layers persist between runs so the same tweet is never sent twice.
+
+| File | Updated by | Effect |
+|------|------------|--------|
+| `scripts/source_watch/en_digest_posted_ids.json` | `fetch_en_top10_discord.py` | Skip already-picked tweet ids during fetch ranking |
+| `scripts/source_watch/cn_drafts_posted_ids.json` | `generate_cn_drafts_fluxnode.py` | Skip already-drafted tweet ids before calling Fluxnode/Typefully |
+
+If `fetch_en_top10_discord.py` finds nothing new, it writes an empty `items` list to `en_digest_last_batch.json`, and `run_pipeline.sh` skips the generate step (no stale Typefully drafts).
+
+If every batch item was drafted before, `generate_cn_drafts_fluxnode.py` exits with `All batch items were already drafted in a previous run.`
+
+To intentionally re-send a tweet, delete the matching id (or the entire state file) before running the skill.
+
 ## Customizing the pool
 
 Edit `scripts/source_watch/en_sources_by_category.json`:

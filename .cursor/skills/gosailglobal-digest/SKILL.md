@@ -81,6 +81,15 @@ Edit `scripts/source_watch/en_sources_by_category.json`:
 
 Re-run the pipeline after editing.
 
+## Dedupe (two layers)
+
+The pipeline never re-publishes the same tweet:
+
+1. `fetch_en_top10_discord.py` writes selected tweet ids to `en_digest_posted_ids.json`. Future fetch runs skip ids in that file before ranking.
+2. `generate_cn_drafts_fluxnode.py` writes successfully-drafted tweet ids to `cn_drafts_posted_ids.json`. On the next run, items already in this file are dropped from the batch before any Fluxnode/Typefully call. If every item was drafted before, the script exits early with `Done. All batch items were already drafted in a previous run.`
+
+Both state files live under `scripts/source_watch/` and are gitignored. Delete the file you want to "re-send" if you intentionally need to repost a tweet.
+
 ## Behavior notes
 
 - Media routing in `generate_cn_drafts_fluxnode.py`:
