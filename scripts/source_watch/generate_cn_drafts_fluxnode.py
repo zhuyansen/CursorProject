@@ -76,6 +76,7 @@ TWEETS_PATH = Path("/workspace/twitterapi_90d_report/tweets_90d.jsonl")
 DEFAULT_CONFIG = SCRIPT_DIR / "config.json"
 OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
 OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
+DRAFT_STATE_PATH = SCRIPT_DIR / "cn_drafts_posted_ids.json"
 VIDEO_DIR = SCRIPT_DIR / "downloaded_videos"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
@@ -646,6 +647,21 @@ def main() -> None:
     if not items:
         raise SystemExit("Batch has no items.")
 
+    drafted_ids: set[str] = set()
+    if DRAFT_STATE_PATH.is_file():
+        try:
+            drafted_ids = {str(x) for x in _load_json(DRAFT_STATE_PATH) if str(x).strip()}
+        except (json.JSONDecodeError, ValueError):
+            drafted_ids = set()
+    pre_count = len(items)
+    items = [it for it in items if str(it.get("id") or "") not in drafted_ids]
+    skipped = pre_count - len(items)
+    if skipped:
+        print(f"Skipping {skipped} item(s) already drafted in Typefully.", flush=True)
+    if not items:
+        print("Done. All batch items were already drafted in a previous run.", flush=True)
+        return
+
     cfg_path = Path(os.environ.get("SOURCE_WATCH_CONFIG", str(DEFAULT_CONFIG)))
     webhook = os.environ.get("DISCORD_WEBHOOK_URL", "").strip()
     if not webhook and cfg_path.is_file():
@@ -783,6 +799,8 @@ def main() -> None:
             "source_url": url,
             "typefully_response": tf_resp,
         }
+        if tweet_id and isinstance(tf_resp, dict) and (tf_resp.get("draft_id") or tf_resp.get("id")):
+            drafted_ids.add(tweet_id)
         results.append(row)
         text_rows.append(
             {
@@ -819,7 +837,15 @@ def main() -> None:
             "items": text_rows,
         },
     )
-    print(f"Done. Typefully log: {OUT_LOG}\nFull Chinese text: {OUT_TEXT}", flush=True)
+    drafted_list = sorted(drafted_ids)
+    if len(drafted_list) > 4000:
+        drafted_list = drafted_list[-4000:]
+    _save_json(DRAFT_STATE_PATH, drafted_list)
+    print(
+        f"Done. Typefully log: {OUT_LOG}\nFull Chinese text: {OUT_TEXT}\n"
+        f"Draft state: {DRAFT_STATE_PATH} ({len(drafted_list)} ids)",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
