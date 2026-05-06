@@ -375,6 +375,10 @@ def main() -> None:
             webhook,
             "（本轮没有符合条件的低粉英文 AI 热帖：12h / >100k views / <50k followers / AI关键词。下轮再试。）",
         )
+        _save_json(
+            BATCH_PATH,
+            {"window_label": window_label, "window_hours": window_hours, "items": []},
+        )
         print("No new tweets to post.", flush=True)
         return
 
