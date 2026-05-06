@@ -280,15 +280,27 @@ def main() -> None:
     errors: list[str] = []
     errors.extend(list_errors)
 
+    rate_delay = float(os.environ.get("SOURCE_WATCH_RATE_DELAY", "0.4"))
     for i, user in enumerate(handles):
-        try:
-            tws = _fetch_user_tweets(api_key, user, include_replies, per_user)
-        except urllib.error.HTTPError as e:
-            errors.append(f"@{user} HTTP {e.code}")
-            tws = []
-        except urllib.error.URLError as e:
-            errors.append(f"@{user} {e}")
-            tws = []
+        attempt = 0
+        backoff = 1.0
+        while True:
+            attempt += 1
+            try:
+                tws = _fetch_user_tweets(api_key, user, include_replies, per_user)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < 4:
+                    time.sleep(backoff)
+                    backoff *= 2
+                    continue
+                errors.append(f"@{user} HTTP {e.code}")
+                tws = []
+                break
+            except urllib.error.URLError as e:
+                errors.append(f"@{user} {e}")
+                tws = []
+                break
         for t in tws:
             tid = str(t.get("id") or "")
             if not tid:
@@ -298,9 +310,9 @@ def main() -> None:
                 continue
             if tid not in all_tweets:
                 all_tweets[tid] = t
-        time.sleep(0.2)
+        time.sleep(rate_delay)
         if (i + 1) % 20 == 0:
-            time.sleep(0.5)
+            time.sleep(rate_delay * 2)
 
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(hours=window_hours)
