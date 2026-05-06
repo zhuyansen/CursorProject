@@ -20,6 +20,22 @@ PY="${PYTHON:-python3}"
 echo "[1/2] fetch_en_top10_discord.py"
 "$PY" fetch_en_top10_discord.py
 
+batch_count=$("$PY" - <<'PY'
+import json, os
+from pathlib import Path
+p = Path("en_digest_last_batch.json")
+if not p.is_file():
+    print(0); raise SystemExit
+data = json.loads(p.read_text(encoding="utf-8"))
+print(len(data.get("items") or []))
+PY
+)
+
+if [ "${batch_count}" = "0" ]; then
+  echo "[2/2] skipped — no fresh batch from fetch step"
+  exit 0
+fi
+
 echo "[2/2] generate_cn_drafts_fluxnode.py"
 "$PY" generate_cn_drafts_fluxnode.py
 
