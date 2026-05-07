@@ -88,13 +88,22 @@ def _best_mp4_from_video_info(video_info: dict[str, Any]) -> str | None:
 
 def extract_primary_photo_url(tweet: dict[str, Any]) -> str | None:
     """First photo media_url_https or media_url (large)."""
+    urls = extract_photo_urls(tweet, limit=1)
+    return urls[0] if urls else None
+
+
+def extract_photo_urls(tweet: dict[str, Any], limit: int = 4) -> list[str]:
+    """All photo media_url_https / media_url, in original order, up to `limit`."""
+    out: list[str] = []
     for m in _media_entries(tweet_body_for_media(tweet)):
         if str(m.get("type") or "").lower() != "photo":
             continue
         u = (m.get("media_url_https") or m.get("media_url") or "").strip()
-        if u:
-            return u
-    return None
+        if u and u not in out:
+            out.append(u)
+            if len(out) >= limit:
+                break
+    return out
 
 
 def extract_primary_video_url(tweet: dict[str, Any]) -> str | None:

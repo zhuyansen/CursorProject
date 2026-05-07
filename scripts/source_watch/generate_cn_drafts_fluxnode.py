@@ -64,6 +64,7 @@ from tweet_media_utils import (
     MEDIA_VIDEO,
     capcut_instruction_block,
     download_url_to_file,
+    extract_photo_urls,
     extract_primary_photo_url,
     extract_primary_video_url,
     fetch_tweet_by_id,
@@ -78,6 +79,7 @@ OUT_LOG = SCRIPT_DIR / "cn_drafts_typefully_last.json"
 OUT_TEXT = SCRIPT_DIR / "cn_drafts_text_last.json"
 DRAFT_STATE_PATH = SCRIPT_DIR / "cn_drafts_posted_ids.json"
 VIDEO_DIR = SCRIPT_DIR / "downloaded_videos"
+PHOTO_DIR = SCRIPT_DIR / "downloaded_photos"
 
 TYPEFULLY_BASE = "https://api.typefully.com/v2"
 # Fluxnode OpenAI-compatible gateway (chat + images share this host unless you override).
@@ -726,6 +728,8 @@ def main() -> None:
 
         media_ids: list[str] = []
         video_local: Path | None = None
+        photos_local: list[Path] = []
+
         if media_kind == MEDIA_VIDEO and detail:
             vurl = extract_primary_video_url(detail)
             if vurl and tweet_id:
@@ -740,19 +744,38 @@ def main() -> None:
                     draft += f"\n\n（原推含视频；自动下载/上传到 Typefully 失败：{e}）"
             draft += capcut_instruction_block(draft_zh=draft, video_path=video_local, source_url=url)
 
-        allow_image_gen = media_kind in (MEDIA_TEXT_ONLY, MEDIA_TEXT_WITH_IMAGE)
-        if image_model and allow_image_gen:
+        if media_kind == MEDIA_TEXT_WITH_IMAGE and detail and tweet_id:
+            photo_urls = extract_photo_urls(detail, limit=4)
+            if photo_urls:
+                PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+            for idx, purl in enumerate(photo_urls):
+                ext = ".jpg"
+                low = purl.lower()
+                if "png" in low:
+                    ext = ".png"
+                elif "webp" in low:
+                    ext = ".webp"
+                dest = PHOTO_DIR / f"{tweet_id}-{idx}{ext}"
+                try:
+                    download_url_to_file(purl, dest, timeout=120)
+                    photos_local.append(dest)
+                    media_ids.append(
+                        _typefully_upload_media(tf_key, social_set_id, dest.read_bytes(), dest.name)
+                    )
+                except Exception as e:
+                    draft += f"\n\n（原推图 {idx + 1} 自动下载/上传到 Typefully 失败：{e}）"
+                if len(media_ids) >= 4:
+                    break
+
+        allow_image_gen = (
+            bool(image_model)
+            and media_kind == MEDIA_TEXT_ONLY
+            and not media_ids
+        )
+        if allow_image_gen:
             try:
-                ref_bytes: bytes | None = None
-                ref_name = "ref.jpg"
-                if media_kind == MEDIA_TEXT_WITH_IMAGE and detail:
-                    purl = extract_primary_photo_url(detail)
-                    if purl:
-                        ref_bytes, ref_name = _download_bytes(purl)
                 if os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip():
                     ip = os.environ.get("NEWAPI_IMAGE_PROMPT", "").strip()
-                elif ref_bytes:
-                    ip = _edit_prompt_for_photo(draft)
                 else:
                     ip = _default_cover_image_prompt(text, draft)
                 image_key_chain = [newapi_image_key, newapi_key]
@@ -762,8 +785,6 @@ def main() -> None:
                     image_model,
                     ip,
                     image_size,
-                    ref_image_bytes=ref_bytes,
-                    ref_image_filename=ref_name,
                 )
                 if img_url:
                     img_bytes, fname = _download_bytes(img_url)
@@ -771,15 +792,15 @@ def main() -> None:
             except Exception as e:
                 err_short = str(e).replace("\n", " ")[:420]
                 draft += (
-                    "\n\n（配图未生成："
+                    "\n\n（AI 配图未生成："
                     + err_short
                     + " 若单独设置了 NEWAPI_IMAGE_KEY 且报 Invalid token，可删掉该变量改用与聊天相同的 key，"
                     "或换一把有「生图」权限的 token。）"
                 )
-        elif image_model and not allow_image_gen and media_kind != MEDIA_VIDEO:
+        elif image_model and media_kind not in (MEDIA_TEXT_ONLY, MEDIA_TEXT_WITH_IMAGE, MEDIA_VIDEO):
             draft += (
                 f"\n\n（本轮跳过 AI 配图：原推类型为 `{media_kind}`，"
-                "仅对纯文字或「文字+图片」原推生图。）"
+                "仅对纯文字或「文字+图片」原推处理图片。）"
             )
 
         try:
@@ -810,6 +831,7 @@ def main() -> None:
                 "source_url": url,
                 "media_kind": media_kind,
                 "video_local_path": str(video_local) if video_local else "",
+                "photo_local_paths": [str(p) for p in photos_local],
                 "draft_zh": draft,
                 "typefully_draft_id": tf_resp.get("draft_id") or tf_resp.get("id"),
                 "typefully_private_url": tf_resp.get("private_url") or "",
