@@ -41,6 +41,8 @@ Cursor Secrets are injected only when a new cloud agent VM starts. Rotating valu
 
 ## Quick start
 
+Always use the runner; the runner enforces both dedupe layers and skips generate when fetch produced nothing new.
+
 Strict run (12h, low-follower, ≥100k views):
 
 ```bash
@@ -48,13 +50,14 @@ cd scripts/source_watch
 ./run_pipeline.sh
 ```
 
-Loosened test run (24h, ≥20k views, Top 3):
+Loosened retry (24h, ≥20k views, Top 3, slower pacing for twitterapi.io):
 
 ```bash
 cd scripts/source_watch
 SOURCE_WATCH_TOP_N=3 \
   SOURCE_WATCH_WINDOW_HOURS=24 \
   SOURCE_WATCH_MIN_VIEW_COUNT=20000 \
+  SOURCE_WATCH_RATE_DELAY=0.6 \
   ./run_pipeline.sh
 ```
 
@@ -94,9 +97,11 @@ Edit `scripts/source_watch/en_sources_by_category.json`:
 
 - `Need DISCORD_WEBHOOK_URL` — set the webhook secret or add it to `config.json`/`.env`.
 - `HTTP 402 Credits is not enough` from twitterapi.io — recharge or rotate the key in Cursor Secrets, then start a new cloud agent.
+- `HTTP 429 Too Many Requests` from twitterapi.io — the script already backs off; raise `SOURCE_WATCH_RATE_DELAY` (default `0.4`s).
 - `HTTP 401 Invalid token` from Fluxnode — usually a model not allowed for the key; the script auto-remaps `gpt-4` → `claude-opus-4-7-thinking` on `api.fluxnode.org`. Confirm the model id in your Fluxnode console.
 - `SignatureDoesNotMatch` from Typefully S3 — already handled by the script's raw PUT; if it returns, ensure no proxy is rewriting headers.
-- `No new tweets to post.` — strict thresholds did not match. Re-run with the loosened env vars above.
+- `No new tweets to post.` — strict thresholds did not match. Re-run with the loosened env vars above; do not delete dedupe state.
+- `[2/2] skipped — no fresh batch from fetch step` — runner correctly avoided creating duplicate Typefully drafts.
 
 ## Files in this skill
 
