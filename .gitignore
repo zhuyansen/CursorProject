@@ -61,6 +61,8 @@ scripts/source_watch/en_digest_last_batch.json
 scripts/source_watch/cn_drafts_typefully_last.json
 scripts/source_watch/cn_drafts_text_last.json
 scripts/source_watch/cn_drafts_posted_ids.json
+scripts/source_watch/jp_chindogu_typefully_last.json
+scripts/source_watch/jp_chindogu_posted_titles.json
 scripts/source_watch/downloaded_videos/
 scripts/source_watch/downloaded_photos/
 
