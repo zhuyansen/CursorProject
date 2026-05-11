@@ -28,6 +28,7 @@ yarn-error.log*
 # env files
 .env*.local
 .env
+scripts/source_watch/.env
 
 # vercel
 .vercel
@@ -52,8 +53,28 @@ Thumbs.db
 logs
 *.log
 
+# Local secrets — Discord webhook / twitterapi key paths
+scripts/source_watch/config.json
+scripts/source_watch/*.state.json
+scripts/source_watch/en_digest_posted_ids.json
+scripts/source_watch/en_digest_last_batch.json
+scripts/source_watch/cn_drafts_typefully_last.json
+scripts/source_watch/cn_drafts_text_last.json
+scripts/source_watch/cn_drafts_posted_ids.json
+scripts/source_watch/jp_chindogu_typefully_last.json
+scripts/source_watch/jp_chindogu_posted_titles.json
+scripts/source_watch/downloaded_videos/
+scripts/source_watch/downloaded_photos/
+
+# twitterapi.io 90d scrape output (large; regenerate locally)
+twitterapi_90d_report/
+
 # Runtime data
 pids
 *.pid
 *.seed
-*.pid.lock 
+*.pid.lock
+
+# Python
+__pycache__/
+*.py[cod]
