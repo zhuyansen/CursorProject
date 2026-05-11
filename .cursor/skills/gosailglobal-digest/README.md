@@ -103,6 +103,30 @@ Edit `scripts/source_watch/en_sources_by_category.json`:
 - `No new tweets to post.` — strict thresholds did not match. Re-run with the loosened env vars above; do not delete dedupe state.
 - `[2/2] skipped — no fresh batch from fetch step` — runner correctly avoided creating duplicate Typefully drafts.
 
+## Bulk article → Typefully (single drafts or one thread)
+
+For curated listicles like `https://rarehistoricalphotos.com/weird-japanese-inventions/`:
+
+```bash
+# Default: one Typefully draft per item, image attached
+python3 scripts/source_watch/post_chindogu_typefully.py
+
+# Or bundle the whole article into ONE Typefully thread draft
+python3 scripts/source_watch/post_chindogu_typefully.py --thread
+
+# Useful flags
+python3 scripts/source_watch/post_chindogu_typefully.py --limit 5
+python3 scripts/source_watch/post_chindogu_typefully.py --start 10
+python3 scripts/source_watch/post_chindogu_typefully.py --thread --dry-run
+```
+
+Outputs:
+
+- `scripts/source_watch/jp_chindogu_typefully_last.json` — last run summary (per-item drafts or `thread_draft` with `posts`)
+- `scripts/source_watch/jp_chindogu_posted_titles.json` — dedupe state for single-draft mode
+
+Implementation note: thread mode uses `_typefully_create_thread_draft` (from `generate_cn_drafts_fluxnode.py`) to submit one Typefully draft with N+2 `posts[]` entries (intro + items + outro). Meta paragraphs the model sometimes appends (`⚠️ 顺便提醒…`, "prompt injection") are stripped before submission.
+
 ## Files in this skill
 
 - `SKILL.md` — Cursor frontmatter (description) used by the agent runtime.

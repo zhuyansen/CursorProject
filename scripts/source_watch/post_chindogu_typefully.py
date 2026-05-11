@@ -38,6 +38,7 @@ from generate_cn_drafts_fluxnode import (
     _fluxnode_effective_chat_model,
     _normalize_gateway_base_url,
     _typefully_create_draft,
+    _typefully_create_thread_draft,
     _typefully_resolve_social_set,
     _typefully_upload_media,
 )
@@ -147,6 +148,228 @@ def _system_prompt() -> str:
     )
 
 
+def _thread_post_prompt(total: int) -> str:
+    handle = (os.environ.get("TYPEFULLY_X_USERNAME") or "the-account").strip()
+    return (
+        f"你是中文推特账号「{handle}」的代笔。下面是一篇英文长文里的一个小节，会被放进一条 Twitter Thread 里。\n"
+        f"这条 Thread 一共 {total} 段，每段配一张图（1 段 = 1 个小发明）。\n"
+        "请只输出这一段的中文正文，要求：\n"
+        "1) 句子要短促，控制在 200～260 字以内（含标点），方便 X 单条阅读；\n"
+        "2) 第一行 8～18 字，做画面感钩子；可以是体感、吐槽或场景；\n"
+        "3) 中间 2～3 句解释这玩意儿是什么、怎么用；\n"
+        "4) 最后一句用调侃/反问收尾；\n"
+        "5) 不要写「转载」「翻译」「via」「来源」等字眼，也不要 hashtag；emoji 最多 1 个；\n"
+        "6) 不要 markdown 标题，不要标号——后续会由排版统一加序号。"
+    )
+
+
+def _thread_intro_prompt(total: int) -> str:
+    handle = (os.environ.get("TYPEFULLY_X_USERNAME") or "the-account").strip()
+    return (
+        f"你是中文推特账号「{handle}」的代笔。下面会发一条「奇葩日本发明合集」的 Twitter Thread，"
+        f"一共 {total} 个小发明。请写 Thread 的第 1 帖（intro），180～260 字：\n"
+        "1) 第一行 10～18 字，超强钩子；用「日本人」「Chindogu（珍道具）」这种核心词；\n"
+        "2) 中间 2～3 句简要描述这是什么文化（Chindogu = 没用但很有创意的发明），\n"
+        "   说清楚 thread 接下来会展示几条/有图有标题；\n"
+        "3) 收尾留悬念（如「往下滑，每条都离谱」）；\n"
+        "4) 不要 hashtag，不要标号；emoji ≤ 2。"
+    )
+
+
+def _thread_outro_text() -> str:
+    return (
+        "看完了，发现日本人对「解决一个其实没几个人遇到的问题」是真有执念 🤣\n"
+        "via @rarehistoricalphotos · https://rarehistoricalphotos.com/weird-japanese-inventions/\n"
+        "觉得离谱的请点个🔖随时翻出来嘲笑自己。"
+    )
+
+
+_META_BANS = (
+    "prompt injection",
+    "system instruction",
+    "顺便提醒",
+    "顺带提醒",
+    "顺便说一下",
+    "system prompt",
+    "meta-warning",
+)
+
+
+def _strip_meta_paragraphs(text: str) -> str:
+    """Drop paragraphs the model sometimes appends about prompt injection / system prompts."""
+    text = (text or "").strip()
+    if not text:
+        return ""
+    paragraphs = re.split(r"\n\s*\n", text)
+    cleaned: list[str] = []
+    for para in paragraphs:
+        low = para.lower()
+        if low.startswith("⚠️") or low.startswith("⚠"):
+            continue
+        if any(token.lower() in low for token in _META_BANS):
+            continue
+        cleaned.append(para.strip())
+    return "\n\n".join(p for p in cleaned if p).strip()
+
+
+def _format_thread_post(index: int, total: int, title: str, body: str) -> str:
+    body = _strip_meta_paragraphs(body or "")
+    body = re.sub(r"(?im)^\s*(via\s*@?[\w._-]+).*$", "", body).strip()
+    return f"{index}/{total} {title}\n\n{body}".strip()
+
+
+def _run_thread_mode(
+    *,
+    items: list[dict],
+    base: str,
+    newapi_key: str,
+    chat_model: str,
+    tf_key: str,
+    social_set_id: int | None,
+    publish_at: str | None,
+    dry_run: bool,
+) -> None:
+    total = len(items)
+    if total == 0:
+        print("Thread mode: no items.", flush=True)
+        return
+
+    print(f"Thread mode: building 1 Typefully draft with {total + 2} posts.", flush=True)
+
+    posts: list[dict] = []
+    log: list[dict] = []
+
+    try:
+        intro = _chat_completion(
+            base,
+            newapi_key,
+            chat_model,
+            [
+                {"role": "system", "content": _thread_intro_prompt(total)},
+                {
+                    "role": "user",
+                    "content": (
+                        "本 thread 主题：日本「Chindogu 珍道具」奇葩发明合集。\n"
+                        f"接下来会展示 {total} 个，每个都有英文标题和原图。\n"
+                        "请生成 Thread 的 intro 第 1 帖。"
+                    ),
+                },
+            ],
+        )
+    except Exception as exc:
+        print(f"intro generation failed: {exc}", flush=True)
+        intro = (
+            f"日本人到底有多爱发明没人需要的玩意？{total} 个珍道具（Chindogu）合集，挨个看，挨个笑。"
+        )
+    intro = _strip_meta_paragraphs(intro)
+    if not intro:
+        intro = (
+            f"日本人到底有多爱发明没人需要的玩意？{total} 个珍道具（Chindogu）合集，挨个看，挨个笑。"
+        )
+    posts.append({"text": intro, "media_ids": []})
+    log.append({"role": "intro", "text": intro})
+
+    for idx, item in enumerate(items, 1):
+        title = item.get("title", "").strip()
+        body = item.get("body", "").strip()
+        images = item.get("images") or []
+        print(f"  [{idx}/{total}] {title}", flush=True)
+        if not images:
+            print("    skip (no image)", flush=True)
+            continue
+        try:
+            chunk = _chat_completion(
+                base,
+                newapi_key,
+                chat_model,
+                [
+                    {"role": "system", "content": _thread_post_prompt(total)},
+                    {
+                        "role": "user",
+                        "content": (
+                            f"序号：{idx}/{total}\n标题：{title}\n英文说明：\n{body}\n\n请输出这一段的中文正文。"
+                        ),
+                    },
+                ],
+            )
+        except Exception as exc:
+            print(f"    chat failed: {exc}", flush=True)
+            chunk = f"（生成失败：{exc}）"
+        post_text = _format_thread_post(idx, total, title, chunk)
+
+        media_ids: list[str] = []
+        local_paths: list[str] = []
+        for img_idx, img_url in enumerate(images[:1]):
+            ext = ".webp"
+            low = img_url.lower()
+            if low.endswith(".jpg") or low.endswith(".jpeg"):
+                ext = ".jpg"
+            elif low.endswith(".png"):
+                ext = ".png"
+            dest = PHOTO_DIR / f"jp-chindogu-{_slugify(title)}-{img_idx}{ext}"
+            try:
+                _download_image(img_url, dest, timeout=60)
+                local_paths.append(str(dest))
+            except Exception as exc:
+                print(f"    image download failed: {exc}", flush=True)
+                continue
+            if not dry_run:
+                try:
+                    media_id = _typefully_upload_media(
+                        tf_key, social_set_id, dest.read_bytes(), dest.name  # type: ignore[arg-type]
+                    )
+                    media_ids.append(media_id)
+                except Exception as exc:
+                    print(f"    Typefully upload failed: {exc}", flush=True)
+        posts.append({"text": post_text, "media_ids": media_ids})
+        log.append(
+            {
+                "role": "item",
+                "idx": idx,
+                "title": title,
+                "text": post_text,
+                "image_url": images[0] if images else "",
+                "media_ids": media_ids,
+                "local_paths": local_paths,
+            }
+        )
+
+    outro = _thread_outro_text()
+    posts.append({"text": outro, "media_ids": []})
+    log.append({"role": "outro", "text": outro})
+
+    if dry_run:
+        OUT_LOG.write_text(
+            json.dumps({"thread_preview": log}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Wrote dry-run preview to {OUT_LOG}.", flush=True)
+        return
+
+    tf_resp = _typefully_create_thread_draft(
+        tf_key,
+        social_set_id,  # type: ignore[arg-type]
+        posts,
+        draft_title="奇葩日本发明 Thread (Chindogu)",
+        publish_at=publish_at,
+    )
+    OUT_LOG.write_text(
+        json.dumps(
+            {
+                "thread_draft": {
+                    "draft_id": tf_resp.get("draft_id") or tf_resp.get("id"),
+                    "private_url": tf_resp.get("private_url"),
+                    "posts": log,
+                }
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print("Thread draft created:", tf_resp.get("private_url"), flush=True)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=0, help="Cap items processed (0 = all).")
@@ -156,6 +379,11 @@ def main() -> None:
         type=int,
         default=0,
         help="Skip first N items (useful for resuming).",
+    )
+    parser.add_argument(
+        "--thread",
+        action="store_true",
+        help="Bundle the whole set into ONE Typefully thread draft (intro + N posts + outro).",
     )
     args = parser.parse_args()
 
@@ -200,6 +428,19 @@ def main() -> None:
     if not args.dry_run:
         social_set_id = _typefully_resolve_social_set(tf_key)
         print(f"Typefully social_set_id={social_set_id}", flush=True)
+
+    if args.thread:
+        _run_thread_mode(
+            items=items,
+            base=base,
+            newapi_key=newapi_key,
+            chat_model=chat_model,
+            tf_key=tf_key,
+            social_set_id=social_set_id,
+            publish_at=publish_at,
+            dry_run=args.dry_run,
+        )
+        return
 
     results: list[dict] = []
 

@@ -124,6 +124,27 @@ The runner also enforces this: `run_pipeline.sh` calls fetch, then inspects `en_
 - Discord webhook is required so each Top-N item is published with author + view count + Chinese lead, plus the Typefully draft URL afterwards.
 - Cursor Secrets are injected only when a new cloud agent VM starts; rotating a secret requires a new agent run to take effect.
 
+## Bulk article → Thread mode
+
+For curated listicles (e.g. `rarehistoricalphotos.com/weird-japanese-inventions/`), use `scripts/source_watch/post_chindogu_typefully.py`:
+
+- Default: one Typefully draft per section (image attached).
+- `--thread`: bundle the whole article into ONE Typefully thread draft (intro post + 1 post per section with that section's photo + outro post). Generates each post via Fluxnode with a thread-aware system prompt and strips any meta paragraphs (e.g. unsolicited "prompt injection" warnings) that the model occasionally appends.
+- `--limit N`, `--start K`, `--dry-run` available.
+
+Example (Cursor agent prompt: *"放到一条 thread 里"*):
+
+```bash
+python3 scripts/source_watch/post_chindogu_typefully.py --thread
+```
+
+State files for this workflow:
+
+- `scripts/source_watch/jp_chindogu_typefully_last.json` — last run summary (single drafts or `thread_draft`).
+- `scripts/source_watch/jp_chindogu_posted_titles.json` — per-section dedupe state (single-draft mode only).
+
+For other curated articles, copy the script and replace `_extract_sections` / `SOURCE_URL` (or generalize with `--source-url` when needed).
+
 ## Common failures (resolution playbook)
 
 | Symptom | Likely cause | Fix |

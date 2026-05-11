@@ -583,6 +583,48 @@ def _typefully_create_draft(
     )
 
 
+def _typefully_create_thread_draft(
+    api_key: str,
+    social_set_id: int,
+    posts: list[dict],
+    draft_title: str,
+    publish_at: str | None,
+) -> dict:
+    """Create a Typefully draft containing multiple X posts (a thread).
+
+    `posts` is a list of dicts, each with `text` (required) and `media_ids` (optional list).
+    """
+    payload_posts: list[dict] = []
+    for entry in posts:
+        text = str(entry.get("text") or "").strip()
+        if not text:
+            continue
+        post: dict = {"text": text[:24000]}
+        media_ids = entry.get("media_ids") or []
+        if media_ids:
+            post["media_ids"] = list(media_ids)
+        payload_posts.append(post)
+    if not payload_posts:
+        raise RuntimeError("Typefully thread payload has no posts.")
+    payload: dict = {
+        "platforms": {
+            "x": {
+                "enabled": True,
+                "posts": payload_posts,
+            }
+        },
+        "draft_title": draft_title[:200],
+    }
+    if publish_at:
+        payload["publish_at"] = publish_at
+    return _http_post_json(
+        f"{TYPEFULLY_BASE}/social-sets/{social_set_id}/drafts",
+        api_key,
+        payload,
+        timeout=120,
+    )
+
+
 def _chunks(text: str, size: int = 1850) -> list[str]:
     lines = text.split("\n")
     buf: list[str] = []
